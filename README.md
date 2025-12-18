@@ -2,7 +2,7 @@
 
 Cotizador automático de impresión 3D para MechatronicStore.
 
-**URL:** https://3d.mechatronicstore.cl
+**URL Producción:** https://3d.mechatronicstore.cl
 
 ## Estructura del Proyecto
 
@@ -10,51 +10,63 @@ Cotizador automático de impresión 3D para MechatronicStore.
 3d-cotizador/
 ├── public/          # Archivos públicos (HTML, CSS, JS, assets)
 │   └── index.html   # Página principal
-├── src/             # Código fuente (si usas PHP u otro backend)
+├── src/             # Código fuente (backend PHP si lo necesitas)
 └── README.md
 ```
 
-## Requisitos
+## Stack Recomendado
 
-- El servidor está configurado con Apache
-- PHP 8.x disponible si lo necesitas
-- El dominio ya apunta al servidor (3d.mechatronicstore.cl)
+- **Frontend:** HTML5, CSS3, JavaScript (Vanilla o React/Vue)
+- **Visualización 3D:** Three.js con STLLoader
+- **Backend (opcional):** PHP 8.x
+- **Estilos:** Tailwind CSS (recomendado) o CSS propio
 
-## Deploy
+## Deploy Automático
 
-El proyecto usa dos remotes de Git:
+El proyecto tiene **deploy automático** al servidor de producción.
 
-1. **origin** - GitHub (para colaboración y backup)
-2. **vps** - Servidor de producción (deploy directo)
+### Remotes configurados:
 
-### Para subir cambios:
+| Remote | Destino | Uso |
+|--------|---------|-----|
+| `origin` | GitHub | Colaboración y backup |
+| `vps` | Servidor producción | Deploy directo |
+
+### Comandos:
 
 ```bash
-# Subir a GitHub
+# Subir a GitHub (backup)
 git push origin main
 
-# Subir a producción
+# Subir a producción (deploy automático)
 git push vps main
+
+# Subir a ambos
+git push origin main && git push vps main
 ```
 
-### Flujo recomendado:
+## Flujo de Trabajo
 
-1. Hacer cambios localmente
-2. Commit: `git add . && git commit -m "descripción"`
-3. Push a ambos: `git push origin main && git push vps main`
+1. Clonar el repositorio
+2. Hacer cambios en `public/`
+3. Probar localmente abriendo `public/index.html`
+4. Commit: `git add . && git commit -m "descripción"`
+5. Push: `git push vps main` (deploy automático)
 
-## Configuración inicial (ya hecha)
+## Funcionalidades Sugeridas
 
-El DNS en Cloudflare ya está configurado:
-- Registro A: `3d` → `147.93.11.63`
+1. **Upload de archivos STL** - Drag & drop o botón
+2. **Visor 3D interactivo** - Rotar, zoom, pan con Three.js
+3. **Calculador de precio** - Basado en volumen, material, calidad
+4. **Formulario de cotización** - Nombre, email, comentarios
+5. **Galería de trabajos** - Portfolio de impresiones
 
-## Ideas para el proyecto
+## Recursos Útiles
 
-- Visor 3D de archivos STL (usar Three.js)
-- Calculador de precio basado en volumen/material
-- Formulario de cotización
-- Galería de trabajos anteriores
+- [Three.js Docs](https://threejs.org/docs/)
+- [STLLoader Example](https://threejs.org/examples/#webgl_loader_stl)
+- [Tailwind CSS](https://tailwindcss.com/docs)
 
 ## Contacto
 
-Para acceso al servidor o dudas técnicas, contactar a Pablo.
+Dudas técnicas o acceso al servidor → Pablo
