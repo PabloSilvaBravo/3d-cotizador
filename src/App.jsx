@@ -1,91 +1,208 @@
-// src/App.jsx
-import { useState, useEffect, useMemo } from 'react';
-import Scene3D from './components/Scene3D';
-import Model from './components/Model';
-import UploadZone from './components/UploadZone';
-import Interface from './components/Interface';
-import { usePrusaQuote } from './hooks/usePrusaQuote'; // Nuevo Hook
-import { PRICING_CONFIG, MATERIAL_RATES } from './utils/constants';
+import React, { useState, useEffect, useRef } from 'react';
+import FileUpload from './components/ui/FileUpload';
+import Viewer3D from './components/Viewer3D';
+import Configurator from './components/ui/Configurator';
+import PriceSummary from './components/ui/PriceSummary';
+import OrderModal from './components/OrderModal';
+import { DEFAULT_CONFIG, COLORS } from './utils/constants';
+import { calculatePriceFromStats } from './utils/pricingEngine';
 
-export default function App() {
-    const [fileUrl, setFileUrl] = useState(null); // URL para Three.js
-    const [fileObj, setFileObj] = useState(null); // Archivo real para Backend
+import { useBackendQuote } from './hooks/useBackendQuote';
 
-    // Estado de Configuración del usuario
-    const [material, setMaterial] = useState('PLA');
-    const [difficulty, setDifficulty] = useState('normal'); // Esto sigue siendo manual o heurístico
+const App = () => {
+  const [file, setFile] = useState(null);
+  const [fileUrl, setFileUrl] = useState(null);
+  const [localGeometry, setLocalGeometry] = useState(null);
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Hook de Slicing (Backend)
-    const { getQuote, slicerData, loading: isSlicing } = usePrusaQuote();
+  const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
-    // 1. Cuando el usuario suelta un archivo
-    const handleFileUpload = (url, file) => {
-        setFileUrl(url); // Mostrar visualmente
-        setFileObj(file); // Guardar para envío
+  const handleFileSelect = (selectedFile) => {
+    const url = URL.createObjectURL(selectedFile);
+    setFile(selectedFile);
+    setFileUrl(url);
+    setLocalGeometry(null);
+    resetQuote();
+
+    console.log("📂 Archivo cargado:", selectedFile.name);
+    getQuote(selectedFile, config.material, config.qualityId, config.infill);
+  };
+
+  const handleGeometryLoaded = (data) => {
+    setLocalGeometry(data);
+  };
+
+  const handleConfigChange = (newConfig) => {
+    const updatedConfig = { ...config, ...newConfig };
+    setConfig(updatedConfig);
+
+    const isPriceAffecting =
+      (newConfig.material !== undefined && newConfig.material !== config.material) ||
+      (newConfig.qualityId !== undefined && newConfig.qualityId !== config.qualityId) ||
+      (newConfig.infill !== undefined && newConfig.infill !== config.infill);
+
+    if (file && isPriceAffecting) {
+      console.log("🔄 Recotizando por cambio de configuración...");
+      getQuote(file, updatedConfig.material, updatedConfig.qualityId, updatedConfig.infill);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
     };
+  }, [fileUrl]);
 
-    // 2. Efecto: Cuando cambia el archivo o material, pedir cotización al servidor
-    useEffect(() => {
-        if (fileObj) {
-            getQuote(fileObj, {
-                material,
-                infill: '15%', // Podrías hacerlo dinámico
-                hasSupports: difficulty === 'alta' // Ejemplo: Si es alta dificultad, activar soportes en backend
-            });
-        }
-    }, [fileObj, material, difficulty]); // Se dispara al subir archivo o cambiar material/dificultad
+  const currentColorHex = COLORS.find(c => c.id === config.colorId)?.hex || '#ffffff';
 
-    // 3. Cálculo de Precio Final
-    const totalPrice = useMemo(() => {
-        // Si no hay datos del slicer aún, devolvemos 0 o un estimado básico
-        if (!slicerData) return 0;
+  const handleAddToCart = () => {
+    if (!file) return;
+    setIsModalOpen(true);
+  };
 
-        // Fórmula usando DATOS REALES DE PRUSA
-        // Costo Material
-        const materialCost = slicerData.peso * PRICING_CONFIG.costPerGram * MATERIAL_RATES[material].price;
+  const handleReset = () => {
+    setFile(null);
+    setFileUrl(null);
+    setLocalGeometry(null);
+    setConfig(DEFAULT_CONFIG);
+    resetQuote();
+  }
 
-        // Costo Tiempo (Horas reales del slicer)
-        const timeCost = slicerData.tiempoHoras * PRICING_CONFIG.hourlyRate;
+  const handleOrderSubmit = async (customerData) => {
+    console.log("Order Submitted:", { ...customerData, file, config, quoteData });
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      alert("¡Pedido recibido con éxito! Te contactaremos pronto.");
+      setIsModalOpen(false);
+      handleReset();
+    } catch (e) {
+      alert("Error al enviar pedido");
+    }
+  };
 
-        // Extras (Cama, dificultad visual si aplica, aunque el tiempo ya debería incluirlo si el slicer es bueno)
-        // Nota: A veces mantenemos un factor de dificultad extra para post-procesado manual (quitar soportes)
-        const manualLaborFactor = difficulty === 'alta' ? 1.2 : 1.0;
+  const estimateForUI = quoteData ? calculatePriceFromStats(config, {
+    weightGrams: quoteData.peso,
+    timeHours: quoteData.tiempoHoras
+  }) : null;
 
-        let total = (materialCost + timeCost + PRICING_CONFIG.baseBedCost) * manualLaborFactor;
+  useEffect(() => {
+    if (quoteData) {
+      console.group("📊 Datos de Cotización (Debug)");
+      console.log("1. Respuesta del Backend (Física Prusa):", quoteData);
+      console.log("   - Volumen:", quoteData.volumen?.toFixed(2), "cm3");
+      console.log("   - Peso Calculado:", quoteData.peso?.toFixed(2), "g");
+      console.log("   - Tiempo Impresión:", quoteData.tiempoTexto, `(${quoteData.tiempoHoras?.toFixed(2)}h)`);
 
-        return Math.ceil(total / 100) * 100; // Redondeo
-    }, [slicerData, material, difficulty]);
+      if (estimateForUI) {
+        console.log("2. Cálculo del Frontend (Economía CLP):", estimateForUI);
+        console.log(`   - Costo Material (${Math.ceil(estimateForUI.weightGrams)}g): $${estimateForUI.materialCost}`);
+        console.log(`   - Costo Tiempo (${estimateForUI.estimatedTimeHours.toFixed(2)}h): $${estimateForUI.timeCost}`);
+        console.log("   - Tarifa Base: $", estimateForUI.startupFee);
+        console.log("   - PRECIO UNITARIO FINAL: $", estimateForUI.unitPrice);
+      }
+      console.groupEnd();
+    }
+  }, [quoteData, estimateForUI]);
 
+
+  // --- LANDING VIEW (UPLOAD SIMPLE) ---
+  if (!file) {
     return (
-        <div className="relative w-full h-screen bg-[#1a1a1a] overflow-hidden font-sans">
+      <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-brand-light font-sans text-brand-dark overflow-hidden relative">
+        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
-            {/* Zona de Carga */}
-            {!fileUrl && <UploadZone onFileLoaded={handleFileUpload} />}
+        <main className="max-w-4xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up">
 
-            {/* Interfaz Flotante */}
-            {fileUrl && (
-                <Interface
-                    // Pasamos datos del Slicer a la UI
-                    volume={slicerData?.volumen} // cm3 reales? No, el backend devuelve peso. Visualmente podemos usar estimate.
-                    // OJO: El backend devuelve 'peso', 'tiempoTexto', 'tiempoHoras'. El volumen no lo devolvemos explícitamente en el parseSlicerOutput del backend actual.
-                    weight={slicerData?.peso}    // gramos reales
-                    printTime={slicerData?.tiempoTexto} // string "2h 30m"
-
-                    material={material}
-                    setMaterial={setMaterial}
-                    difficulty={difficulty}
-                    setDifficulty={setDifficulty}
-
-                    price={totalPrice}
-                // Adaptamos Interface si no tiene prop isLoading
-                />
-            )}
-
-            {/* Escena 3D - Solo Visualización */}
-            <Scene3D>
-                {fileUrl && <Model url={fileUrl} onStatsCalculated={() => { }} />}
-                {/* Ya no necesitamos stats de Three.js para el precio, solo para visual */}
-            </Scene3D>
-        </div>
+          <div className="w-full max-w-xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10">
+            <FileUpload onFileSelect={handleFileSelect} />
+          </div>
+        </main>
+      </div>
     );
-}
+  }
+
+  // --- APP VIEW (SPLIT SCREEN) ---
+  return (
+    <div className="min-h-screen bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden">
+
+      {/* LEFT COLUMN: 3D VIEWER */}
+      <div className="w-full lg:w-[65%] h-[50vh] lg:h-screen relative p-4 lg:p-6 bg-brand-light flex flex-col">
+        <div className="flex-1 bg-white rounded-3xl shadow-xl overflow-hidden relative ring-1 ring-black/5 group">
+          <div className="absolute top-6 left-6 z-20 flex items-center gap-3">
+            <button
+              onClick={handleReset}
+              className="w-10 h-10 bg-white/90 backdrop-blur border border-brand-light rounded-xl flex items-center justify-center text-brand-dark shadow-sm hover:scale-105 active:scale-95 transition-all group/btn"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+            </button>
+            <div className="bg-white/90 backdrop-blur border border-brand-light px-4 py-2 rounded-xl text-brand-secondary font-bold text-sm shadow-sm">
+              {file.name}
+            </div>
+          </div>
+
+          {fileUrl && (
+            <Viewer3D
+              fileUrl={fileUrl}
+              colorHex={currentColorHex}
+              onGeometryLoaded={handleGeometryLoaded}
+            />
+          )}
+
+          {isLoading && (
+            <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-brand-secondary">
+              <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="font-bold text-lg animate-pulse">Analizando Geometría...</p>
+              <p className="text-xs text-brand-dark/50 mt-2">PrusaSlicer Engine</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* RIGHT COLUMN: CONFIGURATION */}
+      <div className="w-full lg:w-[35%] h-auto lg:h-screen bg-white shadow-2xl z-10 flex flex-col border-l border-brand-light/50">
+        <div className="px-8 py-6 border-b border-brand-light flex justify-between items-center sticky top-0 bg-white/95 backdrop-blur z-20">
+          <h2 className="text-2xl font-black text-brand-secondary tracking-tight">Cotización</h2>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800">
+              <strong>Error de Conexión:</strong> {error}. Verifica que el puerto 3001 esté activo.
+            </div>
+          )}
+
+          <Configurator
+            config={config}
+            geometry={localGeometry}
+            onChange={handleConfigChange}
+          />
+
+          <PriceSummary
+            estimate={estimateForUI}
+            config={config}
+            onAddToCart={handleAddToCart}
+            isLoading={isLoading || !quoteData}
+          />
+        </div>
+      </div>
+
+      <OrderModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleOrderSubmit}
+        orderData={{
+          fileName: file.name,
+          material: config.material,
+          printTime: quoteData?.tiempoTexto || '---',
+          price: estimateForUI?.totalPrice || 0,
+          weight: quoteData?.peso
+        }}
+      />
+
+    </div>
+  );
+};
+
+export default App;

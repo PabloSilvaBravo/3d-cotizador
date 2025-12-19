@@ -1,3 +1,5 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 const { spawn } = require('child_process');
 
 console.log('🚀 Iniciando Entorno H2D...');

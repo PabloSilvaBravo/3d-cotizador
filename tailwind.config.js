@@ -2,23 +2,26 @@
 export default {
     content: [
         "./index.html",
-        "./src/**/*.{js,ts,jsx,tsx}"
+        "./src/**/*.{js,ts,jsx,tsx}",
     ],
     theme: {
         extend: {
             colors: {
                 brand: {
-                    primary: 'var(--brand-primary)', // #22c55e (Verde H2D/Bambu)
-                    secondary: 'var(--brand-secondary)', // #ffffff
-                    accent: 'var(--brand-accent)', // #f59e0b (Naranja Alerta)
-                    dark: 'var(--bg-dark)',
-                    panel: 'var(--bg-panel)',
+                    primary: 'var(--color-brand-primary)',
+                    secondary: 'var(--color-brand-secondary)',
+                    accent: 'var(--color-brand-accent)',
+                    dark: 'var(--color-brand-dark)',
+                    light: 'var(--color-brand-light)',
                 }
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'], // Tipografía moderna
-            }
+                sans: ['Montserrat', 'system-ui', 'sans-serif'],
+            },
+            animation: {
+                'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+            },
         },
     },
     plugins: [],
-};
+}

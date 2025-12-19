@@ -9,7 +9,7 @@ export default function Scene3D({ children }) {
     const bedDepth = 320;
 
     return (
-        <div className="w-full h-screen bg-[#1a1a1a]">
+        <div className="w-full h-screen bg-brand-bg">
             <Canvas
                 shadows
                 camera={{ position: [400, 400, 400], fov: 40 }} // Cámara más alejada para cama grande
@@ -30,10 +30,10 @@ export default function Scene3D({ children }) {
                         args={[bedWidth, bedDepth]}
                         cellSize={10}
                         cellThickness={0.6}
-                        cellColor="#444"
+                        cellColor="#ddd"        // Gris suave para fondo claro
                         sectionSize={50}
                         sectionThickness={1.2}
-                        sectionColor="#22c55e" // Verde Bambu/H2D
+                        sectionColor="#6017b1"  // Morado Corporativo
                         fadeDistance={600}
                     />
                     {/* Borde físico de la cama (opcional para realismo) */}

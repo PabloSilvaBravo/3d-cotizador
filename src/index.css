@@ -1,47 +1,70 @@
-/* src/index.css */
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-    /* Paleta de Colores "H2D PRO" (Estilo Bambu/Prusa) */
-    --brand-primary: #22c55e;
-    /* Verde Vibrante */
-    --brand-secondary: #ffffff;
-    /* Blanco Puro */
-    --brand-accent: #f59e0b;
-    /* Naranja Advertencia */
+    /* PALETA CORPORATIVA EXACTA */
 
-    --bg-dark: #1a1a1a;
-    /* Fondo Principal */
-    --bg-panel: #27272a;
-    /* Fondo Paneles */
+    /* Primary (#6017b1): Morado Corporativo - Color principal de marca */
+    --color-brand-primary: #6017b1;
 
-    --text-main: #e4e4e7;
-    /* Texto Claro */
-    --text-muted: #a1a1aa;
-    /* Texto Secundario */
+    /* Secondary (#4A148C): Morado Oscuro - Títulos y jerarquía (Reemplaza al antiguo 'secondary') */
+    --color-brand-secondary: #4A148C;
+
+    /* Accent (#F1C40F): Amarillo - Llamadas a la acción */
+    --color-brand-accent: #F1C40F;
+
+    /* Text (#333333): Gris Oscuro - Cuerpo de texto (Reemplaza al antiguo 'dark') */
+    --color-brand-dark: #333333;
+
+    /* Background (#F8F9FA): Gris Claro - Fondos limpios (Reemplaza al antiguo 'light') */
+    --color-brand-light: #F8F9FA;
 }
 
-/* Scrollbar Oscuro Estilizado */
-::-webkit-scrollbar {
-    width: 8px;
+@layer base {
+    body {
+        @apply bg-brand-light text-brand-dark;
+    }
 }
 
-::-webkit-scrollbar-track {
-    background: var(--bg-dark);
-}
+/* Estilos personalizados de UI (Scrollbars, Sombras) */
+@layer utilities {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
 
-::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 4px;
-}
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--brand-primary);
-}
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 20px;
+    }
 
-body {
-    background-color: var(--bg-dark);
-    color: var(--text-main);
-    /* Prevenir rebote de scroll en iOS/Mac */
-    overscroll-behavior: none;
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: var(--color-brand-primary);
+    }
+
+    /* Sombra Brand Primary */
+    .shadow-glow {
+        box-shadow: 0 0 20px rgba(96, 23, 177, 0.4);
+    }
+
+    /* Animaciones suaves */
+    .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 }

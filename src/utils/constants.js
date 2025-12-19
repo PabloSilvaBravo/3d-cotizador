@@ -1,21 +1,64 @@
-// src/utils/constants.js
-
-export const MATERIAL_RATES = {
-  PLA: { price: 1, label: 'PLA (Estándar)' }, // Multiplicador base
-  PETG: { price: 1, label: 'PETG (Resistente)' },
-  ABS: { price: 1, label: 'ABS (Técnico)' },
-  TPU: { price: 2, label: 'TPU (Flexible - x2 Precio)' },
+// Precios y Reglas de Negocio (TU LÓGICA ORIGINAL RESTAURADA)
+export const PRICING_RULES = {
+  startupFee: 1000,      // Costo fijo de arranque (BaseBedCost original)
+  hourlyRate: 2500,      // Costo por hora de impresión
+  minPrice: 3000,        // Precio mínimo por pedido
+  costPerGramBase: 12,   // Costo base por gramo (PLA)
 };
 
-export const PRICING_CONFIG = {
-  costPerGram: 12,        // $12 CLP por gramo (basado en $12.000/kg)
-  hourlyRate: 2500,       // $2.500 CLP por hora máquina
-  baseBedCost: 1000,      // Costo fijo 1ra cama
-  extraBedCost: 2500,     // Costo camas adicionales
+// Materiales con metadatos para la UI pero PRECIOS RELATIVOS a tu base
+export const MATERIALS = {
+  PLA: {
+    id: 'PLA',
+    name: 'PLA Estándar',
+    density: 1.24,
+    priceMultiplier: 1.0, // Base ($12/g)
+    description: 'Económico y versátil. Ideal para prototipos y piezas decorativas.'
+  },
+  PETG: {
+    id: 'PETG',
+    name: 'PETG Resistente',
+    density: 1.27,
+    priceMultiplier: 1.2, // ~20% más caro que PLA
+    description: 'Mayor resistencia térmica y mecánica. Ideal para piezas funcionales.'
+  },
+  ABS: {
+    id: 'ABS',
+    name: 'ABS Industrial',
+    density: 1.04,
+    priceMultiplier: 1.4, // ~40% más caro
+    description: 'Alta resistencia al impacto y temperatura. Requiere post-procesado.'
+  },
+  TPU: {
+    id: 'TPU',
+    name: 'TPU Flexible',
+    density: 1.21,
+    priceMultiplier: 1.8, // ~80% más caro
+    description: 'Material flexible y elástico tipo goma. Indestructible.'
+  }
 };
 
-export const DIFFICULTY_FACTOR = {
-  normal: 1.0,
-  media: 1.2,
-  alta: 1.5,
+export const COLORS = [
+  { id: 'white', name: 'Blanco', hex: '#FFFFFF' },
+  { id: 'black', name: 'Negro', hex: '#1a1a1a' },
+  { id: 'red', name: 'Rojo', hex: '#DC2626' },
+  { id: 'blue', name: 'Azul', hex: '#2563EB' },
+  { id: 'green', name: 'Verde', hex: '#16A34A' },
+  { id: 'orange', name: 'Naranja', hex: '#EA580C' },
+  { id: 'grey', name: 'Gris', hex: '#64748B' },
+  { id: 'yellow', name: 'Amarillo', hex: '#FACC15' },
+];
+
+export const QUALITIES = [
+  { id: 'draft', name: 'Borrador (0.28mm)', layerHeight: 0.28, priceMultiplier: 0.8 }, // Más rápido = más barato
+  { id: 'standard', name: 'Estándar (0.2mm)', layerHeight: 0.2, priceMultiplier: 1.0 },
+  { id: 'high', name: 'Alta Calidad (0.12mm)', layerHeight: 0.12, priceMultiplier: 1.5 }, // Más lento = más caro
+];
+
+export const DEFAULT_CONFIG = {
+  material: 'PLA',
+  colorId: 'white',
+  qualityId: 'standard',
+  infill: 15,
+  quantity: 1,
 };
