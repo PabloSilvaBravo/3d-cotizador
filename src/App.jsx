@@ -1,60 +1,90 @@
 // src/App.jsx
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Scene3D from './components/Scene3D';
-import Model from './components/Model'; // (Lo crearemos en el sig. paso, por ahora usa un placeholder o fallo silencioso si queremos probar)
+import Model from './components/Model';
 import UploadZone from './components/UploadZone';
 import Interface from './components/Interface';
-import { MATERIAL_RATES, DIFFICULTY_FACTOR, PRICING_CONFIG } from './utils/constants';
+import { usePrusaQuote } from './hooks/usePrusaQuote'; // Nuevo Hook
+import { PRICING_CONFIG, MATERIAL_RATES } from './utils/constants';
 
 export default function App() {
-    const [fileUrl, setFileUrl] = useState(null);
-    const [stats, setStats] = useState(null); // Nuevo estado para datos H2D
+    const [fileUrl, setFileUrl] = useState(null); // URL para Three.js
+    const [fileObj, setFileObj] = useState(null); // Archivo real para Backend
+
+    // Estado de Configuración del usuario
     const [material, setMaterial] = useState('PLA');
-    const [difficulty, setDifficulty] = useState('normal');
+    const [difficulty, setDifficulty] = useState('normal'); // Esto sigue siendo manual o heurístico
 
-    // --- LÓGICA DE PRECIOS (Tu fórmula con Datos H2D) ---
+    // Hook de Slicing (Backend)
+    const { getQuote, slicerData, loading: isSlicing } = usePrusaQuote();
+
+    // 1. Cuando el usuario suelta un archivo
+    const handleFileUpload = (url, file) => {
+        setFileUrl(url); // Mostrar visualmente
+        setFileObj(file); // Guardar para envío
+    };
+
+    // 2. Efecto: Cuando cambia el archivo o material, pedir cotización al servidor
+    useEffect(() => {
+        if (fileObj) {
+            getQuote(fileObj, {
+                material,
+                infill: '15%', // Podrías hacerlo dinámico
+                hasSupports: difficulty === 'alta' // Ejemplo: Si es alta dificultad, activar soportes en backend
+            });
+        }
+    }, [fileObj, material, difficulty]); // Se dispara al subir archivo o cambiar material/dificultad
+
+    // 3. Cálculo de Precio Final
     const totalPrice = useMemo(() => {
-        if (!stats) return 0;
+        // Si no hay datos del slicer aún, devolvemos 0 o un estimado básico
+        if (!slicerData) return 0;
 
-        // Usamos el peso calculado por el perfil H2D
-        const weight = stats.weightGrams;
-
+        // Fórmula usando DATOS REALES DE PRUSA
         // Costo Material
-        const materialCost = weight * PRICING_CONFIG.costPerGram * MATERIAL_RATES[material].price;
+        const materialCost = slicerData.peso * PRICING_CONFIG.costPerGram * MATERIAL_RATES[material].price;
 
-        // Costo Tiempo (H2D es rápida, cobramos por hora de máquina)
-        const timeCost = (stats.printTimeMinutes / 60) * PRICING_CONFIG.hourlyRate;
+        // Costo Tiempo (Horas reales del slicer)
+        const timeCost = slicerData.tiempoHoras * PRICING_CONFIG.hourlyRate;
 
-        // Factores extras
-        let total = (materialCost + timeCost + PRICING_CONFIG.baseBedCost);
-        total = total * DIFFICULTY_FACTOR[difficulty];
+        // Extras (Cama, dificultad visual si aplica, aunque el tiempo ya debería incluirlo si el slicer es bueno)
+        // Nota: A veces mantenemos un factor de dificultad extra para post-procesado manual (quitar soportes)
+        const manualLaborFactor = difficulty === 'alta' ? 1.2 : 1.0;
 
-        return Math.ceil(total / 100) * 100; // Redondeo CLP
-    }, [stats, material, difficulty]);
+        let total = (materialCost + timeCost + PRICING_CONFIG.baseBedCost) * manualLaborFactor;
+
+        return Math.ceil(total / 100) * 100; // Redondeo
+    }, [slicerData, material, difficulty]);
 
     return (
         <div className="relative w-full h-screen bg-[#1a1a1a] overflow-hidden font-sans">
 
-            {/* UI Flotante */}
-            <UploadZone onFileLoaded={setFileUrl} />
+            {/* Zona de Carga */}
+            {!fileUrl && <UploadZone onFileLoaded={handleFileUpload} />}
 
-            <Interface
-                volume={stats?.volumeCm3 * 1000} // Pasamos mm3 para mantener compatibilidad visual
-                material={material}
-                setMaterial={setMaterial}
-                difficulty={difficulty}
-                setDifficulty={setDifficulty}
-                price={totalPrice}
-            />
+            {/* Interfaz Flotante */}
+            {fileUrl && (
+                <Interface
+                    // Pasamos datos del Slicer a la UI
+                    volume={slicerData?.volumen} // cm3 reales? No, el backend devuelve peso. Visualmente podemos usar estimate.
+                    // OJO: El backend devuelve 'peso', 'tiempoTexto', 'tiempoHoras'. El volumen no lo devolvemos explícitamente en el parseSlicerOutput del backend actual.
+                    weight={slicerData?.peso}    // gramos reales
+                    printTime={slicerData?.tiempoTexto} // string "2h 30m"
 
-            {/* Escena 3D */}
+                    material={material}
+                    setMaterial={setMaterial}
+                    difficulty={difficulty}
+                    setDifficulty={setDifficulty}
+
+                    price={totalPrice}
+                // Adaptamos Interface si no tiene prop isLoading
+                />
+            )}
+
+            {/* Escena 3D - Solo Visualización */}
             <Scene3D>
-                {fileUrl && (
-                    <Model
-                        url={fileUrl}
-                        onStatsCalculated={setStats} // <--- AQUÍ RECIBES LA DATA PURA
-                    />
-                )}
+                {fileUrl && <Model url={fileUrl} onStatsCalculated={() => { }} />}
+                {/* Ya no necesitamos stats de Three.js para el precio, solo para visual */}
             </Scene3D>
         </div>
     );
