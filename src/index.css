@@ -1,0 +1,47 @@
+/* src/index.css */
+@import "tailwindcss";
+
+:root {
+    /* Paleta de Colores "H2D PRO" (Estilo Bambu/Prusa) */
+    --brand-primary: #22c55e;
+    /* Verde Vibrante */
+    --brand-secondary: #ffffff;
+    /* Blanco Puro */
+    --brand-accent: #f59e0b;
+    /* Naranja Advertencia */
+
+    --bg-dark: #1a1a1a;
+    /* Fondo Principal */
+    --bg-panel: #27272a;
+    /* Fondo Paneles */
+
+    --text-main: #e4e4e7;
+    /* Texto Claro */
+    --text-muted: #a1a1aa;
+    /* Texto Secundario */
+}
+
+/* Scrollbar Oscuro Estilizado */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--brand-primary);
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    /* Prevenir rebote de scroll en iOS/Mac */
+    overscroll-behavior: none;
+}
