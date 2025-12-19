@@ -8,33 +8,29 @@ import { MATERIAL_RATES, DIFFICULTY_FACTOR, PRICING_CONFIG } from './utils/const
 
 export default function App() {
     const [fileUrl, setFileUrl] = useState(null);
-    const [volume, setVolume] = useState(0); // Volumen en mm3
+    const [stats, setStats] = useState(null); // Nuevo estado para datos H2D
     const [material, setMaterial] = useState('PLA');
     const [difficulty, setDifficulty] = useState('normal');
 
-    // --- LÓGICA DE PRECIOS (Tu fórmula) ---
+    // --- LÓGICA DE PRECIOS (Tu fórmula con Datos H2D) ---
     const totalPrice = useMemo(() => {
-        if (!volume) return 0;
+        if (!stats) return 0;
 
-        // 1. Convertir volumen a peso (Densidad PLA ~1.24 g/cm3)
-        // Nota: Deberías tener densidades por material en constants.js idealmente
-        const density = 1.24;
-        const weightInGrams = (volume / 1000) * density;
+        // Usamos el peso calculado por el perfil H2D
+        const weight = stats.weightGrams;
 
-        // 2. Costo Material
-        const materialCost = weightInGrams * PRICING_CONFIG.costPerGram * MATERIAL_RATES[material].price;
+        // Costo Material
+        const materialCost = weight * PRICING_CONFIG.costPerGram * MATERIAL_RATES[material].price;
 
-        // 3. Tiempo (Estimación simple basada en gramos, ej: 10g por hora)
-        // En el futuro, el G-Code parser te dará el tiempo exacto.
-        const estimatedHours = weightInGrams / 10;
-        const timeCost = estimatedHours * PRICING_CONFIG.hourlyRate;
+        // Costo Tiempo (H2D es rápida, cobramos por hora de máquina)
+        const timeCost = (stats.printTimeMinutes / 60) * PRICING_CONFIG.hourlyRate;
 
-        // 4. Totales con dificultad y base
+        // Factores extras
         let total = (materialCost + timeCost + PRICING_CONFIG.baseBedCost);
         total = total * DIFFICULTY_FACTOR[difficulty];
 
-        return Math.ceil(total / 10) * 10; // Redondear a decenas
-    }, [volume, material, difficulty]);
+        return Math.ceil(total / 100) * 100; // Redondeo CLP
+    }, [stats, material, difficulty]);
 
     return (
         <div className="relative w-full h-screen bg-[#1a1a1a] overflow-hidden font-sans">
@@ -43,7 +39,7 @@ export default function App() {
             <UploadZone onFileLoaded={setFileUrl} />
 
             <Interface
-                volume={volume}
+                volume={stats?.volumeCm3 * 1000} // Pasamos mm3 para mantener compatibilidad visual
                 material={material}
                 setMaterial={setMaterial}
                 difficulty={difficulty}
@@ -56,7 +52,7 @@ export default function App() {
                 {fileUrl && (
                     <Model
                         url={fileUrl}
-                        onVolumeCalculated={setVolume} // El modelo nos dirá su volumen al cargar
+                        onStatsCalculated={setStats} // <--- AQUÍ RECIBES LA DATA PURA
                     />
                 )}
             </Scene3D>

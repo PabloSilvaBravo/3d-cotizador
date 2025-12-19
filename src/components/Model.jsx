@@ -1,55 +1,56 @@
 // src/components/Model.jsx
+import { useEffect, useRef, useMemo } from 'react';
 import { useLoader } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { calculatePrintStats } from '../utils/h2dProfile';
 
-export default function Model({ url, onVolumeCalculated }) {
-    // Carga asíncrona del STL
+export default function Model({ url, onStatsCalculated }) {
+    // Cargar geometría
     const geometry = useLoader(STLLoader, url);
     const meshRef = useRef();
 
-    // Cálculo de volumen (solo cuando cambia la geometría)
+    // Procesar Geometría (Centrado y Cálculos)
     useMemo(() => {
         if (!geometry) return;
 
-        // Asegurar que tenemos normales y posición
-        geometry.computeVertexNormals();
+        // 1. Centrar geometría internamente
+        geometry.center();
+
+        // 2. Calcular Bounding Box para ponerlo sobre el piso
         geometry.computeBoundingBox();
-        geometry.center(); // Centrar en (0,0,0) para que rote bonito
+        const box = geometry.boundingBox;
+        const height = box.max.y - box.min.y;
 
-        // Algoritmo de volumen (Producto Mixto de Vectores)
-        // Es la forma matemática estándar de obtener el volumen de una malla cerrada
-        let vol = 0;
-        const pos = geometry.attributes.position;
-        const faces = pos.count / 3;
-        const p1 = new THREE.Vector3(), p2 = new THREE.Vector3(), p3 = new THREE.Vector3();
+        // Mover hacia arriba la mitad de su altura para que la base quede en Y=0
+        geometry.translate(0, height / 2, 0);
 
-        for (let i = 0; i < faces; i++) {
-            p1.fromBufferAttribute(pos, i * 3 + 0);
-            p2.fromBufferAttribute(pos, i * 3 + 1);
-            p3.fromBufferAttribute(pos, i * 3 + 2);
-            vol += p1.dot(p2.cross(p3)) / 6.0;
+        // 3. Ejecutar la "Lógica H2D"
+        const stats = calculatePrintStats(geometry);
+
+        // Enviar datos hacia arriba (App.jsx)
+        if (onStatsCalculated) {
+            onStatsCalculated(stats);
         }
 
-        // Convertir a mm3 positivo
-        const volumeMm3 = Math.abs(vol);
-
-        // Notificar al padre (App.jsx)
-        if (onVolumeCalculated) {
-            onVolumeCalculated(volumeMm3);
-        }
-
-    }, [geometry, onVolumeCalculated]);
+    }, [geometry, onStatsCalculated]);
 
     return (
-        <mesh ref={meshRef} geometry={geometry} castShadow receiveShadow>
-            {/* Material "Físico" Estilo Prusa Slicer (Naranja brillante o Verde Matrix) */}
-            <meshStandardMaterial
-                color="#22c55e"
-                roughness={0.3}
+        <mesh
+            ref={meshRef}
+            geometry={geometry}
+            castShadow
+            receiveShadow
+            rotation={[-Math.PI / 2, 0, 0]} // A veces los STL vienen rotados, ajusta si es necesario, usualmente en threejs Y es up.
+        // NOTA: Si usas geometry.translate, el mesh debe estar en [0,0,0]
+        >
+            {/* Material "Bambu Green/Orange" - Plástico semi-brillante */}
+            <meshPhysicalMaterial
+                color="#22c55e"      // Color de marca
+                roughness={0.5}      // Textura de plástico
                 metalness={0.1}
-                flatShading={false}
+                clearcoat={0.1}      // Un poco de brillo extra
+                flatShading={false}  // Suavizado
             />
         </mesh>
     );
