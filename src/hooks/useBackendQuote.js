@@ -17,8 +17,13 @@ export const useBackendQuote = () => {
         formData.append('infill', infill);     // Idem
 
         try {
-            // Ajusta la URL si tu puerto es diferente
-            const response = await fetch('http://localhost:3001/api/quote', {
+            // Auto-detectar URL del backend según el host actual
+            // Si accedes desde 192.168.0.23:5173, usará 192.168.0.23:3001
+            // Si accedes desde localhost:5173, usará localhost:3001
+            const backendHost = window.location.hostname;
+            const backendUrl = `http://${backendHost}:3001/api/quote`;
+
+            const response = await fetch(backendUrl, {
                 method: 'POST',
                 body: formData,
             });

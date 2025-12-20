@@ -81,14 +81,25 @@ const App = () => {
     }
   };
 
-  // Combinar datos: Tiempo del backend + Peso del frontend
-  const estimateForUI = (quoteData && localGeometry && localGeometry.volumeCm3 > 0) ? calculatePriceFromStats(config, {
-    // PrusaSlicer CLI no calcula peso/volumen correctamente
-    // Usar SIEMPRE el cálculo del frontend (Three.js)
-    weightGrams: localGeometry.volumeCm3 * 1.24, // Densidad PLA
-    timeHours: quoteData.tiempoHoras, // Del backend (PrusaSlicer)
-    pesoSoportes: 0 // TODO: Calcular desde geometría si hay soportes
-  }) : null;
+  // Combinar datos: Tiempo del backend + Peso del frontend ajustado por relleno
+  const estimateForUI = (quoteData && localGeometry && localGeometry.volumeCm3 > 0) ? {
+    ...calculatePriceFromStats(config, {
+      // Calcular peso considerando el % de relleno
+      // Basado en prueba real: 4.21cm³ usado / 7.4cm³ STL con 20% relleno = 57%
+      // Factor calibrado: 0.37 (cáscaras fijas) + 1.0 × (relleno%)
+      // Con 20%: 0.37 + 0.20 = 0.57 ✓
+      // Con 15%: 0.37 + 0.15 = 0.52
+      weightGrams: localGeometry.volumeCm3 * 1.24 * (0.37 + (config.infill / 100)),
+      timeHours: quoteData.tiempoHoras, // Del backend (PrusaSlicer)
+      pesoSoportes: 0
+    }),
+    // Agregar dimensiones para el desglose
+    dimensions: localGeometry.dimensions ? {
+      x: (localGeometry.dimensions.x / 10).toFixed(2), // mm a cm
+      y: (localGeometry.dimensions.y / 10).toFixed(2),
+      z: (localGeometry.dimensions.z / 10).toFixed(2)
+    } : null
+  } : null;
 
   useEffect(() => {
     if (quoteData) {

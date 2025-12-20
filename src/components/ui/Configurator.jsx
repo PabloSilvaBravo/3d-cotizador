@@ -1,5 +1,6 @@
 import React from 'react';
 import { MATERIALS, COLORS, QUALITIES } from '../../utils/constants';
+import { InfillSelector } from './InfillSelector';
 
 export const Configurator = ({ config, geometry, onChange }) => {
 
@@ -80,57 +81,42 @@ export const Configurator = ({ config, geometry, onChange }) => {
                 </div>
             </div>
 
-            {/* Quality & Infill Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                {/* Quality */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
-                        <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">3. Calidad</label>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        {QUALITIES.map((q) => (
-                            <button
-                                key={q.id}
-                                onClick={() => onChange({ qualityId: q.id })}
-                                className={`
+            {/* Quality */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
+                    <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">3. Calidad</label>
+                </div>
+                <div className="flex flex-col gap-2">
+                    {QUALITIES.map((q) => (
+                        <button
+                            key={q.id}
+                            onClick={() => onChange({ qualityId: q.id })}
+                            className={`
                     w-full py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 border flex justify-between items-center
                     ${config.qualityId === q.id
-                                        ? 'bg-brand-secondary text-white border-brand-secondary shadow-md transform translate-x-1'
-                                        : 'bg-white text-brand-dark/60 border-brand-light hover:border-brand-secondary/30'
-                                    }
+                                    ? 'bg-brand-secondary text-white border-brand-secondary shadow-md transform translate-x-1'
+                                    : 'bg-white text-brand-dark/60 border-brand-light hover:border-brand-secondary/30'
+                                }
                 `}
-                            >
-                                <span>{q.name.split(' ')[0]}</span>
-                                <span className="opacity-70 font-mono">{q.layerHeight}mm</span>
-                            </button>
-                        ))}
-                    </div>
+                        >
+                            <span>{q.name.split(' ')[0]}</span>
+                            <span className="opacity-70 font-mono">{q.layerHeight}mm</span>
+                        </button>
+                    ))}
                 </div>
+            </div>
 
-                {/* Infill */}
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
-                        <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">4. Relleno</label>
-                    </div>
-                    <div className="bg-brand-light/30 p-4 rounded-xl border border-brand-light h-full flex flex-col justify-center">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-brand-dark/50 uppercase">Densidad</span>
-                            <span className="text-sm font-mono font-bold text-brand-primary bg-white px-2 rounded shadow-sm">{config.infill}%</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="10"
-                            max="100"
-                            step="5"
-                            value={config.infill}
-                            onChange={(e) => onChange({ infill: parseInt(e.target.value) })}
-                            className="w-full h-2 bg-brand-light rounded-lg appearance-none cursor-pointer accent-brand-primary hover:accent-brand-secondary transition-all"
-                        />
-                    </div>
+            {/* Infill Selector - NEW */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
+                    <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">4. Relleno</label>
                 </div>
+                <InfillSelector
+                    value={config.infill}
+                    onChange={(newInfill) => onChange({ infill: newInfill })}
+                />
             </div>
 
             {/* Quantity */}

@@ -371,7 +371,8 @@ app.get('/health', (req, res) => {
     });
 });
 
-app.listen(3001, () => {
+app.listen(3001, '0.0.0.0', () => {
     console.log('✅ Backend Cotizador corriendo en puerto 3001');
     console.log(`📊 Configuración: ${MAX_CONCURRENT} procesos concurrentes | Caché: ${MAX_CACHE_SIZE} items`);
+    console.log('🌐 Accesible desde red local en: http://<TU-IP>:3001');
 });

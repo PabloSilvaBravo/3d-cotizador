@@ -27,6 +27,47 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                 </svg>
             </button>
 
+            {/* Technical Specifications - NUEVO */}
+            {detailsOpen && estimate.debug && (
+                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                    <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+                        Especificaciones Técnicas
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                            <span className="text-slate-500">Volumen de material:</span>
+                            <span className="font-mono font-semibold text-slate-700">
+                                {estimate.weightGrams ? (estimate.weightGrams / 1.24).toFixed(2) : '—'} cm³
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                            <span className="text-slate-500">Volumen de Soportes:</span>
+                            <span className="font-mono font-semibold text-slate-700">
+                                {estimate.debug?.pesoSoportes && estimate.weightGrams
+                                    ? `${((estimate.debug.pesoSoportes / estimate.weightGrams) * 100).toFixed(1)}%`
+                                    : '0%'
+                                }
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                            <span className="text-slate-500">Peso del modelo:</span>
+                            <span className="font-mono font-semibold text-slate-700">
+                                {estimate.weightGrams ? estimate.weightGrams.toFixed(1) : '—'} g
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-white rounded-lg col-span-2">
+                            <span className="text-slate-500">Dimensiones del modelo:</span>
+                            <span className="font-mono font-semibold text-slate-700">
+                                {estimate.dimensions
+                                    ? `${estimate.dimensions.x} × ${estimate.dimensions.y} × ${estimate.dimensions.z} cm`
+                                    : '— × — × — cm'
+                                }
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Details Panel */}
             <div
                 className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${detailsOpen ? 'max-h-52 mb-4 opacity-100' : 'max-h-0 opacity-0'}`}

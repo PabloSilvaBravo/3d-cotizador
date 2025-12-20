@@ -10,14 +10,15 @@ const Model = ({ url, color, onLoaded }) => {
 
     useEffect(() => {
         if (geometry) {
-            // Respetar orientación original pero ajustar posición
+            // Calcular bounding box
             geometry.computeBoundingBox();
             const box = geometry.boundingBox;
             const center = new THREE.Vector3();
             box.getCenter(center);
 
-            // Centrar en X y Z, pero bajar hasta que la parte más baja toque Y=0
-            // Esto mantiene la orientación pero apoya el modelo en la cama
+            // Centrar en X y Z, y bajar hasta que la parte más baja toque Y=0
+            // IMPORTANTE: NO rotamos, solo trasladamos para centrar y apoyar en cama
+            // Esto respeta si el STL está parado, acostado, volteado, etc.
             geometry.translate(-center.x, -box.min.y, -center.z);
 
             onLoaded(geometry);
@@ -43,31 +44,37 @@ const PrintBed = ({ size = 235 }) => {
             <mesh receiveShadow position={[0, -0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <planeGeometry args={[size, size]} />
                 <meshStandardMaterial
-                    color="#1a1a1a"
-                    roughness={0.8}
-                    metalness={0.1}
+                    color="#C8C8C8"
+                    roughness={0.5}
+                    metalness={0.4}
                 />
             </mesh>
 
-            {/* Cuadrícula visible en la cama */}
+            {/* Cuadrícula visible en la cama - MÁS OSCURA */}
             <Grid
                 position={[0, -0.4, 0]}
                 args={[size, size]}
                 cellSize={10}
-                cellThickness={0.5}
-                cellColor="#444444"
+                cellThickness={0.6}
+                cellColor="#555555"
                 sectionSize={50}
-                sectionThickness={1}
-                sectionColor="#666666"
+                sectionThickness={1.2}
+                sectionColor="#333333"
                 fadeDistance={400}
                 fadeStrength={1}
                 infiniteGrid={false}
             />
+
+            {/* Flechas de ejes: X (rojo), Y (verde), Z (azul) */}
+            <primitive object={new THREE.AxesHelper(80)} position={[0, 0, 0]} />
         </group>
     );
 };
 
 export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
+    const [rotation, setRotation] = React.useState([0, 0, 0]); // [X, Y, Z]
+    const [position, setPosition] = React.useState([0, 0, 0]); // Ajuste dinámico
+    const meshRef = React.useRef();
 
     const handleGeometryLoaded = useMemo(() => {
         return (geo) => {
@@ -76,6 +83,33 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const rotateModel = (axis) => {
+        setRotation(prev => {
+            const newRotation = [...prev];
+            newRotation[axis] += Math.PI / 2; // 90 grados
+            return newRotation;
+        });
+    };
+
+    const resetRotation = () => {
+        setRotation([0, 0, 0]);
+    };
+
+    // Recalcular posición después de rotar
+    React.useEffect(() => {
+        if (meshRef.current) {
+            // Esperar un frame para que la rotación se aplique
+            setTimeout(() => {
+                const mesh = meshRef.current;
+                const box = new THREE.Box3().setFromObject(mesh);
+                const minY = box.min.y;
+
+                // Ajustar Y para que la parte más baja toque la cama
+                setPosition([0, -minY, 0]);
+            }, 50);
+        }
+    }, [rotation]);
 
     return (
         <div className="w-full h-full bg-gradient-to-b from-slate-100 to-slate-200 relative">
@@ -105,9 +139,11 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
                     {/* Cama de impresión */}
                     <PrintBed size={235} />
 
-                    {/* Modelo 3D */}
+                    {/* Modelo 3D con rotación controlada */}
                     {fileUrl && (
-                        <Model url={fileUrl} color={colorHex} onLoaded={handleGeometryLoaded} />
+                        <group ref={meshRef} rotation={rotation} position={position}>
+                            <Model url={fileUrl} color={colorHex} onLoaded={handleGeometryLoaded} />
+                        </group>
                     )}
                 </React.Suspense>
 
@@ -121,6 +157,51 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
                     target={[0, 50, 0]}
                 />
             </Canvas>
+
+            {/* Controles de Rotación */}
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-3 space-y-2">
+                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 text-center">
+                    Rotar Modelo
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                    <button
+                        onClick={() => rotateModel(0)}
+                        className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-1"
+                        title="Rotar en X (90°)"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="text-[10px] font-semibold">X</span>
+                    </button>
+                    <button
+                        onClick={() => rotateModel(1)}
+                        className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-1"
+                        title="Rotar en Y (90°)"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="text-[10px] font-semibold">Y</span>
+                    </button>
+                    <button
+                        onClick={() => rotateModel(2)}
+                        className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-1"
+                        title="Rotar en Z (90°)"
+                    >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span className="text-[10px] font-semibold">Z</span>
+                    </button>
+                </div>
+                <button
+                    onClick={resetRotation}
+                    className="w-full p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all text-xs font-semibold"
+                >
+                    Resetear
+                </button>
+            </div>
 
             {/* Badge interactivo */}
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none opacity-50">
