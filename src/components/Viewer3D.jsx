@@ -10,13 +10,14 @@ const Model = ({ url, color, onLoaded }) => {
 
     useEffect(() => {
         if (geometry) {
-            // Centrar en XZ pero apoyar en Y=0 (sobre la cama)
+            // Respetar orientación original pero ajustar posición
             geometry.computeBoundingBox();
             const box = geometry.boundingBox;
             const center = new THREE.Vector3();
             box.getCenter(center);
 
-            // Trasladar para centrar en X y Z, pero poner base en Y=0
+            // Centrar en X y Z, pero bajar hasta que la parte más baja toque Y=0
+            // Esto mantiene la orientación pero apoya el modelo en la cama
             geometry.translate(-center.x, -box.min.y, -center.z);
 
             onLoaded(geometry);

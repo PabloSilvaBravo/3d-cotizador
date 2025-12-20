@@ -82,8 +82,10 @@ const App = () => {
   };
 
   const estimateForUI = quoteData ? calculatePriceFromStats(config, {
-    weightGrams: quoteData.peso,
-    timeHours: quoteData.tiempoHoras
+    // Si el backend no devuelve peso, calcular desde geometría del frontend
+    weightGrams: quoteData.peso > 0 ? quoteData.peso : (localGeometry?.volume * 1.24 || 0),
+    timeHours: quoteData.tiempoHoras,
+    pesoSoportes: quoteData.pesoSoportes || 0
   }) : null;
 
   useEffect(() => {
