@@ -120,7 +120,8 @@ function processSlicing(job) {
             return resolve(cache.get(cacheKey));
         }
 
-        const command = `${SLICER_COMMAND} --export-gcode --load "${configPath}" --fill-density ${infill}% --layer-height 0.2 --perimeter-speed 90 --infill-speed 200 --travel-speed 400 --output "${outputGcode}" "${inputPath}"`;
+        const filamentPath = path.resolve(__dirname, 'backend', 'profiles', 'PLA_Generic.ini');
+        const command = `${SLICER_COMMAND} --export-gcode --load "${configPath}" --load "${filamentPath}" --fill-density ${infill}% --layer-height 0.2 --perimeter-speed 90 --infill-speed 200 --travel-speed 400 --output "${outputGcode}" "${inputPath}"`;
 
         const startTime = Date.now();
 
@@ -152,21 +153,46 @@ function processSlicing(job) {
 
             // === PARSEO DE DATOS ===
 
-            // Las estadísticas pueden estar al principio O al final dependiendo de la versión de PrusaSlicer
-            // Busquemos en TODO el archivo
+            // Usar la lógica que funcionaba en commit 82647ce
 
-            console.log(`\n   📄 GCode size: ${(gcodeContent.length / 1024).toFixed(1)} KB`);
+            // 1. VOLUMEN (cm3) - Múltiples patrones
+            let volumen = 0;
+            const volPatterns = [
+                /; filament used \[cm3\] = (\d+(\.\d+)?)/,
+                /; filament volume: (\d+(\.\d+)?) cm3/i,
+                /(\d+(\.\d+)?) cm3/
+            ];
+            for (const pattern of volPatterns) {
+                const match = gcodeContent.match(pattern);
+                if (match) {
+                    volumen = parseFloat(match[1]);
+                    console.log(`   ✓ Volumen encontrado: ${volumen} cm³ con patrón ${pattern}`);
+                    break;
+                }
+            }
+            if (volumen === 0) console.log(`   ✗ Volumen NO encontrado`);
 
-            // Buscar volumen
-            const volMatch = gcodeContent.match(/; filament used \[cm3\] = (\d+(\.\d+)?)/);
-            const volumen = volMatch ? parseFloat(volMatch[1]) : 0;
-            console.log(`   Volumen: ${volumen} cm³ ${volMatch ? '✓' : '✗'}`);
-
-            // Buscar peso
-            const weightMatch = gcodeContent.match(/; filament used \[g\] = (\d+(\.\d+)?)/);
-            let peso = weightMatch ? parseFloat(weightMatch[1]) : 0;
-            if (peso === 0 && volumen > 0) peso = volumen * 1.24;
-            console.log(`   Peso: ${peso.toFixed(2)} g ${weightMatch ? '✓' : '✗ (calculado)'}`);
+            // 2. PESO (g) - Múltiples patrones
+            let peso = 0;
+            const weightPatterns = [
+                /; filament used \[g\] = (\d+(\.\d+)?)/,
+                /; filament weight = (\d+(\.\d+)?)g/i,
+                /(\d+(\.\d+)?)g/
+            ];
+            for (const pattern of weightPatterns) {
+                const match = gcodeContent.match(pattern);
+                if (match) {
+                    peso = parseFloat(match[1]);
+                    console.log(`   ✓ Peso encontrado: ${peso} g con patrón ${pattern}`);
+                    break;
+                }
+            }
+            if (peso === 0 && volumen > 0) {
+                peso = volumen * 1.24; // Fallback desde volumen
+                console.log(`   ⚠ Peso calculado desde volumen: ${peso.toFixed(2)} g`);
+            } else if (peso === 0) {
+                console.log(`   ✗ Peso NO encontrado`);
+            }
 
             const timePatterns = [
                 /; estimated printing time \(normal mode\) = (.*)/,
@@ -208,10 +234,34 @@ function processSlicing(job) {
             const finalM = totalMinutes % 60;
             const tiempoAjustadoStr = `${finalH}h ${finalM}m`;
 
+            // 4. SOPORTES (Para Dificultad)
             let pesoSoportes = 0;
-            const supportVolMatch = gcodeContent.match(/; support material volume: (\d+(\.\d+)?)/i);
-            if (supportVolMatch) {
-                pesoSoportes = parseFloat(supportVolMatch[1]) * 1.24;
+            const supportPatterns = [
+                /; support material volume: (\d+(\.\d+)?)/i,
+                /; support material: (\d+(\.\d+)?) cm3/i,
+                /; filament used \[cm3\] \(support\) = (\d+(\.\d+)?)/
+            ];
+
+            for (const pattern of supportPatterns) {
+                const match = gcodeContent.match(pattern);
+                if (match) {
+                    const volSoporte = parseFloat(match[1]);
+                    pesoSoportes = volSoporte * 1.24;
+                    console.log(`   ✓ Soportes: ${pesoSoportes.toFixed(2)} g`);
+                    break;
+                }
+            }
+
+            // 5. DIMENSIONES (Bonus)
+            let dimensions = null;
+            const boundingMatch = gcodeContent.match(/; bounding box: X: \[[\d.]+,([\d.]+)\], Y: \[[\d.]+,([\d.]+)\], Z: \[[\d.]+,([\d.]+)\]/);
+            if (boundingMatch) {
+                dimensions = {
+                    x: parseFloat(boundingMatch[1]),
+                    y: parseFloat(boundingMatch[2]),
+                    z: parseFloat(boundingMatch[3])
+                };
+                console.log(`   ✓ Dimensiones: ${dimensions.x} x ${dimensions.y} x ${dimensions.z} mm`);
             }
 
             const result = {

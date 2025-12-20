@@ -81,11 +81,13 @@ const App = () => {
     }
   };
 
-  const estimateForUI = quoteData ? calculatePriceFromStats(config, {
-    // Si el backend no devuelve peso, calcular desde geometría del frontend
-    weightGrams: quoteData.peso > 0 ? quoteData.peso : (localGeometry?.volume * 1.24 || 0),
-    timeHours: quoteData.tiempoHoras,
-    pesoSoportes: quoteData.pesoSoportes || 0
+  // Combinar datos: Tiempo del backend + Peso del frontend
+  const estimateForUI = (quoteData && localGeometry && localGeometry.volumeCm3 > 0) ? calculatePriceFromStats(config, {
+    // PrusaSlicer CLI no calcula peso/volumen correctamente
+    // Usar SIEMPRE el cálculo del frontend (Three.js)
+    weightGrams: localGeometry.volumeCm3 * 1.24, // Densidad PLA
+    timeHours: quoteData.tiempoHoras, // Del backend (PrusaSlicer)
+    pesoSoportes: 0 // TODO: Calcular desde geometría si hay soportes
   }) : null;
 
   useEffect(() => {
