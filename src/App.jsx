@@ -99,16 +99,7 @@ const App = () => {
     }
   };
 
-  const handleRotationChange = (newRotation) => {
-    setOptimalRotation(newRotation);
-    console.log("Rotación ajustada manualmente");
 
-    // Recotizar con nueva rotación
-    if (file) {
-      getQuote(file, config.material, config.qualityId, config.infill, newRotation, autoScale)
-        .catch(err => console.error('Error al recotizar con nueva rotación:', err));
-    }
-  };
 
   useEffect(() => {
     return () => {
@@ -228,7 +219,6 @@ const App = () => {
               onGeometryLoaded={handleGeometryLoaded}
               rotation={optimalRotation}
               scale={autoScale}
-              onRotationChange={handleRotationChange}
             />
           )}
 

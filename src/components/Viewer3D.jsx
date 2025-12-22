@@ -70,7 +70,7 @@ const PrintBed = ({ size = 235 }) => {
     );
 };
 
-export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0, onRotationChange }) => {
+export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0 }) => {
     // Eliminamos estado local de rotación para usar el controlado por el padre
     // const [rotation, setRotation] = React.useState([0, 0, 0]); 
     const [position, setPosition] = React.useState([0, 0, 0]); // Ajuste dinámico
@@ -84,19 +84,7 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const rotateModel = (axis) => {
-        if (onRotationChange) {
-            const newRotation = [...rotation];
-            newRotation[axis] += Math.PI / 2; // 90 grados
-            onRotationChange(newRotation);
-        }
-    };
 
-    const resetRotation = () => {
-        if (onRotationChange) {
-            onRotationChange([0, 0, 0]);
-        }
-    };
 
     // Recalcular posición después de rotar
     React.useEffect(() => {
@@ -159,51 +147,6 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                     target={[0, 50, 0]}
                 />
             </Canvas>
-
-            {/* Controles de Rotación */}
-            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-3 space-y-2">
-                <div className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-2 text-center">
-                    Rotar Modelo
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                    <button
-                        onClick={() => rotateModel(0)}
-                        className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-1"
-                        title="Rotar en X (90°)"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span className="text-[10px] font-semibold">X</span>
-                    </button>
-                    <button
-                        onClick={() => rotateModel(1)}
-                        className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-1"
-                        title="Rotar en Y (90°)"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span className="text-[10px] font-semibold">Y</span>
-                    </button>
-                    <button
-                        onClick={() => rotateModel(2)}
-                        className="p-2 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg transition-all hover:scale-105 active:scale-95 flex flex-col items-center gap-1"
-                        title="Rotar en Z (90°)"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        <span className="text-[10px] font-semibold">Z</span>
-                    </button>
-                </div>
-                <button
-                    onClick={resetRotation}
-                    className="w-full p-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all text-xs font-semibold"
-                >
-                    Resetear
-                </button>
-            </div>
 
             {/* Badge interactivo */}
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none opacity-50">
