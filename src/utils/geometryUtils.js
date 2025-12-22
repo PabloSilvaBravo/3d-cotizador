@@ -67,48 +67,17 @@ function signedVolumeOfTriangle(p1, p2, p3) {
  */
 export const calculateOptimalOrientation = (geometry) => {
     try {
-        geometry.computeBoundingBox();
-        const box = geometry.boundingBox;
-        const size = new THREE.Vector3();
-        box.getSize(size);
-
-        // En Three.js, Y es Arriba. En impresión 3D, queremos minimizar la altura Y.
-        // Identificar cuál eje (x, y, z) es el más corto.
-        const { x, y, z } = size;
-        let rotation = [0, 0, 0];
-        let orientationName = 'Original';
-
-        if (x <= y && x <= z) {
-            // X es el más corto. Idealmente rotaríamos 90° en Z.
-            // PERO: El backend (PrusaSlicer CLI) no soporta rotación en X/Y fiablemente.
-            // Para mantener consistencia (lo que ves es lo que se cotiza), deshabilitamos esta optimización.
-            // rotation = [0, 0, Math.PI / 2];
-            // orientationName = 'Acostado (X-Up) [Deshabilitado]';
-            rotation = [0, 0, 0];
-            orientationName = 'Original';
-        } else if (z <= x && z <= y) {
-            // Z es el más corto. Idealmente rotaríamos 90° en X.
-            // rotation = [Math.PI / 2, 0, 0];
-            // orientationName = 'Acostado (Z-Up) [Deshabilitado]';
-            rotation = [0, 0, 0];
-            orientationName = 'Original';
-        } else {
-            // Y ya es el más corto. Mantener.
-            rotation = [0, 0, 0];
-            orientationName = 'Original (Optimizado)';
-        }
-
-        // Calcular area aproximada (xy) resultante
-        // Si rotamos Z->Y, el área es XY original? No, es X(oldY).
-        // Esto es solo informativo
-        const contactArea = 0;
+        2
+        // Mantenemos esto simple: NO rotar automáticamente.
+        // Respetamos la orientación original del archivo STL.
+        // El usuario puede rotar manualmente si lo desea (cuando re-implementemos controles).
 
         return {
-            rotationX: rotation[0],
-            rotationY: rotation[1],
-            rotationZ: rotation[2],
-            contactArea,
-            orientationName
+            rotationX: 0,
+            rotationY: 0,
+            rotationZ: 0,
+            contactArea: 0,
+            orientationName: 'Original (Raw)'
         };
     } catch (error) {
         console.error('Error calculando orientación:', error);

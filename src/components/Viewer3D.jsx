@@ -9,23 +9,21 @@ const Model = ({ url, color, onLoaded }) => {
 
     useEffect(() => {
         if (geometry) {
-            // Calcular bounding box
-            geometry.computeBoundingBox();
-            const box = geometry.boundingBox;
-            const center = new THREE.Vector3();
-            box.getCenter(center);
-
-            // Centrar en X y Z, y bajar hasta que la parte más baja toque Y=0
-            // IMPORTANTE: NO rotamos, solo trasladamos para centrar y apoyar en cama
-            // Esto respeta si el STL está parado, acostado, volteado, etc.
-            geometry.translate(-center.x, -box.min.y, -center.z);
+            // CENTRADO PERFECTO:
+            // Centramos la geometría en (0,0,0).
+            // Esto asegura que al rotar, el objeto gire sobre su propio eje sin desplazarse.
+            // La lógica del padre (Viewer3D) se encargará de "levantarlo" para que toque el piso.
+            geometry.center();
 
             onLoaded(geometry);
         }
     }, [geometry, onLoaded]);
 
     return (
-        <mesh geometry={geometry} castShadow receiveShadow position={[0, 0, 0]}>
+        // CORRECCIÓN VISUAL: STL usa Z-Up, Three.js usa Y-Up.
+        // Rotamos -90° en X para que lo que es "Arriba" en el archivo (Z) sea "Arriba" en la pantalla (Y).
+        // Esto hace que la visual coincida con PrusaSlicer.
+        <mesh geometry={geometry} castShadow receiveShadow position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <meshStandardMaterial
                 color={color}
                 roughness={0.3}
@@ -86,20 +84,28 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
 
 
 
-    // Recalcular posición después de rotar
+    // Recalcular posición después de rotar para que siempre toque el piso
     React.useEffect(() => {
-        if (meshRef.current) {
-            // Esperar un frame para que la rotación se aplique
-            setTimeout(() => {
+        // Pequeño delay para asegurar que React Three Fiber ha actualizado la matriz de mundo
+        const timeoutId = setTimeout(() => {
+            if (meshRef.current) {
                 const mesh = meshRef.current;
+
+                // Forzar actualización de matrices
+                mesh.updateMatrixWorld(true);
+
                 const box = new THREE.Box3().setFromObject(mesh);
                 const minY = box.min.y;
 
-                // Ajustar Y para que la parte más baja toque la cama
-                setPosition([0, -minY, 0]);
-            }, 50);
-        }
-    }, [rotation]);
+                // Si el modelo es válido, ajustamos Y
+                if (isFinite(minY)) {
+                    setPosition([0, -minY + 0.5, 0]); // +0.5 mm para evitar z-fighting con la grilla
+                }
+            }
+        }, 100);
+
+        return () => clearTimeout(timeoutId);
+    }, [rotation, fileUrl]); // Añadir fileUrl para que corra al cambiar modelo también
 
     return (
         <div className="w-full h-full bg-gradient-to-b from-slate-100 to-slate-200 relative">

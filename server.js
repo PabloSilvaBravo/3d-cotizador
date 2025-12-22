@@ -8,6 +8,7 @@ import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
 import { fileURLToPath } from 'url';
+import { rotateSTL } from './backend/utils/stlRotator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -122,9 +123,10 @@ async function processQueue() {
 }
 
 // === FUNCIÓN DE SLICING ===
-function processSlicing(job) {
-    return new Promise((resolve, reject) => {
-        const { inputPath, configPath, outputGcode, material, qualityId, infill, fileHash, rotationX, rotationY, rotationZ, scaleFactor } = job;
+// === FUNCIÓN DE SLICING ===
+async function processSlicing(job) {
+    return new Promise(async (resolve, reject) => {
+        let { inputPath, configPath, outputGcode, material, qualityId, infill, fileHash, rotationX, rotationY, rotationZ, scaleFactor } = job;
 
         // Verificar caché (incluir rotación y escala en clave)
         const cacheKey = `${fileHash}-${material}-${qualityId}-${infill}-${rotationX}-${rotationY}-${rotationZ}-${scaleFactor}`;
@@ -134,20 +136,39 @@ function processSlicing(job) {
         }
 
         // Convertir radianes a grados para PrusaSlicer
-        const rotX = (rotationX || 0) * (180 / Math.PI);
-        const rotY = (rotationY || 0) * (180 / Math.PI);
-        const rotZ = (rotationZ || 0) * (180 / Math.PI);
+        const rotX = (rotationX || 0); // Radianes para nuestra utilidad
+        const rotY = (rotationY || 0);
+        // PrusaSlicer solo recibirá rotación Z vía CLI si lo deseamos, o podemos rotar todo nosotros.
+        // ESTRATEGIA: Rotar X e Y nosotros en binario. Z se lo dejamos a PrusaSlicer (es más barato, solo gira en cama).
+        const rotZDegrees = (rotationZ || 0) * (180 / Math.PI);
         const scale = (scaleFactor || 1.0) * 100; // PrusaSlicer usa porcentaje
 
+        // Aplicar rotación física (What You See Is What You Get)
+        // Aplicamos TODAS las rotaciones (X, Y, Z) directamente a los vértices del STL.
+        if (Math.abs(rotX) > 0.001 || Math.abs(rotY) > 0.001 || Math.abs(rotZDegrees) > 0.001) {
+            const rotatedPath = inputPath.replace('.stl', `_rotated_${Date.now()}.stl`);
+            try {
+                // Convertir Z de grados a radianes para rotateSTL
+                const rotZRad = rotZDegrees * (Math.PI / 180);
+
+                log('INFO', `Rotando STL físicamente (X:${rotX.toFixed(2)}, Y:${rotY.toFixed(2)}, Z:${rotZRad.toFixed(2)})...`);
+
+                await rotateSTL(inputPath, rotatedPath, rotX, rotY, rotZRad);
+                inputPath = rotatedPath; // Usar el archivo rotado
+                log('INFO', `STL rotado guardado en: ${rotatedPath}`);
+            } catch (err) {
+                log('ERROR', 'Fallo al rotar STL', err);
+                return reject(new Error('Fallo al rotar geometría STL: ' + err.message));
+            }
+        }
+
         // SOLUCIÓN: Usar solo parámetros CLI soportados
-        // --rotate es para rotación en Z (grados)
-        // PrusaSlicer CLI no soporta nativamente --rotate-x ni --rotate-y sin config bundles complejos.
-        // Por seguridad y estabilidad, solo aplicamos rotación Z y Escala.
+        // Al haber rotado físicamente el STL, no necesitamos rotar en el slicer.
         const command = `${SLICER_COMMAND} --export-gcode ` +
             `--center 128,128 ` +
             // `--dont-arrange ` + 
             `--ensure-on-bed ` +
-            (rotZ !== 0 ? `--rotate ${rotZ} ` : '') +  // Rotación en Z (única soportada fiablemente)
+            // (rotZDegrees !== 0 ? `--rotate ${rotZDegrees} ` : '') +  // ROTACIÓN DESHABILITADA (Ya aplicada físicamente)
             (scale !== 100 ? `--scale ${scale}% ` : '') +
             `--layer-height 0.2 ` +
             `--perimeters 2 ` +

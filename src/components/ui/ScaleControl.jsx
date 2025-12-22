@@ -77,27 +77,27 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
                 </div>
             </div>
 
-            {/* Dimensions display */}
+            {/* Dimensions Input */}
             {dimensions && (
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-brand-secondary/10">
-                    <div className="text-center">
-                        <div className="text-xs text-brand-dark/50 mb-1">Ancho</div>
-                        <div className="font-mono font-bold text-sm text-brand-dark">
-                            {(dimensions.x * scale).toFixed(0)}mm
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-xs text-brand-dark/50 mb-1">Profund.</div>
-                        <div className="font-mono font-bold text-sm text-brand-dark">
-                            {(dimensions.y * scale).toFixed(0)}mm
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-xs text-brand-dark/50 mb-1">Altura</div>
-                        <div className="font-mono font-bold text-sm text-brand-dark">
-                            {(dimensions.z * scale).toFixed(0)}mm
-                        </div>
-                    </div>
+                <div className="grid grid-cols-3 gap-3 pt-2 border-t border-brand-secondary/10">
+                    <DimensionInput
+                        label="Ancho (X)"
+                        value={(dimensions.x * scale).toFixed(1)}
+                        originalValue={dimensions.x}
+                        onChange={onChange}
+                    />
+                    <DimensionInput
+                        label="Largo (Y)"
+                        value={(dimensions.y * scale).toFixed(1)}
+                        originalValue={dimensions.y}
+                        onChange={onChange}
+                    />
+                    <DimensionInput
+                        label="Alto (Z)"
+                        value={(dimensions.z * scale).toFixed(1)}
+                        originalValue={dimensions.z}
+                        onChange={onChange}
+                    />
                 </div>
             )}
 
@@ -121,6 +121,64 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
                 >
                     150%
                 </button>
+            </div>
+        </div>
+    );
+};
+
+const DimensionInput = ({ label, value, originalValue, onChange }) => {
+    // Estado local para permitir edición sin saltos
+    const [localValue, setLocalValue] = React.useState(value);
+
+    // Sincronizar cuando cambia el valor externo (por slider u otro input)
+    React.useEffect(() => {
+        setLocalValue(value);
+    }, [value]);
+
+    const handleChange = (e) => {
+        setLocalValue(e.target.value);
+    };
+
+    const handleBlur = () => {
+        applyChange();
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+            applyChange();
+        }
+    };
+
+    const applyChange = () => {
+        const numValue = parseFloat(localValue);
+        if (!isNaN(numValue) && numValue > 0 && originalValue > 0) {
+            // Calcular nuevo scale factor
+            // nuevoScale = nuevoDim / originalDim
+            const newScale = numValue / originalValue;
+            // Limitar escala a 10% - 500%
+            const clampedScale = Math.max(0.1, Math.min(newScale, 5.0));
+            onChange(clampedScale);
+        } else {
+            // Revertir si es inválido
+            setLocalValue(value);
+        }
+    };
+
+    return (
+        <div className="flex flex-col">
+            <span className="text-[10px] uppercase font-bold text-brand-dark/50 mb-1">{label}</span>
+            <div className="relative">
+                <input
+                    type="number"
+                    step="0.1"
+                    className="w-full bg-brand-light/50 border border-brand-secondary/20 rounded-lg px-2 py-1 text-sm font-mono font-bold text-brand-dark focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition-all"
+                    value={localValue}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-brand-dark/40 font-bold pointer-events-none">mm</span>
             </div>
         </div>
     );
