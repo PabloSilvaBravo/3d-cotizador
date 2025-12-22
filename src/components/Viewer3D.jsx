@@ -2,7 +2,6 @@ import React, { useEffect, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import { calculateGeometryData } from '../utils/geometryUtils';
 import * as THREE from 'three';
 
 const Model = ({ url, color, onLoaded }) => {
@@ -78,8 +77,8 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
 
     const handleGeometryLoaded = useMemo(() => {
         return (geo) => {
-            const data = calculateGeometryData(geo);
-            onGeometryLoaded(data);
+            // Pasar la geometría cruda al padre para cálculos avanzados (volumen, orientación)
+            onGeometryLoaded(geo);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

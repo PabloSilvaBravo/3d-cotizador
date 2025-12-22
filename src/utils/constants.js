@@ -59,6 +59,6 @@ export const DEFAULT_CONFIG = {
   material: 'PLA',
   colorId: 'white',
   qualityId: 'standard',
-  infill: 15,
+  infill: 20, // Recomendado para robustez óptima
   quantity: 1,
 };

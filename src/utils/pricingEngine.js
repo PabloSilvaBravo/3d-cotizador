@@ -7,32 +7,27 @@ export const calculatePriceFromStats = (config, stats) => {
     const PRICE_PER_GRAM_PLA = 12;
     const materialCost = Math.ceil(stats.weightGrams * PRICE_PER_GRAM_PLA);
 
-    // 2. FACTOR DIFICULTAD (Automático por ratio de soportes)
-    // Calculamos ratio: Soportes / Total
+    // 2. FACTOR DIFICULTAD (Basado en % de soportes del G-Code real)
     const pesoSoportes = stats.pesoSoportes || 0;
     const pesoTotal = stats.weightGrams || 1; // Evitar div/0
-    const ratioSoportes = pesoSoportes / pesoTotal;
+    const porcentajeSoportes = (pesoSoportes / pesoTotal) * 100;
 
-    // Umbrales definidos por el usuario
-    const UMBRAL_MEDIA = 0.15; // 15%
-    const UMBRAL_ALTA = 0.40;  // 40%
-
+    // Umbrales actualizados según especificación
     let difficultyFactor = 1.0;
-    let difficultyLabel = "Normal";
+    let difficultyLabel = "Sin soportes";
 
-    if (ratioSoportes > UMBRAL_ALTA) {
-        difficultyFactor = 1.5;
-        difficultyLabel = "Alta (>40% Soportes)";
-    } else if (ratioSoportes > UMBRAL_MEDIA) {
-        difficultyFactor = 1.2;
-        difficultyLabel = "Media (>15% Soportes)";
-    } else if (ratioSoportes > 0) {
-        // Si tiene soportes pero son pocos, ¿1.0 o 1.2?
-        // Tu regla decía "Media: 1.2". 
-        // Asumiremos que si hay soportes significativos (>0 pero <15%) quizás sigue siendo 1.0 
-        // O si prefieres estricto: cualquier soporte = 1.2?
-        // Usaré 1.0 para bajo volumen de soportes, 1.2 para moderado.
-        difficultyFactor = 1.0;
+    if (porcentajeSoportes > 30) {
+        difficultyFactor = 1.30; // +30% recargo
+        difficultyLabel = "Muy Alta (>30% soportes)";
+    } else if (porcentajeSoportes > 15) {
+        difficultyFactor = 1.20; // +20% recargo
+        difficultyLabel = "Alta (15-30% soportes)";
+    } else if (porcentajeSoportes > 5) {
+        difficultyFactor = 1.10; // +10% recargo
+        difficultyLabel = "Media (5-15% soportes)";
+    } else if (porcentajeSoportes > 0) {
+        difficultyFactor = 1.0; // Sin recargo
+        difficultyLabel = "Baja (<5% soportes)";
     }
 
     // 3. COSTO TIEMPO
@@ -64,7 +59,8 @@ export const calculatePriceFromStats = (config, stats) => {
         estimatedTimeHours: stats.timeHours * config.quantity,
         weightGrams: stats.weightGrams,
         debug: {
-            ratioSoportes: (ratioSoportes * 100).toFixed(1) + "%",
+            porcentajeSoportes: porcentajeSoportes.toFixed(1) + "%",
+            pesoSoportes: pesoSoportes.toFixed(1) + "g",
             difficultyFactor,
             difficultyLabel
         }

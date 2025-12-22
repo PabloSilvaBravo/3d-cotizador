@@ -12,6 +12,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Sistema de logging robusto para debugging
+const LOG_FILE = path.join(__dirname, 'debug.log');
+function log(level, message, data = null) {
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] [${level}] ${message} ${data ? JSON.stringify(data) : ''}\n`;
+    try {
+        fs.appendFileSync(LOG_FILE, logLine);
+    } catch (e) {
+        // Ignorar errores de logging
+    }
+    console.log(logLine.trim());
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -111,18 +124,51 @@ async function processQueue() {
 // === FUNCIÓN DE SLICING ===
 function processSlicing(job) {
     return new Promise((resolve, reject) => {
-        const { inputPath, configPath, outputGcode, material, qualityId, infill, fileHash } = job;
+        const { inputPath, configPath, outputGcode, material, qualityId, infill, fileHash, rotationX, rotationY, rotationZ, scaleFactor } = job;
 
-        // Verificar caché
-        const cacheKey = `${fileHash}-${material}-${qualityId}-${infill}`;
+        // Verificar caché (incluir rotación y escala en clave)
+        const cacheKey = `${fileHash}-${material}-${qualityId}-${infill}-${rotationX}-${rotationY}-${rotationZ}-${scaleFactor}`;
         if (cache.has(cacheKey)) {
             console.log('✅ Desde caché (instantáneo)');
             return resolve(cache.get(cacheKey));
         }
 
-        const filamentPath = path.resolve(__dirname, 'backend', 'profiles', 'PLA_Generic.ini');
-        const command = `${SLICER_COMMAND} --export-gcode --load "${configPath}" --load "${filamentPath}" --fill-density ${infill}% --layer-height 0.2 --perimeter-speed 90 --infill-speed 200 --travel-speed 400 --output "${outputGcode}" "${inputPath}"`;
+        // Convertir radianes a grados para PrusaSlicer
+        const rotX = (rotationX || 0) * (180 / Math.PI);
+        const rotY = (rotationY || 0) * (180 / Math.PI);
+        const rotZ = (rotationZ || 0) * (180 / Math.PI);
+        const scale = (scaleFactor || 1.0) * 100; // PrusaSlicer usa porcentaje
 
+        // SOLUCIÓN: Usar solo parámetros CLI (máxima prioridad según documentación)
+        // Evitamos conflictos de archivos INI cargando configuración directamente
+        const command = `${SLICER_COMMAND} --export-gcode ` +
+            `--center 128,128 ` +
+            // `--dont-arrange ` +  // 2025-05-20: Removido para permitir que PrusaSlicer intente acomodar el modelo si está fuera
+            `--ensure-on-bed ` + // Asegurar que esté sobre la cama
+            (rotX !== 0 ? `--rotate-x ${rotX} ` : '') +  // Rotación en X
+            (rotY !== 0 ? `--rotate-y ${rotY} ` : '') +  // Rotación en Y
+            (rotZ !== 0 ? `--rotate-z ${rotZ} ` : '') +  // Rotación en Z
+            (scale !== 100 ? `--scale ${scale}% ` : '') + // Escala si no es 100%
+            `--layer-height 0.2 ` +
+            `--perimeters 2 ` +
+            `--top-solid-layers 3 ` +
+            `--bottom-solid-layers 3 ` +
+            `--fill-density ${infill}% ` +
+            `--fill-pattern cubic ` +
+            `--perimeter-speed 90 ` +
+            `--infill-speed 200 ` +
+            `--travel-speed 400 ` +
+            `--first-layer-speed 50 ` +
+            `--support-material ` +
+            `--support-material-threshold 30 ` +
+            `--temperature 220 ` +
+            `--bed-temperature 60 ` +
+            `--filament-diameter 1.75 ` +
+            `--nozzle-diameter 0.4 ` +
+            `--retract-length 0.8 ` +
+            `--output "${outputGcode}" "${inputPath}"`;
+
+        log('INFO', 'Comando PrusaSlicer', { command });
         const startTime = Date.now();
 
         // Opciones de proceso: Baja prioridad, buffer limitado
@@ -137,18 +183,39 @@ function processSlicing(job) {
         const childProcess = exec(command, execOptions, (error, stdout, stderr) => {
             const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
+            // Log output de PrusaSlicer para debugging
+            if (stdout) log('INFO', 'PrusaSlicer stdout', { stdout: stdout.substring(0, 500) });
+            if (stderr) log('WARN', 'PrusaSlicer stderr', { stderr: stderr.substring(0, 500) });
+
             if (error) {
-                console.error(`❌ Error slicing (${processingTime}s):`, error.message);
-                return reject(new Error('Slicing failed'));
+                log('ERROR', `Error ejecutando PrusaSlicer (${processingTime}s)`, {
+                    message: error.message,
+                    code: error.code
+                });
+
+                // Detectar errores específicos
+                if (stderr && (stderr.includes('outside of the print volume') || stderr.includes('fits the print volume'))) {
+                    return reject(new Error('El modelo es demasiado grande para el volumen de impresión (250x210x210mm). Intenta reducir la escala.'));
+                }
+
+                return reject(new Error('Slicing failed: ' + error.message));
             }
 
             console.log(`✅ Slicing OK (${processingTime}s)`);
 
             let gcodeContent = "";
             try {
+                if (!fs.existsSync(outputGcode)) {
+                    log('ERROR', 'Archivo GCode no existe', { outputGcode });
+                    return reject(new Error(`Archivo GCode no encontrado: ${outputGcode}`));
+                }
+                const stats = fs.statSync(outputGcode);
+                log('INFO', `Leyendo GCode (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
                 gcodeContent = fs.readFileSync(outputGcode, 'utf8');
+                log('INFO', `GCode leído exitosamente (${gcodeContent.length} caracteres)`);
             } catch (err) {
-                return reject(new Error('Error leyendo GCode'));
+                log('ERROR', 'Error leyendo GCode', { error: err.message, outputGcode });
+                return reject(new Error(`Error leyendo GCode: ${err.message}`));
             }
 
             // === PARSEO DE DATOS ===
@@ -264,12 +331,19 @@ function processSlicing(job) {
                 console.log(`   ✓ Dimensiones: ${dimensions.x} x ${dimensions.y} x ${dimensions.z} mm`);
             }
 
+            // 6. CALCULAR PORCENTAJE DE SOPORTES para factor de dificultad
+            const porcentajeSoportes = peso > 0 ? (pesoSoportes / peso) * 100 : 0;
+            if (porcentajeSoportes > 0) {
+                log('INFO', `Porcentaje de soportes: ${porcentajeSoportes.toFixed(1)}%`);
+            }
+
             const result = {
                 volumen,
                 peso,
                 tiempoTexto: tiempoAjustadoStr,
                 tiempoHoras: hours,
                 pesoSoportes,
+                porcentajeSoportes, // Añadir para cálculo de dificultad
                 dimensions: null
             };
 
@@ -309,14 +383,21 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
         return res.status(429).json({ error: 'Demasiadas solicitudes. Espera un momento.' });
     }
 
-    if (!req.file) return res.status(400).json({ error: 'Falta archivo' });
+    if (!req.file) {
+        log('ERROR', 'No se recibió archivo en la petición');
+        return res.status(400).json({ error: 'Falta archivo' });
+    }
+
+    log('INFO', `Archivo recibido: ${req.file.originalname} (${req.file.size} bytes)`);
 
     const originalPath = req.file.path;
     const inputPath = req.file.path + '.stl';
 
     try {
         fs.renameSync(originalPath, inputPath);
+        log('INFO', `Archivo renombrado: ${inputPath}`);
     } catch (e) {
+        log('ERROR', `Error al renombrar archivo: ${e.message}`, { stack: e.stack });
         return res.status(500).json({ error: 'Error procesando archivo' });
     }
 
@@ -331,6 +412,12 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
     const infillPercent = req.body.infill || 15;
     const qualityId = req.body.quality || 'standard';
 
+    // Parámetros de orientación y escala
+    const rotationX = parseFloat(req.body.rotationX || 0);
+    const rotationY = parseFloat(req.body.rotationY || 0);
+    const rotationZ = parseFloat(req.body.rotationZ || 0);
+    const scaleFactor = parseFloat(req.body.scaleFactor || 1.0);
+
     const fileHash = getFileHash(inputPath);
 
     // Añadir a cola
@@ -342,6 +429,10 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
             material,
             qualityId,
             infill: infillPercent,
+            rotationX,
+            rotationY,
+            rotationZ,
+            scaleFactor,
             fileHash,
             resolve,
             reject
@@ -352,8 +443,10 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
 
     try {
         const result = await jobPromise;
+        log('INFO', 'Slicing completado exitosamente');
         res.json(result);
     } catch (error) {
+        log('ERROR', 'Error en slicing', { message: error.message, stack: error.stack });
         res.status(500).json({ error: error.message });
     }
 });

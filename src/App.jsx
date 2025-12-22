@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import FileUpload from './components/ui/FileUpload';
 import Viewer3D from './components/Viewer3D';
+import ErrorBoundary from './components/ErrorBoundary';
 import Configurator from './components/ui/Configurator';
 import PriceSummary from './components/ui/PriceSummary';
+import ScaleControl from './components/ui/ScaleControl';
 import OrderModal from './components/OrderModal';
 import { DEFAULT_CONFIG, COLORS } from './utils/constants';
 import { calculatePriceFromStats } from './utils/pricingEngine';
+import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -16,6 +19,11 @@ const App = () => {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Estado para orientación y escala óptimas
+  const [optimalRotation, setOptimalRotation] = useState([0, 0, 0]);
+  const [autoScale, setAutoScale] = useState(1.0);
+  const [scaleInfo, setScaleInfo] = useState(null);
+
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
   const handleFileSelect = (selectedFile) => {
@@ -25,12 +33,43 @@ const App = () => {
     setLocalGeometry(null);
     resetQuote();
 
-    console.log("📂 Archivo cargado:", selectedFile.name);
-    getQuote(selectedFile, config.material, config.qualityId, config.infill);
+    console.log("Archivo cargado:", selectedFile.name);
+    getQuote(selectedFile, config.material, config.qualityId, config.infill, [0, 0, 0], 1.0)
+      .catch(err => console.error('Error al obtener cotizacion inicial:', err));
   };
 
-  const handleGeometryLoaded = (data) => {
+  const handleGeometryLoaded = (geometry) => {
+    // Viewer3D ahora pasa geometry directamente (version original)
+    const data = calculateGeometryData(geometry);
     setLocalGeometry(data);
+
+    // 1. Calcular Orientación Óptima
+    const orientation = calculateOptimalOrientation(geometry);
+    const newRotation = [orientation.rotationX, orientation.rotationY, orientation.rotationZ];
+    setOptimalRotation(newRotation);
+
+    console.log(`Auto-Orientación: ${orientation.orientationName} (${(orientation.rotationX * 180 / Math.PI).toFixed(1)}°, ${(orientation.rotationY * 180 / Math.PI).toFixed(1)}°, ${(orientation.rotationZ * 180 / Math.PI).toFixed(1)}°)`);
+
+    // 2. Calcular Auto-Escala
+    // TODO: Considerar dimensiones rotadas para ser más precisos
+    const scaleResult = calculateAutoScale(data.dimensions);
+    let finalScale = 1.0;
+
+    if (scaleResult.needsScaling) {
+      finalScale = scaleResult.scaleFactor;
+      setAutoScale(finalScale);
+      setScaleInfo(scaleResult);
+      console.warn(`Modelo muy grande - Auto-escalado a ${(scaleResult.scaleFactor * 100).toFixed(0)}%`);
+    } else {
+      setAutoScale(1.0);
+      setScaleInfo(null);
+    }
+
+    // 3. Recotizar con parámetros optimizados
+    // Nota: handleFileSelect dispara una cotización inicial (todo en 0), 
+    // pero esta la reemplazará con los valores optimizados (cancelando la anterior gracias a AbortController).
+    getQuote(file, config.material, config.qualityId, config.infill, newRotation, finalScale)
+      .catch(err => console.error('Error al recotizar con geometría optimizada:', err));
   };
 
   const handleConfigChange = (newConfig) => {
@@ -43,8 +82,20 @@ const App = () => {
       (newConfig.infill !== undefined && newConfig.infill !== config.infill);
 
     if (file && isPriceAffecting) {
-      console.log("🔄 Recotizando por cambio de configuración...");
-      getQuote(file, updatedConfig.material, updatedConfig.qualityId, updatedConfig.infill);
+      console.log("Recotizando por cambio de configuracion...");
+      getQuote(file, updatedConfig.material, updatedConfig.qualityId, updatedConfig.infill, optimalRotation, autoScale)
+        .catch(err => console.error('Error al recotizar:', err));
+    }
+  };
+
+  const handleScaleChange = (newScale) => {
+    setAutoScale(newScale);
+    console.log(`Escala ajustada manualmente a ${(newScale * 100).toFixed(0)}%`);
+
+    // Recotizar con nueva escala
+    if (file) {
+      getQuote(file, config.material, config.qualityId, config.infill, optimalRotation, newScale)
+        .catch(err => console.error('Error al recotizar con nueva escala:', err));
     }
   };
 
@@ -93,6 +144,8 @@ const App = () => {
       timeHours: quoteData.tiempoHoras, // Del backend (PrusaSlicer)
       pesoSoportes: 0
     }),
+    // Agregar volumen real del STL para transparencia
+    volumeStlCm3: localGeometry.volumeCm3,
     // Agregar dimensiones para el desglose
     dimensions: localGeometry.dimensions ? {
       x: (localGeometry.dimensions.x / 10).toFixed(2), // mm a cm
@@ -162,6 +215,8 @@ const App = () => {
               fileUrl={fileUrl}
               colorHex={currentColorHex}
               onGeometryLoaded={handleGeometryLoaded}
+              rotation={optimalRotation}
+              scale={autoScale}
             />
           )}
 
@@ -183,8 +238,13 @@ const App = () => {
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800">
-              <strong>Error de Conexión:</strong> {error}. Verifica que el puerto 3001 esté activo.
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 flex items-center gap-3">
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <strong>Error:</strong> {error}
+              </div>
             </div>
           )}
 
@@ -193,6 +253,15 @@ const App = () => {
             geometry={localGeometry}
             onChange={handleConfigChange}
           />
+
+          {localGeometry && (
+            <ScaleControl
+              scale={autoScale}
+              onChange={handleScaleChange}
+              scaleInfo={scaleInfo}
+              dimensions={localGeometry.dimensions}
+            />
+          )}
 
           <PriceSummary
             estimate={estimateForUI}

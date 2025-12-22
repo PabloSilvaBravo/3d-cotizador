@@ -13,122 +13,138 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
     return (
         <div className="mt-6 bg-brand-secondary/5 rounded-2xl border border-brand-secondary/10 overflow-hidden relative transition-all duration-300">
 
-            {/* Details Header Toggle */}
-            <button
-                className="w-full flex items-center justify-between p-4 text-xs font-bold text-brand-dark/50 uppercase tracking-widest hover:bg-brand-secondary/5 transition-colors"
-                onClick={() => setDetailsOpen(!detailsOpen)}
-            >
-                <span>Desglose de Costos</span>
-                <svg
-                    className={`w-4 h-4 transition-transform duration-300 ${detailsOpen ? 'rotate-180' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-            </button>
-
-            {/* Technical Specifications - NUEVO */}
-            {detailsOpen && estimate.debug && (
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-                    <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
-                        Especificaciones Técnicas
-                    </h4>
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                            <span className="text-slate-500">Volumen de material:</span>
-                            <span className="font-mono font-semibold text-slate-700">
-                                {estimate.weightGrams ? (estimate.weightGrams / 1.24).toFixed(2) : '—'} cm³
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                            <span className="text-slate-500">Volumen de Soportes:</span>
-                            <span className="font-mono font-semibold text-slate-700">
-                                {estimate.debug?.pesoSoportes && estimate.weightGrams
-                                    ? `${((estimate.debug.pesoSoportes / estimate.weightGrams) * 100).toFixed(1)}%`
-                                    : '0%'
-                                }
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                            <span className="text-slate-500">Peso del modelo:</span>
-                            <span className="font-mono font-semibold text-slate-700">
-                                {estimate.weightGrams ? estimate.weightGrams.toFixed(1) : '—'} g
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center p-2 bg-white rounded-lg col-span-2">
-                            <span className="text-slate-500">Dimensiones del modelo:</span>
-                            <span className="font-mono font-semibold text-slate-700">
-                                {estimate.dimensions
-                                    ? `${estimate.dimensions.x} × ${estimate.dimensions.y} × ${estimate.dimensions.z} cm`
-                                    : '— × — × — cm'
-                                }
-                            </span>
-                        </div>
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                    <div className="text-center">
+                        <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-brand-primary/20 border-t-brand-primary mb-3"></div>
+                        <p className="text-sm text-brand-dark/70 font-medium animate-pulse">Recalculando precio...</p>
                     </div>
                 </div>
             )}
 
-            {/* Details Panel */}
-            <div
-                className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${detailsOpen ? 'max-h-52 mb-4 opacity-100' : 'max-h-0 opacity-0'}`}
-            >
-                <div className="space-y-2 text-sm text-brand-dark/70 pt-2 border-t border-dashed border-brand-secondary/10">
-                    <div className="flex justify-between">
-                        <span>Material ({estimate.weightGrams ? Math.ceil(estimate.weightGrams) : 0}g)</span>
-                        <span className="font-medium">${estimate.materialCost.toLocaleString('es-CL')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Tiempo (~{Math.ceil(estimate.estimatedTimeHours)}h)</span>
-                        <span className="font-medium">${estimate.timeCost.toLocaleString('es-CL')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Tarifa Base</span>
-                        <span className="font-medium">${estimate.startupFee.toLocaleString('es-CL')}</span>
-                    </div>
-
-                    {config.quantity > 1 && (
-                        <div className="flex justify-between text-brand-primary font-bold pt-2 mt-2 border-t border-brand-secondary/5 text-xs">
-                            <span>Precio unitario</span>
-                            <span>${estimate.unitPrice.toLocaleString('es-CL')}</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Main Action Bar */}
-            <div className="p-5 bg-white border-t border-brand-secondary/10 flex flex-col gap-4">
-                <div className="flex justify-between items-end">
-                    <div>
-                        <p className="text-xs text-brand-dark/40 font-bold uppercase mb-1">Tiempo de entrega estimado</p>
-                        <p className="text-sm font-semibold text-brand-secondary flex items-center gap-1">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            3-5 días hábiles
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-[10px] text-brand-dark/40 uppercase font-bold tracking-widest mb-0.5">Total Estimado</div>
-                        <div className="text-3xl font-black text-brand-secondary leading-none tracking-tight">
-                            ${estimate.totalPrice.toLocaleString('es-CL')}
-                        </div>
-                    </div>
-                </div>
-
+            {/* Contenido con transición suave */}
+            <div className={`transition-opacity duration-300 ${isLoading ? 'opacity-40' : 'opacity-100'}`}>
+                {/* Details Header Toggle */}
                 <button
-                    onClick={onAddToCart}
-                    disabled={isLoading}
-                    className={`
+                    className="w-full flex items-center justify-between p-4 text-xs font-bold text-brand-dark/50 uppercase tracking-widest hover:bg-brand-secondary/5 transition-colors"
+                    onClick={() => setDetailsOpen(!detailsOpen)}
+                >
+                    <span>Desglose de Costos</span>
+                    <svg
+                        className={`w-4 h-4 transition-transform duration-300 ${detailsOpen ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+
+                {/* Technical Specifications - NUEVO */}
+                {detailsOpen && estimate.debug && (
+                    <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                        <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
+                            Especificaciones Técnicas
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                <span className="text-slate-500">Volumen STL (geométrico):</span>
+                                <span className="font-mono font-semibold text-slate-700">
+                                    {estimate.volumeStlCm3 ? `${estimate.volumeStlCm3.toFixed(2)} cm³` : '—'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                <span className="text-slate-500">Peso estimado ({config.infill}% relleno):</span>
+                                <span className="font-mono font-semibold text-slate-700">
+                                    {estimate.weightGrams ? `${estimate.weightGrams.toFixed(1)} g` : '—'}
+                                </span>
+                            </div>
+                            {estimate.debug?.porcentajeSoportes && (
+                                <div className="flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-lg col-span-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-amber-700 font-medium">⚠️ Soportes requeridos:</span>
+                                        <span className="text-xs text-amber-600">({estimate.debug.difficultyLabel})</span>
+                                    </div>
+                                    <span className="font-mono font-bold text-amber-700">
+                                        {estimate.debug.porcentajeSoportes}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="flex justify-between items-center p-2 bg-white rounded-lg col-span-2">
+                                <span className="text-slate-500">Dimensiones del modelo:</span>
+                                <span className="font-mono font-semibold text-slate-700">
+                                    {estimate.dimensions
+                                        ? `${estimate.dimensions.x} × ${estimate.dimensions.y} × ${estimate.dimensions.z} cm`
+                                        : '— × — × — cm'
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Details Panel */}
+                <div
+                    className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${detailsOpen ? 'max-h-52 mb-4 opacity-100' : 'max-h-0 opacity-0'}`}
+                >
+                    <div className="space-y-2 text-sm text-brand-dark/70 pt-2 border-t border-dashed border-brand-secondary/10">
+                        <div className="flex justify-between">
+                            <span>Material ({estimate.weightGrams ? Math.ceil(estimate.weightGrams) : 0}g)</span>
+                            <span className="font-medium">${estimate.materialCost.toLocaleString('es-CL')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Tiempo (~{Math.ceil(estimate.estimatedTimeHours)}h)</span>
+                            <span className="font-medium">${estimate.timeCost.toLocaleString('es-CL')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Tarifa Base</span>
+                            <span className="font-medium">${estimate.startupFee.toLocaleString('es-CL')}</span>
+                        </div>
+
+                        {config.quantity > 1 && (
+                            <div className="flex justify-between text-brand-primary font-bold pt-2 mt-2 border-t border-brand-secondary/5 text-xs">
+                                <span>Precio unitario</span>
+                                <span>${estimate.unitPrice.toLocaleString('es-CL')}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Main Action Bar */}
+                <div className="p-5 bg-white border-t border-brand-secondary/10 flex flex-col gap-4">
+                    <div className="flex justify-between items-end">
+                        <div>
+                            <p className="text-xs text-brand-dark/40 font-bold uppercase mb-1">Tiempo de entrega estimado</p>
+                            <p className="text-sm font-semibold text-brand-secondary flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                3-5 días hábiles
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-[10px] text-brand-dark/40 uppercase font-bold tracking-widest mb-0.5">Total Estimado</div>
+                            <div className="text-3xl font-black text-brand-secondary leading-none tracking-tight">
+                                ${estimate.totalPrice.toLocaleString('es-CL')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={onAddToCart}
+                        disabled={isLoading}
+                        className={`
             w-full py-4 rounded-xl font-bold text-lg shadow-lg transition-all duration-300
             flex items-center justify-center gap-3 transform hover:-translate-y-1 active:translate-y-0
             ${isLoading
-                            ? 'bg-brand-dark/10 text-brand-dark/30 cursor-not-allowed shadow-none'
-                            : 'bg-brand-primary text-white hover:bg-brand-secondary hover:shadow-brand-primary/30'
-                        }
+                                ? 'bg-brand-dark/10 text-brand-dark/30 cursor-not-allowed shadow-none'
+                                : 'bg-brand-primary text-white hover:bg-brand-secondary hover:shadow-brand-primary/30'
+                            }
           `}
-                >
-                    {isLoading ? 'Calculando...' : 'Añadir al Carrito'}
-                    {!isLoading && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
-                </button>
+                    >
+                        {isLoading ? 'Calculando...' : 'Añadir al Carrito'}
+                        {!isLoading && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
+                    </button>
+                </div>
             </div>
+            {/* Cierre del div de transición */}
         </div>
     );
 };

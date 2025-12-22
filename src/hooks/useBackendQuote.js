@@ -1,50 +1,83 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export const useBackendQuote = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [quoteData, setQuoteData] = useState(null);
+    const debounceTimerRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
-    const getQuote = useCallback(async (file, materialId, qualityId, infill) => {
+    const getQuote = useCallback(async (file, materialId, qualityId, infill, rotation = [0, 0, 0], scale = 1.0) => {
+        // Cancelar timer anterior
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        // Cancelar petición anterior
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
         setIsLoading(true);
         setError(null);
-        setQuoteData(null);
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('material', materialId);
-        formData.append('quality', qualityId); // Asegúrate de que tu backend reciba esto o usa mappings
-        formData.append('infill', infill);     // Idem
+        // Debouncing: esperar 500ms después del último cambio
+        return new Promise((resolve, reject) => {
+            debounceTimerRef.current = setTimeout(async () => {
+                setQuoteData(null);
 
-        try {
-            // Auto-detectar URL del backend según el host actual
-            // Si accedes desde 192.168.0.23:5173, usará 192.168.0.23:3001
-            // Si accedes desde localhost:5173, usará localhost:3001
-            const backendHost = window.location.hostname;
-            const backendUrl = `http://${backendHost}:3001/api/quote`;
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('material', materialId);
+                formData.append('quality', qualityId);
+                formData.append('infill', infill);
 
-            const response = await fetch(backendUrl, {
-                method: 'POST',
-                body: formData,
-            });
+                // Añadir transformaciones
+                formData.append('rotationX', rotation[0]);
+                formData.append('rotationY', rotation[1]);
+                formData.append('rotationZ', rotation[2]);
+                formData.append('scaleFactor', scale);
 
-            if (!response.ok) {
-                throw new Error('Error al conectar con el servidor de cotización');
-            }
+                try {
+                    abortControllerRef.current = new AbortController();
+                    const backendHost = window.location.hostname;
+                    const backendUrl = `http://${backendHost}:3001/api/quote`;
 
-            const data = await response.json();
+                    const response = await fetch(backendUrl, {
+                        method: 'POST',
+                        body: formData,
+                        signal: abortControllerRef.current.signal
+                    });
 
-            // Adaptar respuesta del backend a lo que espera la UI nueva si es necesario
-            // Backend devuelve típicamente: { price, volume, weight, time, details: {...} }
-            setQuoteData(data);
-            return data;
+                    if (!response.ok) {
+                        let errorMessage = 'Error al conectar con el servidor de cotización';
+                        try {
+                            const errorData = await response.json();
+                            if (errorData.error) errorMessage = errorData.error;
+                        } catch (e) {
+                            // Si no es JSON, tomamos statusText
+                            errorMessage = `Error del servidor: ${response.status} ${response.statusText}`;
+                        }
+                        throw new Error(errorMessage);
+                    }
 
-        } catch (err) {
-            console.error(err);
-            setError(err.message || 'Error desconocido');
-        } finally {
-            setIsLoading(false);
-        }
+                    const data = await response.json();
+                    setQuoteData(data);
+                    setIsLoading(false);
+                    resolve(data);
+
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        console.log('⏭️ Petición cancelada (nueva configuración)');
+                        return;
+                    }
+                    console.error(err);
+                    setError(err.message || 'Error desconocido');
+                    setIsLoading(false);
+                    reject(err);
+                }
+            }, 500); // 500ms debounce
+        });
     }, []);
 
     const resetQuote = () => {
