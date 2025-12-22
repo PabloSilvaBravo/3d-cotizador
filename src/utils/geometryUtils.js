@@ -79,14 +79,19 @@ export const calculateOptimalOrientation = (geometry) => {
         let orientationName = 'Original';
 
         if (x <= y && x <= z) {
-            // X es el más corto. Rotar 90° en Z para poner X vertical (en Y)
-            // (O -90°, depende de la dirección, probamos positivo)
-            rotation = [0, 0, Math.PI / 2];
-            orientationName = 'Acostado (X-Up)';
+            // X es el más corto. Idealmente rotaríamos 90° en Z.
+            // PERO: El backend (PrusaSlicer CLI) no soporta rotación en X/Y fiablemente.
+            // Para mantener consistencia (lo que ves es lo que se cotiza), deshabilitamos esta optimización.
+            // rotation = [0, 0, Math.PI / 2];
+            // orientationName = 'Acostado (X-Up) [Deshabilitado]';
+            rotation = [0, 0, 0];
+            orientationName = 'Original';
         } else if (z <= x && z <= y) {
-            // Z es el más corto. Rotar 90° en X para poner Z vertical (en Y)
-            rotation = [Math.PI / 2, 0, 0];
-            orientationName = 'Acostado (Z-Up)';
+            // Z es el más corto. Idealmente rotaríamos 90° en X.
+            // rotation = [Math.PI / 2, 0, 0];
+            // orientationName = 'Acostado (Z-Up) [Deshabilitado]';
+            rotation = [0, 0, 0];
+            orientationName = 'Original';
         } else {
             // Y ya es el más corto. Mantener.
             rotation = [0, 0, 0];

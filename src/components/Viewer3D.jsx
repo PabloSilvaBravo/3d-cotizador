@@ -70,29 +70,32 @@ const PrintBed = ({ size = 235 }) => {
     );
 };
 
-export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
-    const [rotation, setRotation] = React.useState([0, 0, 0]); // [X, Y, Z]
+export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0, onRotationChange }) => {
+    // Eliminamos estado local de rotación para usar el controlado por el padre
+    // const [rotation, setRotation] = React.useState([0, 0, 0]); 
     const [position, setPosition] = React.useState([0, 0, 0]); // Ajuste dinámico
     const meshRef = React.useRef();
 
     const handleGeometryLoaded = useMemo(() => {
         return (geo) => {
-            // Pasar la geometría cruda al padre para cálculos avanzados (volumen, orientación)
+            // Pasar la geometría cruda al padre
             onGeometryLoaded(geo);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const rotateModel = (axis) => {
-        setRotation(prev => {
-            const newRotation = [...prev];
+        if (onRotationChange) {
+            const newRotation = [...rotation];
             newRotation[axis] += Math.PI / 2; // 90 grados
-            return newRotation;
-        });
+            onRotationChange(newRotation);
+        }
     };
 
     const resetRotation = () => {
-        setRotation([0, 0, 0]);
+        if (onRotationChange) {
+            onRotationChange([0, 0, 0]);
+        }
     };
 
     // Recalcular posición después de rotar
@@ -140,7 +143,7 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded }) => {
 
                     {/* Modelo 3D con rotación controlada */}
                     {fileUrl && (
-                        <group ref={meshRef} rotation={rotation} position={position}>
+                        <group ref={meshRef} rotation={rotation} scale={[scale, scale, scale]} position={position}>
                             <Model url={fileUrl} color={colorHex} onLoaded={handleGeometryLoaded} />
                         </group>
                     )}

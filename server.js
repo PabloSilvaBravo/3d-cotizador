@@ -139,16 +139,16 @@ function processSlicing(job) {
         const rotZ = (rotationZ || 0) * (180 / Math.PI);
         const scale = (scaleFactor || 1.0) * 100; // PrusaSlicer usa porcentaje
 
-        // SOLUCIÓN: Usar solo parámetros CLI (máxima prioridad según documentación)
-        // Evitamos conflictos de archivos INI cargando configuración directamente
+        // SOLUCIÓN: Usar solo parámetros CLI soportados
+        // --rotate es para rotación en Z (grados)
+        // PrusaSlicer CLI no soporta nativamente --rotate-x ni --rotate-y sin config bundles complejos.
+        // Por seguridad y estabilidad, solo aplicamos rotación Z y Escala.
         const command = `${SLICER_COMMAND} --export-gcode ` +
             `--center 128,128 ` +
-            // `--dont-arrange ` +  // 2025-05-20: Removido para permitir que PrusaSlicer intente acomodar el modelo si está fuera
-            `--ensure-on-bed ` + // Asegurar que esté sobre la cama
-            (rotX !== 0 ? `--rotate-x ${rotX} ` : '') +  // Rotación en X
-            (rotY !== 0 ? `--rotate-y ${rotY} ` : '') +  // Rotación en Y
-            (rotZ !== 0 ? `--rotate-z ${rotZ} ` : '') +  // Rotación en Z
-            (scale !== 100 ? `--scale ${scale}% ` : '') + // Escala si no es 100%
+            // `--dont-arrange ` + 
+            `--ensure-on-bed ` +
+            (rotZ !== 0 ? `--rotate ${rotZ} ` : '') +  // Rotación en Z (única soportada fiablemente)
+            (scale !== 100 ? `--scale ${scale}% ` : '') +
             `--layer-height 0.2 ` +
             `--perimeters 2 ` +
             `--top-solid-layers 3 ` +
