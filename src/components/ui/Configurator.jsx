@@ -1,6 +1,7 @@
 import React from 'react';
 import { MATERIALS, COLORS, QUALITIES } from '../../utils/constants';
 import { InfillSelector } from './InfillSelector';
+import { QualitySelector } from './QualitySelector';
 
 export const Configurator = ({ config, geometry, onChange }) => {
 
@@ -81,30 +82,16 @@ export const Configurator = ({ config, geometry, onChange }) => {
                 </div>
             </div>
 
-            {/* Quality */}
+            {/* Quality Selector - NEW */}
             <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                     <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
                     <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">3. Calidad</label>
                 </div>
-                <div className="flex flex-col gap-2">
-                    {QUALITIES.map((q) => (
-                        <button
-                            key={q.id}
-                            onClick={() => onChange({ qualityId: q.id })}
-                            className={`
-                    w-full py-2 px-3 rounded-lg text-xs font-bold transition-all duration-200 border flex justify-between items-center
-                    ${config.qualityId === q.id
-                                    ? 'bg-brand-secondary text-white border-brand-secondary shadow-md transform translate-x-1'
-                                    : 'bg-white text-brand-dark/60 border-brand-light hover:border-brand-secondary/30'
-                                }
-                `}
-                        >
-                            <span>{q.name.split(' ')[0]}</span>
-                            <span className="opacity-70 font-mono">{q.layerHeight}mm</span>
-                        </button>
-                    ))}
-                </div>
+                <QualitySelector
+                    value={config.qualityId}
+                    onChange={onChange}
+                />
             </div>
 
             {/* Infill Selector - NEW */}

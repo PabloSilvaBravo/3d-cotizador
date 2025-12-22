@@ -8,10 +8,27 @@ import React from 'react';
  * @param {object} dimensions - Dimensiones actuales del modelo
  */
 export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
+    // Límites de la cama de impresión (mm)
+    const MAX_BED_X = 350;
+    const MAX_BED_Y = 320;
+    const MAX_BED_Z = 325;
+
+    // Calcular escala máxima permitida basada en las dimensiones originales
+    const maxAllowedScale = React.useMemo(() => {
+        if (!dimensions) return 2.0;
+        const scaleX = MAX_BED_X / dimensions.x;
+        const scaleY = MAX_BED_Y / dimensions.y;
+        const scaleZ = MAX_BED_Z / dimensions.z;
+        // Tomamos el menor de los límites para asegurar que quepa en todo
+        return Math.min(scaleX, scaleY, scaleZ);
+    }, [dimensions]);
+
     const scalePercent = Math.round(scale * 100);
 
     const handleSliderChange = (e) => {
-        const newScale = parseFloat(e.target.value);
+        let newScale = parseFloat(e.target.value);
+        // Limitar al máximo permitido
+        if (newScale > maxAllowedScale) newScale = maxAllowedScale;
         onChange(newScale);
     };
 
@@ -47,7 +64,7 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
                 <input
                     type="range"
                     min="0.25"
-                    max="2.0"
+                    max={Math.min(maxAllowedScale, 5.0)}
                     step="0.05"
                     value={scale}
                     onChange={handleSliderChange}
@@ -84,18 +101,21 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
                         label="Ancho (X)"
                         value={(dimensions.x * scale).toFixed(1)}
                         originalValue={dimensions.x}
+                        maxScale={maxAllowedScale}
                         onChange={onChange}
                     />
                     <DimensionInput
                         label="Largo (Y)"
                         value={(dimensions.y * scale).toFixed(1)}
                         originalValue={dimensions.y}
+                        maxScale={maxAllowedScale}
                         onChange={onChange}
                     />
                     <DimensionInput
                         label="Alto (Z)"
                         value={(dimensions.z * scale).toFixed(1)}
                         originalValue={dimensions.z}
+                        maxScale={maxAllowedScale}
                         onChange={onChange}
                     />
                 </div>
@@ -126,7 +146,7 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
     );
 };
 
-const DimensionInput = ({ label, value, originalValue, onChange }) => {
+const DimensionInput = ({ label, value, originalValue, maxScale, onChange }) => {
     // Estado local para permitir edición sin saltos
     const [localValue, setLocalValue] = React.useState(value);
 
@@ -156,8 +176,8 @@ const DimensionInput = ({ label, value, originalValue, onChange }) => {
             // Calcular nuevo scale factor
             // nuevoScale = nuevoDim / originalDim
             const newScale = numValue / originalValue;
-            // Limitar escala a 10% - 500%
-            const clampedScale = Math.max(0.1, Math.min(newScale, 5.0));
+            // Limitar escala a 10% - Maximo permitido
+            const clampedScale = Math.max(0.1, Math.min(newScale, maxScale));
             onChange(clampedScale);
         } else {
             // Revertir si es inválido

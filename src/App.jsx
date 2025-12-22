@@ -33,7 +33,7 @@ const App = () => {
     setLocalGeometry(null);
     resetQuote();
 
-    console.log("Archivo cargado:", selectedFile.name);
+
     getQuote(selectedFile, config.material, config.qualityId, config.infill, [0, 0, 0], 1.0)
       .catch(err => console.error('Error al obtener cotizacion inicial:', err));
   };
@@ -49,9 +49,8 @@ const App = () => {
     setOptimalRotation(newRotation);
 
     console.log(`Auto-Orientación: ${orientation.orientationName} (${(orientation.rotationX * 180 / Math.PI).toFixed(1)}°, ${(orientation.rotationY * 180 / Math.PI).toFixed(1)}°, ${(orientation.rotationZ * 180 / Math.PI).toFixed(1)}°)`);
-
     // 2. Calcular Auto-Escala
-    // TODO: Considerar dimensiones rotadas para ser más precisos
+
     const scaleResult = calculateAutoScale(data.dimensions);
     let finalScale = 1.0;
 
@@ -90,8 +89,8 @@ const App = () => {
 
   const handleScaleChange = (newScale) => {
     setAutoScale(newScale);
-    console.log(`Escala ajustada manualmente a ${(newScale * 100).toFixed(0)}%`);
 
+    console.log(`Escala ajustada manualmente a ${(newScale * 100).toFixed(0)}%`);
     // Recotizar con nueva escala
     if (file) {
       getQuote(file, config.material, config.qualityId, config.infill, optimalRotation, newScale)
@@ -156,24 +155,7 @@ const App = () => {
     } : null
   } : null;
 
-  useEffect(() => {
-    if (quoteData) {
-      console.group("📊 Datos de Cotización (Debug)");
-      console.log("1. Respuesta del Backend (Física Prusa):", quoteData);
-      console.log("   - Volumen:", quoteData.volumen?.toFixed(2), "cm3");
-      console.log("   - Peso Calculado:", quoteData.peso?.toFixed(2), "g");
-      console.log("   - Tiempo Impresión:", quoteData.tiempoTexto, `(${quoteData.tiempoHoras?.toFixed(2)}h)`);
 
-      if (estimateForUI) {
-        console.log("2. Cálculo del Frontend (Economía CLP):", estimateForUI);
-        console.log(`   - Costo Material (${Math.ceil(estimateForUI.weightGrams)}g): $${estimateForUI.materialCost}`);
-        console.log(`   - Costo Tiempo (${estimateForUI.estimatedTimeHours.toFixed(2)}h): $${estimateForUI.timeCost}`);
-        console.log("   - Tarifa Base: $", estimateForUI.startupFee);
-        console.log("   - PRECIO UNITARIO FINAL: $", estimateForUI.unitPrice);
-      }
-      console.groupEnd();
-    }
-  }, [quoteData, estimateForUI]);
 
 
   // --- LANDING VIEW (UPLOAD SIMPLE) ---

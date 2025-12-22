@@ -52,7 +52,7 @@ export const COLORS = [
 export const QUALITIES = [
   { id: 'draft', name: 'Borrador (0.28mm)', layerHeight: 0.28, priceMultiplier: 0.8 }, // Más rápido = más barato
   { id: 'standard', name: 'Estándar (0.2mm)', layerHeight: 0.2, priceMultiplier: 1.0 },
-  { id: 'high', name: 'Alta Calidad (0.12mm)', layerHeight: 0.12, priceMultiplier: 1.5 }, // Más lento = más caro
+  { id: 'high', name: 'Alta Calidad (0.16mm)', layerHeight: 0.16, priceMultiplier: 1.5 }, // Más lento = más caro
 ];
 
 export const DEFAULT_CONFIG = {

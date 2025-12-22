@@ -65,30 +65,15 @@ function signedVolumeOfTriangle(p1, p2, p3) {
  * Intenta rotar el objeto para que su dimensión más pequeña quede en el eje vertical
  * (equivale a maximizar el área de contacto con la cama).
  */
+// Retorna orientación neutral (0,0,0) - Modo Raw
 export const calculateOptimalOrientation = (geometry) => {
-    try {
-        2
-        // Mantenemos esto simple: NO rotar automáticamente.
-        // Respetamos la orientación original del archivo STL.
-        // El usuario puede rotar manualmente si lo desea (cuando re-implementemos controles).
-
-        return {
-            rotationX: 0,
-            rotationY: 0,
-            rotationZ: 0,
-            contactArea: 0,
-            orientationName: 'Original (Raw)'
-        };
-    } catch (error) {
-        console.error('Error calculando orientación:', error);
-        return {
-            rotationX: 0,
-            rotationY: 0,
-            rotationZ: 0,
-            contactArea: 0,
-            orientationName: 'Error'
-        };
-    }
+    return {
+        rotationX: 0,
+        rotationY: 0,
+        rotationZ: 0,
+        contactArea: 0,
+        orientationName: 'Original (Raw)'
+    };
 };
 
 /**
@@ -97,18 +82,21 @@ export const calculateOptimalOrientation = (geometry) => {
  * @param {Number} maxBedSize - Tamaño máximo de cama (default: 240mm con margen)
  * @returns {Object} { needsScaling, scaleFactor, reason }
  */
-export const calculateAutoScale = (dimensions, maxBedSize = 240) => {
+export const calculateAutoScale = (dimensions, maxBedSize = 350) => {
     const { x, y, z } = dimensions;
 
     // Encontrar la dimensión más grande en XY (Z puede ser mayor)
     const maxXY = Math.max(x, y);
     const maxZ = z;
 
-    // Verificar si excede límites
-    if (maxXY > maxBedSize || maxZ > 256) {
+    // Verificar si excede límites (350x320 aprox, usamos el menor 320 como límite seguro XY)
+    const LIMIT_XY = 320;
+    const LIMIT_Z = 325;
+
+    if (maxXY > LIMIT_XY || maxZ > LIMIT_Z) {
         // Calcular factor necesario para caber (con margen de seguridad 5%)
-        const scaleXY = maxBedSize / maxXY;
-        const scaleZ = 256 / maxZ;
+        const scaleXY = LIMIT_XY / maxXY;
+        const scaleZ = LIMIT_Z / maxZ;
         const scaleFactor = Math.min(scaleXY, scaleZ) * 0.95; // 95% para margen
 
         return {

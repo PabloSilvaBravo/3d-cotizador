@@ -1,54 +1,70 @@
 import React, { useState } from 'react';
 
 // Generador de patrón SVG para cada % de relleno
+// Generador de patrón SVG más realista (Rejilla rotada 45°)
 const InfillPattern = ({ percentage }) => {
-    const density = percentage === 0 ? 0 : Math.max(2, Math.floor(percentage / 10));
+    // Caso 0: Vacío
+    if (percentage === 0) {
+        return (
+            <svg className="w-full h-full bg-white" viewBox="0 0 100 100">
+                <rect x="2" y="2" width="96" height="96" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300" />
+                <text x="50" y="55" textAnchor="middle" className="text-[10px] font-bold fill-gray-400">0%</text>
+            </svg>
+        );
+    }
+
+    // Caso 100: Sólido
+    if (percentage === 100) {
+        return (
+            <svg className="w-full h-full bg-brand-primary" viewBox="0 0 100 100">
+                <rect width="100" height="100" fill="currentColor" className="text-brand-primary" />
+                <text x="50" y="55" textAnchor="middle" className="text-[10px] font-bold fill-white">100%</text>
+            </svg>
+        );
+    }
+
+    // Caso Intermedio: Patrón de Rejilla Inclinada (Grid 45°)
+    // Densidad visual: Ajustamos logarítmcamente para que 10% se vea poco y 80% muy denso.
+    // Base: 6 líneas mínimas, max 30 líneas (más denso).
+    const density = Math.floor(6 + (percentage / 100) * 24);
+    const spacing = 100 / density;
 
     return (
-        <svg className="w-full h-full" viewBox="0 0 100 100">
-            {/* Perímetro exterior */}
-            <rect x="2" y="2" width="96" height="96"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                className="text-brand-primary"
-            />
+        <svg className="w-full h-full bg-white overflow-hidden" viewBox="0 0 100 100">
+            {/* Fondo / Perímetro */}
+            <rect x="0" y="0" width="100" height="100" fill="white" />
+            <rect x="2" y="2" width="96" height="96" fill="none" stroke="currentColor" strokeWidth="3" className="text-brand-primary" />
 
-            {/* Patrón de relleno */}
-            {percentage > 0 && (
-                <g className="text-brand-accent opacity-70">
-                    {Array.from({ length: density }).map((_, i) => {
-                        const spacing = 100 / (density + 1);
-                        const pos = spacing * (i + 1);
-                        return (
-                            <g key={i}>
-                                <line
-                                    x1={pos} y1="2" x2={pos} y2="98"
-                                    stroke="currentColor"
-                                    strokeWidth={percentage > 30 ? "2" : "1.5"}
-                                    opacity={0.8}
-                                />
-                                <line
-                                    x1="2" y1={pos} x2="98" y2={pos}
-                                    stroke="currentColor"
-                                    strokeWidth={percentage > 30 ? "2" : "1.5"}
-                                    opacity={0.8}
-                                />
-                            </g>
-                        );
-                    })}
-                </g>
-            )}
-
-            {percentage === 0 && (
-                <text
-                    x="50" y="55"
-                    textAnchor="middle"
-                    className="text-xs font-bold fill-gray-400"
-                >
-                    Vacío
-                </text>
-            )}
+            {/* Grupo de líneas con rotación 45 grados desde el centro */}
+            <g transform="rotate(45, 50, 50)">
+                {/* Líneas Verticales (en el espacio rotado) */}
+                {Array.from({ length: density * 2 }).map((_, i) => {
+                    // Generamos más líneas de las necesarias para cubrir las esquinas al rotar
+                    const pos = (i - density / 2) * spacing;
+                    return (
+                        <line
+                            key={`v-${i}`}
+                            x1={pos} y1="-50" x2={pos} y2="150"
+                            stroke="currentColor"
+                            strokeWidth={percentage > 50 ? 2.5 : 1.5}
+                            className="text-brand-accent opacity-80"
+                        />
+                    );
+                })}
+                {/* Líneas Horizontales (para hacer cuadrícula) */}
+                {Array.from({ length: density * 2 }).map((_, i) => {
+                    const pos = (i - density / 2) * spacing;
+                    return (
+                        <line
+                            key={`h-${i}`}
+                            x1="-50" y1={pos} x2="150" y2={pos}
+                            stroke="currentColor"
+                            strokeWidth={percentage > 50 ? 2.5 : 1.5}
+                            className="text-brand-accent opacity-80"
+                        />
+                    );
+                })}
+            </g>
         </svg>
     );
 };

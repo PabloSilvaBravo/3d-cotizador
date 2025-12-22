@@ -67,6 +67,4 @@ export const calculatePriceFromStats = (config, stats) => {
     };
 };
 
-export const calculatePrice = (config, geometry) => {
-    return { materialCost: 0, timeCost: 0, totalPrice: 0, unitPrice: 0 };
-};
+

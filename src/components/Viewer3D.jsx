@@ -69,13 +69,15 @@ const PrintBed = ({ size = 235 }) => {
 };
 
 export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0 }) => {
-    // Eliminamos estado local de rotación para usar el controlado por el padre
-    // const [rotation, setRotation] = React.useState([0, 0, 0]); 
     const [position, setPosition] = React.useState([0, 0, 0]); // Ajuste dinámico
     const meshRef = React.useRef();
 
+    const geometryRef = React.useRef(null);
+
     const handleGeometryLoaded = useMemo(() => {
         return (geo) => {
+            // Guardamos referencia local para cálculos
+            geometryRef.current = geo;
             // Pasar la geometría cruda al padre
             onGeometryLoaded(geo);
         };
@@ -84,28 +86,27 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
 
 
 
-    // Recalcular posición después de rotar para que siempre toque el piso
+    // POSICIONAMIENTO DETERMINISTA
+    // Como rotamos visualmente -90° en X, la altura visual corresponde al eje Z de la geometría original.
+    // Al usar geometry.center(), el objeto está centrado en (0,0,0).
+    // El punto más bajo del objeto es box.min.z (en el espacio local del archivo).
+    // Para que toque el suelo (Y=0 world), debemos subirlo esa cantidad escalada.
     React.useEffect(() => {
-        // Pequeño delay para asegurar que React Three Fiber ha actualizado la matriz de mundo
-        const timeoutId = setTimeout(() => {
-            if (meshRef.current) {
-                const mesh = meshRef.current;
+        if (!geometryRef.current) return;
 
-                // Forzar actualización de matrices
-                mesh.updateMatrixWorld(true);
+        const geometry = geometryRef.current;
+        if (!geometry.boundingBox) geometry.computeBoundingBox();
 
-                const box = new THREE.Box3().setFromObject(mesh);
-                const minY = box.min.y;
+        // Obtenemos la distancia desde el centro (0) hasta el punto más bajo en Z
+        const zBottom = geometry.boundingBox.min.z;
 
-                // Si el modelo es válido, ajustamos Y
-                if (isFinite(minY)) {
-                    setPosition([0, -minY + 0.5, 0]); // +0.5 mm para evitar z-fighting con la grilla
-                }
-            }
-        }, 100);
+        // Calculamos el offset necesario: invertir la posición negativa y escalar
+        // Ejemplo: Si min.z es -10, necesitamos subirlo +10 * escala.
+        const yOffset = -zBottom * scale;
 
-        return () => clearTimeout(timeoutId);
-    }, [rotation, fileUrl]); // Añadir fileUrl para que corra al cambiar modelo también
+        setPosition([0, yOffset, 0]);
+
+    }, [rotation, fileUrl, scale]);
 
     return (
         <div className="w-full h-full bg-gradient-to-b from-slate-100 to-slate-200 relative">
@@ -132,8 +133,8 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 <pointLight position={[-50, 50, -50]} intensity={0.3} />
 
                 <React.Suspense fallback={null}>
-                    {/* Cama de impresión */}
-                    <PrintBed size={235} />
+                    {/* Cama de impresión (350x350 visual para cubrir 350x320) */}
+                    <PrintBed size={350} />
 
                     {/* Modelo 3D con rotación controlada */}
                     {fileUrl && (

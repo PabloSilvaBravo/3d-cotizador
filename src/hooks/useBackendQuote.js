@@ -68,7 +68,6 @@ export const useBackendQuote = () => {
 
                 } catch (err) {
                     if (err.name === 'AbortError') {
-                        console.log('⏭️ Petición cancelada (nueva configuración)');
                         return;
                     }
                     console.error(err);

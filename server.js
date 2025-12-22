@@ -162,15 +162,20 @@ async function processSlicing(job) {
             }
         }
 
+        // Determinar altura de capa según calidad
+        let layerHeight = 0.2;
+        if (qualityId === 'draft') layerHeight = 0.28;
+        if (qualityId === 'high') layerHeight = 0.16;
+
         // SOLUCIÓN: Usar solo parámetros CLI soportados
         // Al haber rotado físicamente el STL, no necesitamos rotar en el slicer.
         const command = `${SLICER_COMMAND} --export-gcode ` +
-            `--center 128,128 ` +
+            `--center 175,160 ` +
             // `--dont-arrange ` + 
             `--ensure-on-bed ` +
             // (rotZDegrees !== 0 ? `--rotate ${rotZDegrees} ` : '') +  // ROTACIÓN DESHABILITADA (Ya aplicada físicamente)
             (scale !== 100 ? `--scale ${scale}% ` : '') +
-            `--layer-height 0.2 ` +
+            `--layer-height ${layerHeight} ` +
             `--perimeters 2 ` +
             `--top-solid-layers 3 ` +
             `--bottom-solid-layers 3 ` +
