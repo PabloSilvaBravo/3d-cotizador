@@ -1,9 +1,23 @@
-import React from 'react';
-import { MATERIALS, COLORS, QUALITIES } from '../../utils/constants';
+import React, { useEffect } from 'react';
+import { MATERIALS, QUALITIES } from '../../utils/constants';
 import { InfillSelector } from './InfillSelector';
 import { QualitySelector } from './QualitySelector';
+import { useAvailableColors } from '../../hooks/useAvailableColors';
 
 export const Configurator = ({ config, geometry, onChange }) => {
+    // 1. Cargar colores dinámicos
+    const { colors: availableColors, loading, error } = useAvailableColors(config.material);
+
+    // 2. Efecto para seleccionar el primer color disponible si el actual no existe en la nueva lista
+    useEffect(() => {
+        if (!loading && availableColors.length > 0) {
+            const currentColorExists = availableColors.find(c => c.id === config.colorId);
+            if (!currentColorExists) {
+                // Seleccionar automáticamente el primero
+                onChange({ colorId: availableColors[0].id, colorData: availableColors[0] });
+            }
+        }
+    }, [availableColors, loading, config.colorId, onChange]);
 
     return (
         <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -44,42 +58,86 @@ export const Configurator = ({ config, geometry, onChange }) => {
                 </div>
             </div>
 
-            {/* Color Selection (Visual Circles) */}
+            {/* Color Selection (Visual Circles - Dynamic) */}
             <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
-                    <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">2. Color</label>
+                <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-5 bg-brand-accent rounded-full"></div>
+                        <label className="text-sm font-extrabold text-brand-secondary uppercase tracking-wider">2. Color</label>
+                    </div>
+                    {/* Contador de Stock */}
+                    {!loading && !error && (
+                        <span className="text-[10px] bg-brand-light px-2 py-0.5 rounded-full text-brand-dark/60 font-medium">
+                            {availableColors.length} disponibles
+                        </span>
+                    )}
                 </div>
-                <div className="flex flex-wrap gap-3">
-                    {COLORS.map((col) => (
-                        <button
-                            key={col.id}
-                            onClick={() => onChange({ colorId: col.id })}
-                            className={`
-                group relative w-10 h-10 rounded-full shadow-sm transition-all duration-300
-                ${config.colorId === col.id
-                                    ? 'scale-110 ring-2 ring-offset-2 ring-brand-primary shadow-lg'
-                                    : 'hover:scale-110 hover:shadow-md'
-                                }
-              `}
-                            title={col.name}
-                            style={{ backgroundColor: col.hex }}
-                        >
-                            {/* Checkmark overlay */}
-                            <span className={`
-                  absolute inset-0 flex items-center justify-center transition-opacity duration-200
-                  ${config.colorId === col.id ? 'opacity-100' : 'opacity-0'}
-              `}>
-                                <svg className={`w-5 h-5 drop-shadow-sm ${col.id === 'white' || col.id === 'yellow' ? 'text-black' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </span>
-                        </button>
-                    ))}
-                </div>
-                <div className="text-xs font-medium text-brand-dark/60 bg-brand-light/50 px-3 py-1 rounded-lg inline-block">
-                    Color seleccionado: <span className="text-brand-primary font-bold">{COLORS.find(c => c.id === config.colorId)?.name}</span>
-                </div>
+
+                {loading ? (
+                    // Estado de Carga Skeleton
+                    <div className="flex flex-wrap gap-3 animate-pulse">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="w-10 h-10 rounded-full bg-gray-200"></div>
+                        ))}
+                    </div>
+                ) : error ? (
+                    // Estado de Error
+                    <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg border border-red-100">
+                        Error cargando colores. Intenta recargar.
+                    </div>
+                ) : availableColors.length === 0 ? (
+                    // Estado Vacío
+                    <div className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                        No hay stock disponible para este material.
+                    </div>
+                ) : (
+                    // Lista de Colores Real
+                    <div className="flex flex-wrap gap-3 max-h-[180px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent p-1">
+                        {availableColors.map((col) => (
+                            <button
+                                key={col.id}
+                                onClick={() => onChange({ colorId: col.id, colorData: col })}
+                                className={`
+                    group relative w-10 h-10 rounded-full shadow-sm transition-all duration-300 border-2
+                    ${config.colorId === col.id
+                                        ? 'scale-110 border-brand-primary ring-2 ring-offset-2 ring-brand-primary/20 shadow-lg z-10'
+                                        : 'border-gray-200/80 hover:scale-110 hover:shadow-md hover:border-gray-300'
+                                    }
+                  `}
+                                title={`${col.name} (Stock: ${col.stock})`}
+                                style={{ backgroundColor: col.hex }}
+                            >
+                                {/* Checkmark overlay */}
+                                <span className={`
+                      absolute inset-0 flex items-center justify-center transition-opacity duration-200
+                      ${config.colorId === col.id ? 'opacity-100' : 'opacity-0'}
+                  `}>
+                                    <svg className={`w-5 h-5 drop-shadow-sm ${['#ffffff', '#fff13f', '#eac642', '#f4f9ff'].includes(col.hex) ? 'text-black' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </span>
+
+                                {/* Badge de stock bajo (< 5 unidades) */}
+                                {col.stock < 5 && (
+                                    <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-white"></span>
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Info del color seleccionado */}
+                {!loading && !error && config.colorId && availableColors.find(c => c.id === config.colorId) && (
+                    <div className="flex items-center justify-between text-xs font-medium bg-brand-light/30 px-3 py-2 rounded-lg border border-brand-light">
+                        <span className="text-brand-dark/60">Seleccionado:</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-brand-primary font-bold">{availableColors.find(c => c.id === config.colorId)?.name}</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Quality Selector - NEW */}
