@@ -170,7 +170,7 @@ async function processSlicing(job) {
         // SOLUCIÓN: Usar solo parámetros CLI soportados
         // Al haber rotado físicamente el STL, no necesitamos rotar en el slicer.
         const command = `${SLICER_COMMAND} --export-gcode ` +
-            `--center 175,160 ` +
+            `--center 160,160 ` +
             // `--dont-arrange ` + 
             `--ensure-on-bed ` +
             // (rotZDegrees !== 0 ? `--rotate ${rotZDegrees} ` : '') +  // ROTACIÓN DESHABILITADA (Ya aplicada físicamente)

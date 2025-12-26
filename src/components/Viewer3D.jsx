@@ -133,8 +133,8 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 <pointLight position={[-50, 50, -50]} intensity={0.3} />
 
                 <React.Suspense fallback={null}>
-                    {/* Cama de impresión (350x350 visual para cubrir 350x320) */}
-                    <PrintBed size={350} />
+                    {/* Cama de impresión (320x320) */}
+                    <PrintBed size={320} />
 
                     {/* Modelo 3D con rotación controlada */}
                     {fileUrl && (

@@ -82,16 +82,16 @@ export const calculateOptimalOrientation = (geometry) => {
  * @param {Number} maxBedSize - Tamaño máximo de cama (default: 240mm con margen)
  * @returns {Object} { needsScaling, scaleFactor, reason }
  */
-export const calculateAutoScale = (dimensions, maxBedSize = 350) => {
+export const calculateAutoScale = (dimensions, maxBedSize = 320) => {
     const { x, y, z } = dimensions;
 
     // Encontrar la dimensión más grande en XY (Z puede ser mayor)
     const maxXY = Math.max(x, y);
     const maxZ = z;
 
-    // Verificar si excede límites (350x320 aprox, usamos el menor 320 como límite seguro XY)
+    // Verificar si excede límites (320x320x350)
     const LIMIT_XY = 320;
-    const LIMIT_Z = 325;
+    const LIMIT_Z = 350;
 
     if (maxXY > LIMIT_XY || maxZ > LIMIT_Z) {
         // Calcular factor necesario para caber (con margen de seguridad 5%)
