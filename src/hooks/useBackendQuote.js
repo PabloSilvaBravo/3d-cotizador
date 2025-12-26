@@ -54,14 +54,42 @@ export const useBackendQuote = () => {
                         try {
                             const errorData = await response.json();
                             if (errorData.error) errorMessage = errorData.error;
+
+                            // === DETECCIÓN MODELOS GIGANTES ===
+                            // Si el error es por tamaño, no fallamos, retornamos flag para estimación manual
+                            if (errorMessage.includes('demasiado grande') || errorMessage.includes('print volume')) {
+                                console.warn("Modelo demasiado grande para Slicer. Usando estimación geométrica.");
+                                setQuoteData({ oversized: true });
+                                setIsLoading(false);
+                                resolve({ oversized: true });
+                                return;
+                            }
+
                         } catch (e) {
-                            // Si no es JSON, tomamos statusText
                             errorMessage = `Error del servidor: ${response.status} ${response.statusText}`;
                         }
                         throw new Error(errorMessage);
                     }
 
                     const data = await response.json();
+
+                    // === LOG DE DEBUGGING AL FRONTEND ===
+                    if (data.debug) {
+                        console.groupCollapsed('🛠️ Backend Slicing Debug Info');
+                        console.log('📦 Logs del proceso:', data.debug.logs);
+                        console.log('📜 GCode Tail (últimos 2000 chars):');
+                        console.log(data.debug.gcodeTail); // Imprimir como texto plano
+                        console.log('📊 Datos finales detectados:', {
+                            volumen: data.volumen,
+                            peso: data.peso,
+                            soportes: data.pesoSoportes,
+                            soportesPct: data.porcentajeSoportes,
+                            tiempo: data.tiempoTexto
+                        });
+                        console.groupEnd();
+                    }
+                    // ===================================
+
                     setQuoteData(data);
                     setIsLoading(false);
                     resolve(data);

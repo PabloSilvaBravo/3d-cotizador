@@ -192,6 +192,7 @@ async function processSlicing(job) {
             `--filament-diameter 1.75 ` +
             `--nozzle-diameter 0.4 ` +
             `--retract-length 0.8 ` +
+            `--gcode-comments ` + // Necesario para detectar soportes con Regex
             `--output "${outputGcode}" "${inputPath}"`;
 
         log('INFO', 'Comando PrusaSlicer', { command });
@@ -221,7 +222,7 @@ async function processSlicing(job) {
 
                 // Detectar errores específicos
                 if (stderr && (stderr.includes('outside of the print volume') || stderr.includes('fits the print volume'))) {
-                    return reject(new Error('El modelo es demasiado grande para el volumen de impresión (250x210x210mm). Intenta reducir la escala.'));
+                    return reject(new Error('El modelo es demasiado grande para el volumen de impresión (256x256x256mm). Intenta reducir la escala.'));
                 }
 
                 return reject(new Error('Slicing failed: ' + error.message));
@@ -232,6 +233,11 @@ async function processSlicing(job) {
             let gcodeContent = "";
             try {
                 if (!fs.existsSync(outputGcode)) {
+                    // Si no existe el archivo, verificar si fue por fuera de volumen
+                    if (stderr && (stderr.includes('outside of the print volume') || stderr.includes('fits the print volume'))) {
+                        return reject(new Error('El modelo es demasiado grande para el volumen de impresión (325x320x325mm). Intenta reducir la escala.'));
+                    }
+
                     log('ERROR', 'Archivo GCode no existe', { outputGcode });
                     return reject(new Error(`Archivo GCode no encontrado: ${outputGcode}`));
                 }
@@ -328,20 +334,37 @@ async function processSlicing(job) {
             const tiempoAjustadoStr = `${finalH}h ${finalM}m`;
 
             // 4. SOPORTES (Para Dificultad)
+
             let pesoSoportes = 0;
             const supportPatterns = [
-                /; support material volume: (\d+(\.\d+)?)/i,
-                /; support material: (\d+(\.\d+)?) cm3/i,
-                /; filament used \[cm3\] \(support\) = (\d+(\.\d+)?)/
+                // Volumen cm3 (Inglés)
+                { regex: /; support material volume: (\d+(\.\d+)?)/i, type: 'vol' },
+                { regex: /; support material: (\d+(\.\d+)?) cm3/i, type: 'vol' },
+                { regex: /; filament used \[cm3\] \(support\) = (\d+(\.\d+)?)/i, type: 'vol' },
+                // Metros (Español/Inglés) - Factor conversión 1.75mm ~ 2.405g/m
+                { regex: /; support material:.* (\d+(\.\d+)?) m/i, type: 'len' },
+                { regex: /; Material de soporte:.* (\d+(\.\d+)?) m/i, type: 'len' }
             ];
 
-            for (const pattern of supportPatterns) {
-                const match = gcodeContent.match(pattern);
+            for (const item of supportPatterns) {
+                const match = gcodeContent.match(item.regex);
                 if (match) {
-                    const volSoporte = parseFloat(match[1]);
-                    pesoSoportes = volSoporte * 1.24;
-                    console.log(`   ✓ Soportes: ${pesoSoportes.toFixed(2)} g`);
-                    break;
+                    let val = parseFloat(match[1]);
+                    if (item.type === 'len') {
+                        // Convertir metros a gramos (aprox PLA 1.75mm)
+                        // 1m = 1000mm. Vol = pi * r^2 * h = 3.1416 * 0.875^2 * 1000 = 2405 mm3 = 2.405 cm3
+                        // Peso = 2.405 * 1.24 = 2.98 g/m
+                        val = val * 2.98;
+                    } else {
+                        // Es volumen cm3 -> a gramos
+                        val = val * 1.24;
+                    }
+
+                    if (val > 0) {
+                        pesoSoportes = val;
+                        console.log(`   ✓ Soportes detectados: ${pesoSoportes.toFixed(2)} g`);
+                        break;
+                    }
                 }
             }
 
@@ -416,8 +439,8 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
 
     log('INFO', `Archivo recibido: ${req.file.originalname} (${req.file.size} bytes)`);
 
-    const originalPath = req.file.path;
-    const inputPath = req.file.path + '.stl';
+    const originalPath = path.resolve(req.file.path);
+    const inputPath = path.resolve(req.file.path + '.stl');
 
     try {
         fs.renameSync(originalPath, inputPath);

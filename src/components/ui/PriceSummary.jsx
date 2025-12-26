@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
     const [detailsOpen, setDetailsOpen] = useState(true);
+    const [isAdvanced, setIsAdvanced] = useState(false);
 
     if (!estimate) return (
         <div className="mt-8 p-6 bg-brand-light/30 rounded-2xl animate-pulse flex flex-col gap-4">
@@ -24,53 +25,110 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
             )}
 
             {/* Contenido con transición suave */}
-            <div className={`transition-opacity duration-300 ${isLoading ? 'opacity-40' : 'opacity-100'}`}>
-                {/* Details Header Toggle */}
-                <button
-                    className="w-full flex items-center justify-between p-4 text-xs font-bold text-brand-dark/50 uppercase tracking-widest hover:bg-brand-secondary/5 transition-colors"
-                    onClick={() => setDetailsOpen(!detailsOpen)}
-                >
-                    <span>Desglose de Costos</span>
-                    <svg
-                        className={`w-4 h-4 transition-transform duration-300 ${detailsOpen ? 'rotate-180' : ''}`}
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            <div className={`transition-opacity duration-500 ${isLoading ? 'opacity-40' : 'opacity-100'}`}>
+                {/* Header con Switch "Simple / Avanzado" */}
+                <div className="flex items-center justify-between p-4 bg-white border-b border-brand-secondary/5">
+                    <button
+                        className="flex items-center gap-2 text-xs font-bold text-brand-dark/50 uppercase tracking-widest hover:text-brand-primary transition-colors"
+                        onClick={() => setDetailsOpen(!detailsOpen)}
                     >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
+                        <span>Desglose de Costos</span>
+                        <svg
+                            className={`w-4 h-4 transition-transform duration-300 ${detailsOpen ? 'rotate-180' : ''}`}
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
 
-                {/* Technical Specifications - NUEVO */}
-                {detailsOpen && estimate.debug && (
+                    {/* Custom Tailwind Switch con Animación Elástica Exacta */}
+                    <div className="flex items-center gap-3">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${!isAdvanced ? 'text-brand-secondary' : 'text-slate-400'}`}>Simple</span>
+
+                        <label className="relative inline-block w-[60px] h-[34px]">
+                            <input
+                                type="checkbox"
+                                className="peer opacity-0 w-0 h-0"
+                                checked={isAdvanced}
+                                onChange={() => {
+                                    setIsAdvanced(!isAdvanced);
+                                    if (!detailsOpen) setDetailsOpen(true);
+                                }}
+                            />
+                            {/* Slider Background */}
+                            <span className="
+                                absolute inset-0.5 cursor-pointer rounded-[50px]
+                                bg-slate-400 peer-checked:bg-brand-primary
+                                transition-all duration-400 ease-[cubic-bezier(0.23,1,0.320,1)]
+                            "></span>
+
+                            {/* Slider Knob (Circle) */}
+                            <span className="
+                                absolute content-['']
+                                h-[24px] w-[24px]
+                                left-[5px] bottom-[5px]
+                                bg-white rounded-[50px] shadow-sm
+                                transition-all duration-400 ease-[cubic-bezier(0.175,0.885,0.32,1.275)]
+                                ring-1 ring-gray-400
+                                
+                                peer-checked:translate-x-[26px]
+                                peer-checked:w-[32px]
+                                peer-checked:h-[32px]
+                                peer-checked:bottom-[1px]
+                            "></span>
+                        </label>
+
+                        <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${isAdvanced ? 'text-brand-primary' : 'text-slate-400'}`}>Avanzado</span>
+                    </div>
+                </div>
+
+                {/* Technical Specifications (Avanzado) */}
+                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${detailsOpen && isAdvanced ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
                         <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-3">
                             Especificaciones Técnicas
                         </h4>
                         <div className="grid grid-cols-2 gap-3 text-xs">
                             <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                                <span className="text-slate-500">Volumen STL (geométrico):</span>
+                                <span className="text-slate-500">Volumen STL:</span>
                                 <span className="font-mono font-semibold text-slate-700">
                                     {estimate.volumeStlCm3 ? `${estimate.volumeStlCm3.toFixed(2)} cm³` : '—'}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                                <span className="text-slate-500">Peso estimado ({config.infill}% relleno):</span>
+                                <span className="text-slate-500">Peso Total:</span>
                                 <span className="font-mono font-semibold text-slate-700">
                                     {estimate.weightGrams ? `${estimate.weightGrams.toFixed(1)} g` : '—'}
                                 </span>
                             </div>
-                            {estimate.debug?.porcentajeSoportes && (
-                                <div className="flex justify-between items-center p-2 bg-amber-50 border border-amber-200 rounded-lg col-span-2">
+
+                            {/* Visualización de Soportes */}
+                            {/* Visualización de Soportes (OCULTO POR CLIENTE) */}
+                            {/* 
+                            {estimate.supportsInfo && (
+                                <div className={`flex justify-between items-center p-2 border rounded-lg col-span-2 ${estimate.supportsInfo.percentage > 0 ? 'bg-amber-50 border-amber-100' : 'bg-slate-50 border-slate-100'}`}>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-amber-700 font-medium">⚠️ Soportes requeridos:</span>
-                                        <span className="text-xs text-amber-600">({estimate.debug.difficultyLabel})</span>
+                                        <span className={`font-medium flex items-center gap-1 ${estimate.supportsInfo.percentage > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                            </svg>
+                                            Soportes:
+                                        </span>
                                     </div>
-                                    <span className="font-mono font-bold text-amber-700">
-                                        {estimate.debug.porcentajeSoportes}
-                                    </span>
+                                    <div className="text-right">
+                                        <span className={`font-mono font-bold block ${estimate.supportsInfo.percentage > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                                            {estimate.supportsInfo.percentage.toFixed(1)}%
+                                        </span>
+                                        <span className={`text-[10px] ${estimate.supportsInfo.percentage > 0 ? 'text-amber-600/80' : 'text-slate-400/60'}`}>
+                                            ~{estimate.supportsInfo.weight?.toFixed(1) || 0}g
+                                        </span>
+                                    </div>
                                 </div>
                             )}
+                            */}
+
                             <div className="flex justify-between items-center p-2 bg-white rounded-lg col-span-2">
-                                <span className="text-slate-500">Dimensiones del modelo:</span>
+                                <span className="text-slate-500">Dimensiones:</span>
                                 <span className="font-mono font-semibold text-slate-700">
                                     {estimate.dimensions
                                         ? `${estimate.dimensions.x} × ${estimate.dimensions.y} × ${estimate.dimensions.z} cm`
@@ -80,7 +138,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
 
                 {/* Details Panel */}
                 <div

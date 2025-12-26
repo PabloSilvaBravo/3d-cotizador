@@ -134,19 +134,49 @@ const App = () => {
   };
 
   // Combinar datos: Tiempo del backend + Peso del frontend ajustado por relleno
-  const estimateForUI = (quoteData && localGeometry && localGeometry.volumeCm3 > 0) ? {
-    ...calculatePriceFromStats(config, {
-      // Calcular peso considerando el % de relleno
-      // Basado en prueba real: 4.21cm³ usado / 7.4cm³ STL con 20% relleno = 57%
-      // Factor calibrado: 0.37 (cáscaras fijas) + 1.0 × (relleno%)
-      // Con 20%: 0.37 + 0.20 = 0.57 ✓
-      // Con 15%: 0.37 + 0.15 = 0.52
-      weightGrams: localGeometry.volumeCm3 * 1.24 * (0.37 + (config.infill / 100)),
-      timeHours: quoteData.tiempoHoras, // Del backend (PrusaSlicer)
-      pesoSoportes: 0
-    }),
+  // Calcular estadísticas (Reales o Estimadas)
+  const getEstimatedStats = () => {
+    if (!quoteData || !localGeometry) return null;
+
+    // 1. CASO NORMAL: Tenemos datos de Slicer
+    if (quoteData.peso > 0) {
+      return {
+        weightGrams: quoteData.peso,
+        timeHours: quoteData.tiempoHoras,
+        pesoSoportes: quoteData.pesoSoportes || 0
+      };
+    }
+
+    // 2. CASO GIGANTE / FALLBACK: Usamos geometría pura
+    // Peso = Volumen * Densidad(1.24) * Factor_Consolidado(Relleno + Paredes + Soportes)
+    const densityFactor = 0.45 + (config.infill / 200);
+    const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale; // Corregir por escala si aplica (aunque geometry ya debería ser scaled?)
+    // NOTA: localGeometry es del STL original. Si autoScale != 1, hay que ajustar volumen.
+    // Pero espera, Viewer3D pasa geometry original. 
+    // Mejor usamos localGeometry.volumeCm3 * (autoScale^3).
+
+    // Tiempo: Regla de 3 simple conservadora (ej. 40g/hora)
+    const time = weight / 40;
+
+    return {
+      weightGrams: weight,
+      timeHours: time,
+      pesoSoportes: weight * 0.15, // Asumimos 15% soportes genérico
+      isEstimated: true
+    };
+  };
+
+  const stats = getEstimatedStats();
+
+  const estimateForUI = stats ? {
+    ...calculatePriceFromStats(config, stats),
     // Agregar volumen real del STL para transparencia
     volumeStlCm3: localGeometry.volumeCm3,
+    // Info de Soportes para UI
+    supportsInfo: {
+      percentage: stats.weightGrams > 0 ? (stats.pesoSoportes / stats.weightGrams) * 100 : 0,
+      weight: stats.pesoSoportes
+    },
     // Agregar dimensiones para el desglose
     dimensions: localGeometry.dimensions ? {
       x: (localGeometry.dimensions.x / 10).toFixed(2), // mm a cm
@@ -154,6 +184,20 @@ const App = () => {
       z: (localGeometry.dimensions.z / 10).toFixed(2)
     } : null
   } : null;
+
+  // === DEBUG DE PRECIOS (Solo Consola) ===
+  useEffect(() => {
+    if (estimateForUI) {
+      console.groupCollapsed('💰 Debug de Precios (Interno)');
+      console.log(`⚖️ Peso Total: ${estimateForUI.weightGrams.toFixed(2)}g`);
+      console.log(`🏗️ Soportes: ${estimateForUI.supportsInfo.weight.toFixed(2)}g (${estimateForUI.supportsInfo.percentage.toFixed(1)}%)`);
+
+      // Calcular factor inverso para mostrar
+      // precioTotal aprox = (material + tiempo*Factor) ... es complejo deducirlo exacto, mejor mostramos lo que hay
+      console.log(`ℹ️ Si el % es > 5% se aplica recargo. % Actual: ${estimateForUI.supportsInfo.percentage.toFixed(1)}%`);
+      console.groupEnd();
+    }
+  }, [estimateForUI]);
 
 
 
