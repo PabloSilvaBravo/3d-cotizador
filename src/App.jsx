@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import FileUpload from './components/ui/FileUpload';
 import Viewer3D from './components/Viewer3D';
 import ErrorBoundary from './components/ErrorBoundary';
+import CubeLoader from './components/ui/CubeLoader';
 import Configurator from './components/ui/Configurator';
 import PriceSummary from './components/ui/PriceSummary';
 import ScaleControl from './components/ui/ScaleControl';
@@ -249,10 +250,9 @@ const App = () => {
           )}
 
           {isLoading && (
-            <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-brand-secondary">
-              <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="font-bold text-lg animate-pulse">Analizando Geometría...</p>
-              <p className="text-xs text-brand-dark/50 mt-2">PrusaSlicer Engine</p>
+            <div className="absolute inset-0 z-50 bg-white/30 backdrop-blur-xl flex flex-col items-center justify-center text-brand-secondary transition-all duration-500">
+              <CubeLoader />
+              <p className="font-black text-xl animate-pulse mt-8 tracking-tight text-brand-primary">Analizando Geometría...</p>
             </div>
           )}
         </div>
