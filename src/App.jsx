@@ -11,6 +11,8 @@ import OrderModal from './components/OrderModal';
 import { DEFAULT_CONFIG, COLORS } from './utils/constants';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
+import { Header } from './components/layout/Header';
+import { Footer } from './components/layout/Footer';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -208,23 +210,29 @@ const App = () => {
   // --- LANDING VIEW (UPLOAD SIMPLE) ---
   if (!file) {
     return (
-      <div className="min-h-screen flex flex-col justify-center items-center px-4 bg-brand-light font-sans text-brand-dark overflow-hidden relative">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
+      <div className="min-h-screen flex flex-col bg-brand-light font-sans text-brand-dark overflow-hidden relative">
+        <Header />
 
-        <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up">
+        <div className="flex-1 flex flex-col justify-center items-center px-4 relative z-10">
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
-          <div className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10">
-            <FileUpload onFileSelect={handleFileSelect} />
-          </div>
-        </main>
+          <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up py-20">
+            <div className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10">
+              <FileUpload onFileSelect={handleFileSelect} />
+            </div>
+          </main>
+        </div>
+
+        <Footer />
       </div>
     );
   }
 
   // --- APP VIEW (SPLIT SCREEN) ---
   return (
-    <div className="min-h-screen bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30">
+    <div className="min-h-screen bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-20 lg:pt-24">
+      <Header />
 
       {/* Fondo Decorativo Sutil (Solo visible en pantallas grandes para no molestar en móvil) */}
       <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
@@ -335,6 +343,10 @@ const App = () => {
             onAddToCart={handleAddToCart}
             isLoading={isLoading || !quoteData}
           />
+
+          <div className="mt-12 -mx-8 -mb-8">
+            <Footer />
+          </div>
         </div>
       </motion.div>
 

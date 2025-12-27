@@ -30,8 +30,86 @@
     body {
         @apply bg-brand-light text-brand-dark font-sans;
         font-family: 'Montserrat', system-ui, sans-serif;
+
+        /* MATCH EXACTO EMPRESAS.MECHATRONICSTORE.CL */
+        background-color: #E2E8F0;
+        background-image:
+            radial-gradient(at 0px 0px, #E5D1FA 0px, transparent 50%),
+            radial-gradient(at 100% 0px, #FCF4CF 0px, transparent 50%),
+            radial-gradient(at 100% 100%, #E7D6FA 0px, transparent 50%);
+        background-attachment: fixed;
+        background-size: cover;
+        min-height: 100vh;
+    }
+
+    /* Input Autofill Styles Match */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-box-shadow: 0 0 0 30px #f8fafc inset !important;
+        -webkit-text-fill-color: #411073 !important;
+        transition: background-color 5000s ease-in-out 0s;
     }
 }
+
+@layer components {
+
+    /* Animaciones Utiles traidas del extracto */
+    .animate-in {
+        animation-duration: 0.3s;
+        animation-fill-mode: forwards;
+        animation-timing-function: ease-out;
+        opacity: 0;
+    }
+
+    .fade-in {
+        animation-name: fadeIn;
+    }
+
+    .slide-in-from-bottom-4 {
+        animation-name: slideInBottom;
+    }
+
+    .zoom-in-95 {
+        animation-name: zoomIn;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideInBottom {
+        from {
+            transform: translateY(1rem);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes zoomIn {
+        from {
+            transform: scale(0.95);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+}
+
 
 /* Estilos personalizados de UI (Scrollbars, Sombras) */
 @layer utilities {
