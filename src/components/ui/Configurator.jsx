@@ -112,7 +112,7 @@ export const Configurator = ({ config, geometry, onChange }) => {
                     </div>
                 ) : (
                     // Lista de Colores Real - Diseño GRID Mejorado
-                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-4 max-h-[250px] overflow-y-auto overflow-x-hidden px-2 py-1 custom-scrollbar">
+                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-4 max-h-[250px] overflow-y-scroll overflow-x-hidden px-2 pt-1 pb-12 custom-scrollbar">
                         {availableColors.map((col) => {
                             const isSelected = config.colorId === col.id;
                             return (
@@ -160,17 +160,17 @@ export const Configurator = ({ config, geometry, onChange }) => {
                                         </span>
                                     </div>
 
-                                    {/* Tooltip Flotante */}
+                                    {/* Tooltip Flotante (SIEMPRE ABAJO) */}
                                     <div className={`
-                                        absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 
+                                        absolute left-1/2 -translate-x-1/2 px-2 py-1 
                                         bg-brand-secondary text-white text-[10px] font-bold rounded-md 
                                         opacity-0 group-hover:opacity-100 transition-all duration-200 
-                                        translate-y-2 group-hover:translate-y-0
                                         pointer-events-none whitespace-nowrap z-50 shadow-xl
+                                        top-full mt-3 translate-y-[-5px] group-hover:translate-y-0
                                     `}>
                                         {col.name}
                                         {/* Triángulo tooltip */}
-                                        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-brand-secondary rotate-45"></div>
+                                        <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-brand-secondary rotate-45 -top-1"></div>
                                     </div>
 
                                     {/* Badge Stock Crítico */}

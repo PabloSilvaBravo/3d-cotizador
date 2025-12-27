@@ -19,22 +19,22 @@ export const MATERIALS = {
     id: 'PETG',
     name: 'PETG Resistente',
     density: 1.27,
-    priceMultiplier: 1.2, // ~20% más caro que PLA
+    priceMultiplier: 1.0, // Mismo precio base
     description: 'Mayor resistencia térmica y mecánica. Ideal para piezas funcionales.'
   },
   ABS: {
     id: 'ABS',
     name: 'ABS Industrial',
     density: 1.04,
-    priceMultiplier: 1.4, // ~40% más caro
-    description: 'Alta resistencia al impacto y temperatura. Requiere post-procesado.'
+    priceMultiplier: 1.0, // Mismo precio base
+    description: 'Alta resistencia al impacto y temperatura.'
   },
   TPU: {
     id: 'TPU',
     name: 'TPU Flexible',
     density: 1.21,
-    priceMultiplier: 1.8, // ~80% más caro
-    description: 'Material flexible y elástico tipo goma. Indestructible.'
+    priceMultiplier: 2.0, // Doble precio
+    description: 'Material flexible y elástico tipo goma.'
   }
 };
 

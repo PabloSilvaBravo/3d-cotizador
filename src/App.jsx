@@ -107,7 +107,8 @@ const App = () => {
     };
   }, [fileUrl]);
 
-  const currentColorHex = COLORS.find(c => c.id === config.colorId)?.hex || '#ffffff';
+  // Priorizar el colorData dinámico que viene del Configurator, fallback a lista estática
+  const currentColorHex = config.colorData?.hex || COLORS.find(c => c.id === config.colorId)?.hex || '#ffffff';
 
   const handleAddToCart = () => {
     if (!file) return;
