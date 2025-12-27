@@ -201,24 +201,24 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
 
                     <button
                         onClick={onAddToCart}
-                        disabled={isLoading}
+                        disabled={isLoading || !config.material}
                         className={`
                             group w-full py-4 rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20 transition-all duration-300
                             flex items-center justify-center gap-3 transform
                             relative overflow-hidden
-                            ${isLoading
+                            ${isLoading || !config.material
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                 : 'bg-gradient-to-r from-brand-secondary to-brand-primary hover:from-brand-primary hover:to-brand-secondary hover:scale-[1.02] hover:shadow-brand-primary/40 text-white'
                             }
                         `}
                     >
                         {/* Shine Effect */}
-                        {!isLoading && (
+                        {!isLoading && config.material && (
                             <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
                         )}
 
                         <span className="relative z-20 uppercase tracking-wide text-sm md:text-base">
-                            {isLoading ? 'Calculando...' : 'Añadir al Carrito'}
+                            {isLoading ? 'Calculando...' : (!config.material ? 'Selecciona Material' : 'Añadir al Carrito')}
                         </span>
 
                         {!isLoading && (

@@ -60,7 +60,7 @@ export const Configurator = ({ config, geometry, onChange }) => {
                                 }}
                                 whileHover={{ scale: 1.02, borderColor: isSelected ? 'var(--color-brand-primary)' : 'var(--color-brand-primary)' }}
                                 whileTap={{ scale: 0.98 }}
-                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                transition={{ type: "spring", stiffness: 120, damping: 20 }} // Ultra smooth
                                 className={`
                                     relative px-4 rounded-2xl border-2 text-left group overflow-hidden flex flex-col justify-center
                                     ${isSelected ? 'py-6 sm:row-span-3 h-full shadow-md' : 'py-3 hover:shadow-md'}
@@ -86,10 +86,14 @@ export const Configurator = ({ config, geometry, onChange }) => {
                                 <AnimatePresence>
                                     {isSelected && (
                                         <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: "auto" }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.3 }}
+                                            initial={{ opacity: 0, height: 0, y: 10 }} // Empieza abajo e invisible
+                                            animate={{ opacity: 1, height: "auto", y: 0 }} // Sube y aparece
+                                            exit={{ opacity: 0, height: 0, y: -10, transition: { duration: 0.2 } }} // Sale rápido
+                                            transition={{
+                                                duration: 0.4,
+                                                delay: 0.2, // ESPERAR a que la tarjeta se expanda
+                                                ease: "easeOut"
+                                            }}
                                             className="overflow-hidden"
                                         >
                                             <p className="text-xs leading-relaxed text-brand-primary/90 font-medium pt-2">
