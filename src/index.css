@@ -3,22 +3,22 @@
 @tailwind utilities;
 
 :root {
-    /* PALETA CORPORATIVA EXACTA */
+    /* PALETA CORPORATIVA EXACTA - ALTO CONTRASTE */
 
-    /* Primary (#6017b1): Morado Corporativo - Color principal de marca */
+    /* Primary (#6017b1): Morado Intenso */
     --color-brand-primary: #6017b1;
 
-    /* Secondary (#4A148C): Morado Oscuro - Títulos y jerarquía (Reemplaza al antiguo 'secondary') */
-    --color-brand-secondary: #4A148C;
+    /* Secondary (#3b0764): Morado Muy Oscuro - Textos importantes */
+    --color-brand-secondary: #3b0764;
 
     /* Accent (#F1C40F): Amarillo - Llamadas a la acción */
     --color-brand-accent: #F1C40F;
 
-    /* Text (#333333): Gris Oscuro - Cuerpo de texto (Reemplaza al antiguo 'dark') */
-    --color-brand-dark: #333333;
+    /* Text (#020617): Negro Profundo - Máximo contraste (Slate 950) */
+    --color-brand-dark: #020617;
 
-    /* Background (#F8F9FA): Gris Claro - Fondos limpios (Reemplaza al antiguo 'light') */
-    --color-brand-light: #F8F9FA;
+    /* Background (#e2e8f0): Gris Sólido - Mayor contraste con blanco (Slate 200) */
+    --color-brand-light: #e2e8f0;
 }
 
 @layer base {

@@ -49,7 +49,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
     );
 
     return (
-        <div className="mt-6 bg-white/60 backdrop-blur-xl rounded-3xl border border-white/40 shadow-xl shadow-brand-primary/5 hover:shadow-brand-primary/10 overflow-hidden relative transition-all duration-300">
+        <div className="mt-6 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden relative transition-all duration-300">
 
             {/* Loading Overlay */}
             {isLoading && (

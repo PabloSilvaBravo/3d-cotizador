@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
-import { OrbitControls, Grid } from '@react-three/drei';
+import { OrbitControls, Grid, Environment } from '@react-three/drei';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import * as THREE from 'three';
 
@@ -9,31 +9,29 @@ const Model = ({ url, color, onLoaded }) => {
 
     useEffect(() => {
         if (geometry) {
-            // CENTRADO PERFECTO:
-            // Centramos la geometría en (0,0,0).
-            // Esto asegura que al rotar, el objeto gire sobre su propio eje sin desplazarse.
-            // La lógica del padre (Viewer3D) se encargará de "levantarlo" para que toque el piso.
-            geometry.center();
+            geometry.center(); // Centrado local
+
+            // CRUCIAL: Calcular normales para suavizar la superficie (Smooth Shading)
+            // Esto permite ver los detalles curvos sin los "polígonos" duros
+            geometry.computeVertexNormals();
 
             onLoaded(geometry);
         }
     }, [geometry, onLoaded]);
 
     return (
-        // CORRECCIÓN VISUAL: STL usa Z-Up, Three.js usa Y-Up.
-        // Rotamos -90° en X para que lo que es "Arriba" en el archivo (Z) sea "Arriba" en la pantalla (Y).
-        // Esto hace que la visual coincida con PrusaSlicer.
         <mesh geometry={geometry} castShadow receiveShadow position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <meshStandardMaterial
                 color={color}
-                roughness={0.3}
-                metalness={0.2}
+                roughness={0.5} // Equilibrio para ver brillos que definen bordes sin ser espejo
+                metalness={0.1}
+                flatShading={false}
             />
         </mesh>
     );
 };
 
-// Cama de impresión (Plano con cuadrícula)
+// Cama de impresión (Plano con cuadrícula) - ORIGINAL RESTAURADO
 const PrintBed = ({ size = 235 }) => {
     return (
         <group>
@@ -41,7 +39,7 @@ const PrintBed = ({ size = 235 }) => {
             <mesh receiveShadow position={[0, -0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
                 <planeGeometry args={[size, size]} />
                 <meshStandardMaterial
-                    color="#C8C8C8"
+                    color="#C8C8C8" // Gris original
                     roughness={0.5}
                     metalness={0.4}
                 />
@@ -62,81 +60,65 @@ const PrintBed = ({ size = 235 }) => {
                 infiniteGrid={false}
             />
 
-            {/* Flechas de ejes: X (rojo), Y (verde), Z (azul) */}
+            {/* Flechas de ejes original */}
             <primitive object={new THREE.AxesHelper(80)} position={[0, 0, 0]} />
         </group>
     );
 };
 
 export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0 }) => {
-    const [position, setPosition] = React.useState([0, 0, 0]); // Ajuste dinámico
+    const [position, setPosition] = React.useState([0, 0, 0]);
     const meshRef = React.useRef();
-
     const geometryRef = React.useRef(null);
 
     const handleGeometryLoaded = useMemo(() => {
         return (geo) => {
-            // Guardamos referencia local para cálculos
             geometryRef.current = geo;
-            // Pasar la geometría cruda al padre
             onGeometryLoaded(geo);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-
-
-    // POSICIONAMIENTO DETERMINISTA
-    // Como rotamos visualmente -90° en X, la altura visual corresponde al eje Z de la geometría original.
-    // Al usar geometry.center(), el objeto está centrado en (0,0,0).
-    // El punto más bajo del objeto es box.min.z (en el espacio local del archivo).
-    // Para que toque el suelo (Y=0 world), debemos subirlo esa cantidad escalada.
+    // Posicionamiento
     React.useEffect(() => {
         if (!geometryRef.current) return;
-
         const geometry = geometryRef.current;
         if (!geometry.boundingBox) geometry.computeBoundingBox();
-
-        // Obtenemos la distancia desde el centro (0) hasta el punto más bajo en Z
         const zBottom = geometry.boundingBox.min.z;
-
-        // Calculamos el offset necesario: invertir la posición negativa y escalar
-        // Ejemplo: Si min.z es -10, necesitamos subirlo +10 * escala.
         const yOffset = -zBottom * scale;
-
         setPosition([0, yOffset, 0]);
-
     }, [rotation, fileUrl, scale]);
 
     return (
-        <div className="w-full h-full bg-gradient-to-b from-slate-100 to-slate-200 relative">
-
+        <div className="w-full h-full bg-gradient-to-b from-slate-200 to-slate-300 relative border-r border-slate-300">
             <Canvas
                 shadows
                 camera={{ position: [150, 120, 150], fov: 45 }}
                 dpr={[1, 2]}
             >
-                {/* Iluminación mejorada para realismo */}
-                <ambientLight intensity={0.4} />
+                {/* 1. ILUMINACIÓN AMBIENTAL (HDRI) EQUILIBRADA */}
+                {/* Environment provee reflejos y luz base natural pero suavizada */}
+                <Environment preset="city" blur={1} />
+
+                {/* 2. LUCES DE REFUERZO SUAVES (Corregido para no quemar blancos) */}
+                <ambientLight intensity={0.2} /> {/* Muy baja, solo para rellenar sombras */}
+
                 <directionalLight
                     position={[50, 100, 50]}
-                    intensity={0.8}
+                    intensity={0.6} // Reducido drásticamente de 1.5
                     castShadow
-                    shadow-mapSize-width={2048}
-                    shadow-mapSize-height={2048}
-                    shadow-camera-far={500}
-                    shadow-camera-left={-200}
-                    shadow-camera-right={200}
-                    shadow-camera-top={200}
-                    shadow-camera-bottom={-200}
+                    shadow-mapSize={[1024, 1024]}
                 />
-                <pointLight position={[-50, 50, -50]} intensity={0.3} />
+
+                {/* Luz de contra reducida */}
+                <spotLight
+                    position={[-50, 50, -50]}
+                    intensity={0.5} // Reducido drásticamente de 2.0
+                    color="#ffffff"
+                />
 
                 <React.Suspense fallback={null}>
-                    {/* Cama de impresión (320x320) */}
                     <PrintBed size={320} />
-
-                    {/* Modelo 3D con rotación controlada */}
                     {fileUrl && (
                         <group ref={meshRef} rotation={rotation} scale={[scale, scale, scale]} position={position}>
                             <Model url={fileUrl} color={colorHex} onLoaded={handleGeometryLoaded} />
@@ -155,7 +137,7 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 />
             </Canvas>
 
-            {/* Badge interactivo */}
+            {/* Badge */}
             <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none opacity-50">
                 <div className="flex items-center gap-2 text-slate-600 text-xs tracking-widest uppercase font-bold">
                     <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">

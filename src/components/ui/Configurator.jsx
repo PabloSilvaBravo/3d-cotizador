@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MATERIALS, QUALITIES } from '../../utils/constants';
 import { InfillSelector } from './InfillSelector';
 import { QualitySelector } from './QualitySelector';
@@ -34,48 +35,73 @@ export const Configurator = ({ config, geometry, onChange }) => {
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Material</label>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <motion.div
+                    layout
+                    className={`
+                        grid gap-3
+                        ${config.material
+                            ? 'grid-cols-1 sm:grid-cols-[1.3fr_0.7fr] items-stretch'
+                            : 'grid-cols-1 sm:grid-cols-2 items-start'
+                        }
+                    `}
+                >
                     {Object.values(MATERIALS).map((mat) => {
                         const isSelected = config.material === mat.id;
                         return (
-                            <button
+                            <motion.button
+                                layout
                                 key={mat.id}
                                 onClick={() => onChange({ material: isSelected ? null : mat.id })}
+                                style={{ order: isSelected ? -1 : 1 }}
+                                initial={false}
+                                animate={{
+                                    backgroundColor: isSelected ? 'var(--color-brand-primary-5, rgba(96, 23, 177, 0.05))' : '#ffffff',
+                                    borderColor: isSelected ? 'var(--color-brand-primary)' : '#cbd5e1'
+                                }}
+                                whileHover={{ scale: 1.02, borderColor: isSelected ? 'var(--color-brand-primary)' : 'var(--color-brand-primary)' }}
+                                whileTap={{ scale: 0.98 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                 className={`
-                                    relative px-4 rounded-2xl border-2 text-left transition-all duration-300 group overflow-hidden
-                                    ${isSelected
-                                        ? 'border-brand-primary bg-brand-primary/5 shadow-md scale-[1.02] py-4'
-                                        : 'border-brand-light bg-white hover:border-brand-primary/30 hover:shadow-sm py-3 hover:py-4'
-                                    }
+                                    relative px-4 rounded-2xl border-2 text-left group overflow-hidden flex flex-col justify-center
+                                    ${isSelected ? 'py-6 sm:row-span-3 h-full shadow-md' : 'py-3 hover:shadow-md'}
                                 `}
                             >
-                                <div className="flex justify-between items-center relative z-10">
-                                    <span className={`font-bold text-sm transition-colors ${isSelected ? 'text-brand-primary' : 'text-brand-dark group-hover:text-brand-primary'}`}>
+                                <motion.div layout="position" className="flex justify-between items-center relative z-10 w-full mb-1">
+                                    <motion.span
+                                        layout="position"
+                                        className={`font-bold text-sm ${isSelected ? 'text-brand-primary text-lg mb-1' : 'text-brand-dark group-hover:text-brand-primary'}`}
+                                    >
                                         {mat.name}
-                                    </span>
-                                    {isSelected ? (
-                                        <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)]"></div>
-                                    ) : (
-                                        <div className="w-2 h-2 rounded-full bg-gray-200 group-hover:bg-brand-primary/30 transition-colors"></div>
-                                    )}
-                                </div>
+                                    </motion.span>
 
-                                {/* Descripción Expandible (Acordeón) */}
-                                <div className={`
-                                    transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] origin-top
-                                    ${isSelected
-                                        ? 'max-h-32 opacity-100 mt-2'
-                                        : 'max-h-0 opacity-0 mt-0 group-hover:max-h-32 group-hover:opacity-100 group-hover:mt-2'
-                                    }
-                                `}>
-                                    <p className={`text-xs leading-relaxed transition-colors duration-300 ${isSelected ? 'text-brand-primary/90 font-medium' : 'text-brand-dark/60'}`}>
-                                        {mat.description}
-                                    </p>
-                                </div>
-                            </button>
+                                    <motion.div layout="position">
+                                        {isSelected ? (
+                                            <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)] self-start mt-2"></div>
+                                        ) : (
+                                            <div className="w-2 h-2 rounded-full bg-slate-200 group-hover:bg-brand-primary/30 transition-colors"></div>
+                                        )}
+                                    </motion.div>
+                                </motion.div>
+
+                                <AnimatePresence>
+                                    {isSelected && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: "auto" }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <p className="text-xs leading-relaxed text-brand-primary/90 font-medium pt-2">
+                                                {mat.description}
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </motion.button>
                         );
                     })}
-                </div>
+                </motion.div>
             </div>
 
             {/* Color Selection (Visual Circles - Dynamic) */}
