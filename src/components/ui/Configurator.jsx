@@ -55,10 +55,10 @@ export const Configurator = ({ config, geometry, onChange }) => {
                                 style={{ order: isSelected ? -1 : 1 }}
                                 initial={false}
                                 animate={{
-                                    backgroundColor: isSelected ? 'var(--color-brand-primary-5, rgba(96, 23, 177, 0.05))' : '#ffffff',
-                                    borderColor: isSelected ? 'var(--color-brand-primary)' : '#cbd5e1'
+                                    backgroundColor: isSelected ? 'rgba(241, 196, 15, 0.05)' : '#ffffff',
+                                    borderColor: isSelected ? 'var(--color-brand-accent)' : '#cbd5e1'
                                 }}
-                                whileHover={{ scale: 1.02, borderColor: isSelected ? 'var(--color-brand-primary)' : 'var(--color-brand-primary)' }}
+                                whileHover={{ scale: 1.02, borderColor: isSelected ? 'var(--color-brand-accent)' : 'var(--color-brand-accent)' }}
                                 whileTap={{ scale: 0.98 }}
                                 transition={{ type: "spring", stiffness: 120, damping: 20 }} // Ultra smooth
                                 className={`
@@ -146,71 +146,86 @@ export const Configurator = ({ config, geometry, onChange }) => {
                         {availableColors.map((col) => {
                             const isSelected = config.colorId === col.id;
                             return (
-                                <button
+                                <motion.button
                                     key={col.id}
+                                    layout
+                                    whileHover={{ scale: 1.25, zIndex: 20 }}
+                                    whileTap={{ scale: 0.85 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
                                     onClick={() => {
-                                        // Toggle logic: Deseleccionar si ya estaba seleccionado
                                         if (isSelected) {
                                             onChange({ colorId: null, colorData: null });
                                         } else {
                                             onChange({ colorId: col.id, colorData: col });
                                         }
                                     }}
-                                    className="group relative flex items-center justify-center outline-none"
+                                    className="group relative flex items-center justify-center outline-none p-1"
                                 >
                                     {/* Círculo Principal */}
                                     <div
                                         className={`
                                             w-10 h-10 rounded-full shadow-sm transition-all duration-300 border-2 relative
                                             ${isSelected
-                                                ? 'scale-105 border-white z-10'
-                                                : 'border-white/50 hover:scale-110 hover:shadow-md hover:border-white ring-1 ring-gray-200'
+                                                ? 'border-white z-10 shadow-lg'
+                                                : 'border-white/50 ring-1 ring-gray-200'
                                             }
                                         `}
                                         style={{
                                             backgroundColor: col.hex,
-                                            // Sin glow, usamos anillo dashed
-                                            boxShadow: 'none',
-                                            borderColor: isSelected ? 'white' : 'rgba(0,0,0,0.1)'
+                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
                                         }}
                                     >
-                                        {/* Anillo Dashed EXTERNO (Gris) */}
+                                        {/* Anillo Morado Punteado (Selección) */}
                                         {isSelected && (
-                                            <div className="absolute -inset-[5px] rounded-full border-[2px] border-dashed border-gray-400 pointer-events-none animate-[spin_12s_linear_infinite]"></div>
+                                            <motion.div
+                                                layoutId="color-ring"
+                                                className="absolute -inset-[4px] rounded-full z-[-1] border-2 border-dashed border-brand-primary"
+                                                initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
+                                                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                transition={{ duration: 0.3, ease: "backOut" }}
+                                            />
                                         )}
-
-                                        {/* Icono Check (solo si seleccionado) */}
-                                        <span className={`
-                                            absolute inset-0 flex items-center justify-center transition-all duration-300
-                                            ${isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}
-                                        `}>
-                                            <svg className={`w-5 h-5 drop-shadow-md ${['#ffffff', '#fff13f', '#eac642', '#f4f9ff'].includes(col.hex) ? 'text-black/70' : 'text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </span>
+                                        {/* Icono Check (Motion) */}
+                                        <AnimatePresence>
+                                            {isSelected && (
+                                                <motion.span
+                                                    initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                                                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                                    exit={{ scale: 0, opacity: 0, transition: { duration: 0.1 } }}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                                    className={`
+                                                        absolute inset-0 flex items-center justify-center
+                                                    `}
+                                                >
+                                                    <svg className={`w-6 h-6 drop-shadow-sm ${['#ffffff', '#fff13f', '#eac642', '#f4f9ff'].includes(col.hex) ? 'text-brand-primary' : 'text-[#e9d5ff]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
 
-                                    {/* Tooltip Flotante (SIEMPRE ABAJO) */}
+                                    {/* Tooltip Flotante */}
                                     <div className={`
-                                        absolute left-1/2 -translate-x-1/2 px-2 py-1 
-                                        bg-brand-secondary text-white text-[10px] font-bold rounded-md 
+                                        absolute left-1/2 -translate-x-1/2 px-1.5 py-0.5
+                                        bg-brand-secondary text-white text-[10px] font-bold rounded text-center
                                         opacity-0 group-hover:opacity-100 transition-all duration-200 
-                                        pointer-events-none whitespace-nowrap z-50 shadow-xl
-                                        top-full mt-3 translate-y-[-5px] group-hover:translate-y-0
+                                        pointer-events-none whitespace-nowrap z-50 shadow-sm
+                                        top-full mt-1.5 translate-y-[-2px] group-hover:translate-y-0
                                     `}>
                                         {col.name}
-                                        {/* Triángulo tooltip */}
                                         <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-brand-secondary rotate-45 -top-1"></div>
                                     </div>
 
                                     {/* Badge Stock Crítico */}
                                     {col.stock < 5 && (
-                                        <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5 translate-x-1 translate-y-1">
+                                        <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5 translate-x-1 translate-y-1 z-30 pointer-events-none">
                                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                                             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
                                         </span>
                                     )}
-                                </button>
+                                </motion.button>
                             );
                         })}
                     </div>
@@ -248,15 +263,17 @@ export const Configurator = ({ config, geometry, onChange }) => {
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Copias</label>
                 </div>
                 <div className="flex items-center gap-1 bg-white border-2 border-brand-light rounded-xl p-1 shadow-sm">
-                    <button
-                        className="w-8 h-8 rounded-lg bg-brand-light/50 hover:bg-brand-primary hover:text-white text-brand-dark transition-all flex items-center justify-center font-bold active:scale-90"
+                    <motion.button
+                        whileTap={{ scale: 0.8 }}
+                        className="w-8 h-8 rounded-lg bg-brand-light/50 hover:bg-brand-primary hover:text-white text-brand-dark transition-colors flex items-center justify-center font-bold"
                         onClick={() => onChange({ quantity: Math.max(1, config.quantity - 1) })}
-                    >-</button>
+                    >-</motion.button>
                     <span className="w-10 text-center font-bold text-brand-secondary text-lg">{config.quantity}</span>
-                    <button
-                        className="w-8 h-8 rounded-lg bg-brand-light/50 hover:bg-brand-primary hover:text-white text-brand-dark transition-all flex items-center justify-center font-bold active:scale-90"
+                    <motion.button
+                        whileTap={{ scale: 0.8 }}
+                        className="w-8 h-8 rounded-lg bg-brand-light/50 hover:bg-brand-primary hover:text-white text-brand-dark transition-colors flex items-center justify-center font-bold"
                         onClick={() => onChange({ quantity: config.quantity + 1 })}
-                    >+</button>
+                    >+</motion.button>
                 </div>
             </div>
 

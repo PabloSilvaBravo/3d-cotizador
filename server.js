@@ -180,7 +180,7 @@ async function processSlicing(job) {
             `--top-solid-layers 3 ` +
             `--bottom-solid-layers 3 ` +
             `--fill-density ${infill}% ` +
-            `--fill-pattern cubic ` +
+            `--fill-pattern ${Number(infill) >= 100 ? 'rectilinear' : 'cubic'} ` +
             `--perimeter-speed 90 ` +
             `--infill-speed 200 ` +
             `--travel-speed 400 ` +

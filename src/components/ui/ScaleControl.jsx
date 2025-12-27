@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 
 /**
  * Control de escala para ajustar tamaño del modelo
@@ -40,9 +41,15 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
                     Tamaño
                 </label>
                 <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-black text-brand-primary tabular-nums">
+                    <motion.span
+                        key={scalePercent}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                        className="text-3xl font-black text-brand-primary tabular-nums"
+                    >
                         {scalePercent}
-                    </span>
+                    </motion.span>
                     <span className="text-sm font-bold text-brand-dark/40">%</span>
                 </div>
             </div>
@@ -145,18 +152,28 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
             )}
 
             {/* Quick presets minimalistas */}
-            <div className="flex gap-1.5">
-                {[0.5, 1.0, 1.5, 2.0].filter(val => val <= maxAllowedScale).map(val => (
-                    <button
+            <div className="flex gap-1.5 pt-1">
+                {[0.5, 1.0, 1.5, 2.0].filter(val => val <= maxAllowedScale).map((val, index) => (
+                    <motion.button
                         key={val}
+                        initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{
+                            delay: index * 0.05,
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 15
+                        }}
                         onClick={() => onChange(val)}
-                        className={`flex-1 px-2 py-1.5 text-[11px] font-bold rounded-lg transition-all ${Math.abs(scale - val) < 0.05
-                            ? 'bg-brand-primary text-white shadow-sm'
-                            : 'bg-brand-light/50 text-brand-dark/50 hover:bg-brand-light hover:text-brand-dark'
+                        whileHover={{ scale: 1.05, y: -1, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`flex-1 px-2 py-1.5 text-[11px] font-bold rounded-lg transition-colors border ${Math.abs(scale - val) < 0.05
+                            ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
+                            : 'bg-white text-brand-dark/60 border-brand-light/50 hover:border-brand-primary/30 hover:text-brand-primary'
                             }`}
                     >
                         {Math.round(val * 100)}%
-                    </button>
+                    </motion.button>
                 ))}
             </div>
         </div>
@@ -198,10 +215,12 @@ const DimensionInput = ({ label, value, originalValue, maxScale, onChange }) => 
 
     return (
         <div className="relative">
-            <input
+            <motion.input
+                whileFocus={{ scale: 1.05, borderColor: "rgba(96, 23, 177, 0.5)", backgroundColor: "rgba(255,255,255,1)" }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 type="number"
                 step="0.1"
-                className="w-full bg-brand-light/30 border border-brand-light rounded-lg px-2 py-2 pr-7 text-sm font-mono font-bold text-brand-dark placeholder:text-brand-dark/30 focus:ring-1 focus:ring-brand-primary focus:border-brand-primary outline-none transition-all"
+                className="w-full bg-brand-light/30 border border-brand-light rounded-lg px-2 py-2 pr-7 text-sm font-mono font-bold text-brand-dark placeholder:text-brand-dark/30 focus:ring-1 focus:ring-brand-primary focus:border-brand-primary outline-none transition-colors"
                 value={localValue}
                 onChange={handleChange}
                 onBlur={handleBlur}

@@ -13,28 +13,28 @@ export const MATERIALS = {
     name: 'PLA Estándar',
     density: 1.24,
     priceMultiplier: 1.0, // Base ($12/g)
-    description: 'Económico y versátil. Ideal para prototipos y piezas decorativas.'
+    description: 'Estándar para impresiones visuales y prototipos rápidos. Excelente acabado superficial y biodegradable.'
   },
   PETG: {
     id: 'PETG',
     name: 'PETG Resistente',
     density: 1.27,
     priceMultiplier: 1.0, // Mismo precio base
-    description: 'Mayor resistencia térmica y mecánica. Ideal para piezas funcionales.'
+    description: 'Balance ideal entre resistencia y facilidad. Soporta humedad, químicos y exteriores. Perfecto para piezas mecánicas funcionales y soportes.'
   },
   ABS: {
     id: 'ABS',
     name: 'ABS Industrial',
     density: 1.04,
     priceMultiplier: 1.0, // Mismo precio base
-    description: 'Alta resistencia al impacto y temperatura.'
+    description: 'Termoplástico robusto de ingeniería. Alta resistencia al impacto y temperatura. Ideal para automoción, carcasas y piezas finales.'
   },
   TPU: {
     id: 'TPU',
     name: 'TPU Flexible',
     density: 1.21,
     priceMultiplier: 2.0, // Doble precio
-    description: 'Material flexible y elástico tipo goma.'
+    description: 'Elastómero tipo caucho. Flexible, elástico y casi indestructible ante impactos. Ideal para juntas, fundas protectoras y amortiguadores.'
   }
 };
 
@@ -50,9 +50,9 @@ export const COLORS = [
 ];
 
 export const QUALITIES = [
-  { id: 'draft', name: 'Borrador (0.28mm)', layerHeight: 0.28, priceMultiplier: 0.8 }, // Más rápido = más barato
-  { id: 'standard', name: 'Estándar (0.2mm)', layerHeight: 0.2, priceMultiplier: 1.0 },
-  { id: 'high', name: 'Alta Calidad (0.16mm)', layerHeight: 0.16, priceMultiplier: 1.5 }, // Más lento = más caro
+  { id: 'draft', name: 'Borrador Rápido (0.32mm)', layerHeight: 0.32, priceMultiplier: 0.7, description: 'Capas muy visibles. Maxima velocidad y economía. Ideal para pruebas de forma.' },
+  { id: 'standard', name: 'Estándar (0.20mm)', layerHeight: 0.2, priceMultiplier: 1.0, description: 'Balance perfecto entre calidad y tiempo. El estándar de la industria.' },
+  { id: 'high', name: 'Alta Calidad (0.16mm)', layerHeight: 0.16, priceMultiplier: 1.5, description: 'Excelente acabado superficial. Capas mucho menos visibles. Ideal para detalles finos.' },
 ];
 
 export const DEFAULT_CONFIG = {

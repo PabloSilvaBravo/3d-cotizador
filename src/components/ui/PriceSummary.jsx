@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
 // Hook simple para animación de número (CountUp)
 const useCountUp = (end, duration = 800) => {
@@ -190,7 +191,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                             </p>
                         </div>
                         <div className="text-right">
-                            <div className="text-[10px] text-brand-primary font-black uppercase tracking-widest mb-1">Total Final</div>
+                            <div className="text-[10px] text-brand-accent font-black uppercase tracking-widest mb-1">Total Final</div>
                             <div className="text-4xl font-black leading-none tracking-tight">
                                 <span className="bg-gradient-to-r from-brand-secondary to-brand-primary bg-clip-text text-transparent filter drop-shadow-sm">
                                     ${animatedPrice.toLocaleString('es-CL')}
@@ -199,16 +200,18 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                         </div>
                     </div>
 
-                    <button
+                    <motion.button
+                        whileHover={!isLoading && config.material ? { scale: 1.02 } : {}}
+                        whileTap={!isLoading && config.material ? { scale: 0.96 } : {}}
                         onClick={onAddToCart}
                         disabled={isLoading || !config.material}
                         className={`
-                            group w-full py-4 rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20 transition-all duration-300
+                            group w-full py-4 rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20
                             flex items-center justify-center gap-3 transform
                             relative overflow-hidden
                             ${isLoading || !config.material
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                : 'bg-gradient-to-r from-brand-secondary to-brand-primary hover:from-brand-primary hover:to-brand-secondary hover:scale-[1.02] hover:shadow-brand-primary/40 text-white'
+                                : 'bg-gradient-to-r from-brand-secondary to-brand-primary text-white'
                             }
                         `}
                     >
@@ -218,7 +221,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                         )}
 
                         <span className="relative z-20 uppercase tracking-wide text-sm md:text-base">
-                            {isLoading ? 'Calculando...' : (!config.material ? 'Selecciona Material' : 'Añadir al Carrito')}
+                            {isLoading ? 'Calculando...' : (!config.material ? 'Selecciona Material' : 'Continuar')}
                         </span>
 
                         {!isLoading && (
@@ -226,7 +229,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                             </svg>
                         )}
-                    </button>
+                    </motion.button>
                 </div>
             </div>
         </div>

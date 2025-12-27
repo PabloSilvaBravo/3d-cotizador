@@ -1,50 +1,36 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { QUALITIES } from '../../utils/constants';
 
 // Generador de previsualización de capas
 const LayerPreview = ({ layerHeight }) => {
-    // Normalizamos para visualizar: 0.28 -> Grueso (pocas capas), 0.12 -> Fino (muchas capas)
-    // Usamos una exageración para que se note en el icono pequeño
-    // Hacemos que la altura total sea fija (ej: 80px)
-    // Numero de capas = AlturaTotal / AlturaCapaSimulada
-
-    const baseHeight = 8; // Altura visual base para 0.2mm
+    const baseHeight = 8;
     const visualLayerHeight = (layerHeight / 0.2) * baseHeight;
-
-    // Generamos capas para llenar 80px de altura
     const numLayers = Math.floor(80 / visualLayerHeight);
 
     return (
         <svg className="w-full h-full" viewBox="0 0 100 100">
-            {/* Fondo suave */}
             <rect width="100" height="100" fill="#f8fafc" rx="8" />
-
-            {/* Dibujamos una esfera/cúpula "sliceada" para mostrar el aliasing (escalones) */}
-            <g transform="translate(50, 90) scale(1, -1)"> {/* Origen abajo centro */}
+            <g transform="translate(50, 90) scale(1, -1)">
                 {Array.from({ length: numLayers }).map((_, i) => {
                     const y = i * visualLayerHeight;
-                    // Formula de circulo: x^2 + y^2 = r^2 -> x = sqrt(r^2 - y^2)
                     const radius = 40;
-                    // Usamos la altura del TOP de la capa para calcular el ancho (peor caso de escalón)
-                    // O el centro para promedio. Usaremos bottom para que se vea piramidal.
                     let width = 0;
                     if (y < radius) {
                         width = Math.sqrt(radius * radius - y * y) * 2;
                     }
-
                     if (width <= 0) return null;
-
                     return (
                         <rect
                             key={i}
                             x={-width / 2}
                             y={y}
                             width={width}
-                            height={visualLayerHeight - 0.5} // -0.5 para pequeña separación visual
+                            height={visualLayerHeight - 0.5}
                             rx="1"
                             fill="currentColor"
-                            className="text-brand-primary"
-                            opacity={0.8 + (i / numLayers) * 0.2} // Gradiente sutil
+                            className="text-brand-accent"
+                            opacity={0.8 + (i / numLayers) * 0.2}
                         />
                     );
                 })}
@@ -54,100 +40,108 @@ const LayerPreview = ({ layerHeight }) => {
 };
 
 export const QualitySelector = ({ value, onChange }) => {
-    const [hoveredOption, setHoveredOption] = useState(null);
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = QUALITIES.find(q => q.id === value) || QUALITIES[0];
 
     return (
-        <div className="grid grid-cols-3 gap-3">
-            {QUALITIES.map((q, index) => {
-                const isSelected = value === q.id;
-                const isHovered = hoveredOption === q.id;
-                const isFirst = index === 0;
-                const isLast = index === QUALITIES.length - 1;
-
-                return (
-                    <div key={q.id} className="relative group">
-                        <button
-                            onClick={() => onChange({ qualityId: q.id })}
-                            onMouseEnter={() => setHoveredOption(q.id)}
-                            onMouseLeave={() => setHoveredOption(null)}
-                            className={`
-                                relative w-full flex flex-col items-center p-2 rounded-xl border-2 transition-all duration-300
-                                ${isSelected
-                                    ? 'border-brand-primary bg-brand-primary/5 shadow-md scale-[1.02]'
-                                    : 'border-brand-light bg-white hover:border-brand-primary/30 hover:shadow-sm'
-                                }
-                            `}
-                        >
-                            {/* Visual Preview */}
-                            <div className="w-full aspect-[4/3] mb-2 p-2 bg-white rounded-lg border border-brand-light/30">
-                                <LayerPreview layerHeight={q.layerHeight} />
-                            </div>
-
-                            {/* Label */}
-                            <div className="text-center">
-                                <div className={`text-xs font-bold truncate w-full ${isSelected ? 'text-brand-primary' : 'text-brand-dark'}`}>
-                                    {q.name.split(' ')[0]} {/* Mostrar solo primera palabra (Borrador, Estándar...) */}
-                                </div>
-                                <div className="text-[10px] text-brand-secondary font-mono">
-                                    {q.layerHeight}mm
-                                </div>
-                            </div>
-
-                            {/* Checkmark selection indicator */}
-                            {isSelected && (
-                                <div className="absolute top-2 right-2 w-4 h-4 bg-brand-primary rounded-full flex items-center justify-center">
-                                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                            )}
-                        </button>
-
-                        {/* HOVER TOOLTIP */}
-                        {isHovered && (
-                            <div className={`
-                                absolute bottom-full mb-3 z-[9999] pointer-events-none animate-fade-in w-48
-                                ${isFirst ? 'left-0' : isLast ? 'right-0' : 'left-1/2 -translate-x-1/2'}
-                            `}>
-                                <div className="bg-white border-2 border-brand-primary rounded-xl shadow-2xl p-3">
-                                    <h4 className="font-bold text-brand-primary text-xs mb-1 border-b border-brand-light pb-1">
-                                        {q.name}
-                                    </h4>
-
-                                    <div className="space-y-2 text-[10px] text-gray-600">
-                                        <div className="flex justify-between items-center">
-                                            <span>Detalle:</span>
-                                            <div className="flex gap-0.5">
-                                                {/* Estrellas simulas */}
-                                                {Array.from({ length: 5 }).map((_, i) => (
-                                                    <div key={i} className={`w-1.5 h-4 rounded-sm ${i < (q.id === 'draft' ? 2 : q.id === 'standard' ? 3 : 5) ? 'bg-brand-accent' : 'bg-gray-200'}`}></div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span>Tiempo:</span>
-                                            <span className="font-bold text-brand-secondary">
-                                                {q.id === 'draft' ? 'Rápido' : q.id === 'standard' ? 'Normal' : 'Lento'}
-                                            </span>
-                                        </div>
-                                        <p className="italic text-brand-dark/70 leading-tight">
-                                            {q.id === 'draft' ? 'Capas visibles. Bueno para pruebas mecánicas rápidas.' :
-                                                q.id === 'standard' ? 'Balance ideal entre acabado y velocidad.' :
-                                                    'Superficies suaves. Máximo detalle para piezas finales.'}
-                                        </p>
-                                    </div>
-
-                                    {/* Flecha */}
-                                    <div className={`
-                                        absolute top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-brand-primary
-                                        ${isFirst ? 'left-8' : isLast ? 'right-8' : 'left-1/2 -translate-x-1/2'}
-                                    `} />
-                                </div>
-                            </div>
-                        )}
+        <div className="relative z-30">
+            {/* Toggle Button Compacto */}
+            <motion.button
+                layout
+                onClick={() => setIsOpen(!isOpen)}
+                className={`
+                    w-full flex items-center justify-between p-2 pl-3 bg-white border 
+                    rounded-2xl shadow-sm transition-all duration-300 group
+                    ${isOpen ? 'border-brand-accent ring-1 ring-brand-accent/20' : 'border-brand-light hover:border-brand-accent/50'}
+                `}
+            >
+                <div className="flex items-center gap-3 overflow-hidden">
+                    {/* Icono Mini Preview */}
+                    <div className="w-10 h-10 min-w-[2.5rem] bg-slate-50 rounded-xl p-1 border border-brand-light group-hover:scale-105 transition-transform">
+                        <LayerPreview layerHeight={selectedOption.layerHeight} />
                     </div>
-                );
-            })}
+                    <div className="text-left flex flex-col items-start min-w-0">
+                        <div className="text-xs font-black text-brand-dark uppercase tracking-wide truncate w-full">
+                            {selectedOption.name}
+                        </div>
+                        <div className="text-[10px] text-brand-secondary/80 leading-tight w-full pr-1">
+                            {selectedOption.description}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Chevron */}
+                <div className="flex items-center gap-2 pr-2">
+                    <span className="text-[9px] font-black text-brand-accent uppercase tracking-widest bg-brand-accent/5 px-2 py-1 rounded-md hidden sm:block">
+                        Cambiar
+                    </span>
+                    <div className="text-brand-accent">
+                        <motion.svg
+                            animate={{ rotate: isOpen ? 180 : 0 }}
+                            className="w-5 h-5"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </motion.svg>
+                    </div>
+                </div>
+            </motion.button>
+
+            {/* Panel Desplegable Overlay (HACIA ARRIBA) */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                        className="absolute bottom-full left-0 right-0 mb-3 z-50 bg-white rounded-2xl border border-brand-light/50 shadow-2xl p-3 overflow-hidden"
+                    >
+                        <div className="text-[10px] font-bold text-brand-dark/40 uppercase mb-2 tracking-widest text-center">Seleccionar Calidad</div>
+                        <div className="flex flex-col gap-2">
+                            {QUALITIES.map((q) => {
+                                const isSelected = value === q.id;
+                                return (
+                                    <button
+                                        key={q.id}
+                                        onClick={() => {
+                                            onChange({ qualityId: q.id });
+                                            setIsOpen(false);
+                                        }}
+                                        className={`
+                                            relative flex items-start gap-3 p-3 rounded-xl border-2 transition-all duration-200 text-left
+                                            ${isSelected
+                                                ? 'border-brand-accent bg-brand-accent/5'
+                                                : 'border-transparent bg-slate-50 hover:bg-slate-100 hover:border-brand-light'
+                                            }
+                                        `}
+                                    >
+                                        <div className="flex-shrink-0 w-24 h-24 p-2 bg-white rounded-lg border border-brand-light/30 shadow-sm">
+                                            <LayerPreview layerHeight={q.layerHeight} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-baseline mb-1">
+                                                <span className="text-xs font-black text-brand-dark uppercase tracking-wide">
+                                                    {q.name.split(' (')[0]}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-brand-secondary bg-brand-secondary/5 px-1.5 py-0.5 rounded">
+                                                    {q.layerHeight}mm
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-brand-dark/70 leading-relaxed font-medium">
+                                                {q.description}
+                                            </p>
+                                        </div>
+                                        {isSelected && (
+                                            <div className="absolute top-3 right-3 w-2 h-2 bg-brand-accent rounded-full" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

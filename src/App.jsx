@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import FileUpload from './components/ui/FileUpload';
 import Viewer3D from './components/Viewer3D';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -211,9 +212,9 @@ const App = () => {
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
-        <main className="max-w-4xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up">
+        <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up">
 
-          <div className="w-full max-w-xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10">
+          <div className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10">
             <FileUpload onFileSelect={handleFileSelect} />
           </div>
         </main>
@@ -223,19 +224,30 @@ const App = () => {
 
   // --- APP VIEW (SPLIT SCREEN) ---
   return (
-    <div className="min-h-screen bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden">
+    <div className="min-h-screen bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30">
+
+      {/* Fondo Decorativo Sutil (Solo visible en pantallas grandes para no molestar en móvil) */}
+      <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
+      <div className="absolute bottom-[-20%] right-[40%] w-[600px] h-[600px] bg-brand-accent/5 rounded-full blur-[100px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
 
       {/* LEFT COLUMN: 3D VIEWER */}
-      <div className="w-full lg:w-[65%] h-[50vh] lg:h-screen relative p-4 lg:p-6 bg-brand-light flex flex-col">
-        <div className="flex-1 bg-white rounded-3xl shadow-xl overflow-hidden relative ring-1 ring-black/5 group">
+      <motion.div
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="w-full lg:w-[65%] h-[50vh] lg:h-screen relative p-4 lg:p-6 bg-transparent flex flex-col z-0"
+      >
+        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-900/5 group">
           <div className="absolute top-6 left-6 z-20 flex items-center gap-3">
             <button
               onClick={handleReset}
-              className="w-10 h-10 bg-white/90 backdrop-blur border border-brand-light rounded-xl flex items-center justify-center text-brand-dark shadow-sm hover:scale-105 active:scale-95 transition-all group/btn"
+              className="w-10 h-10 bg-white/90 backdrop-blur border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 shadow-sm hover:scale-105 hover:bg-white active:scale-95 transition-all group/btn"
+              title="Volver al inicio"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
-            <div className="bg-white/90 backdrop-blur border border-brand-light px-4 py-2 rounded-xl text-brand-secondary font-bold text-sm shadow-sm">
+            <div className="bg-white/90 backdrop-blur border border-slate-200 px-4 py-2 rounded-xl text-slate-700 font-bold text-sm shadow-sm flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               {file.name}
             </div>
           </div>
@@ -251,30 +263,53 @@ const App = () => {
           )}
 
           {isLoading && (
-            <div className="absolute inset-0 z-50 bg-white/30 backdrop-blur-xl flex flex-col items-center justify-center text-brand-secondary transition-all duration-500">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center text-brand-secondary"
+            >
               <CubeLoader />
-              <p className="font-black text-xl animate-pulse mt-8 tracking-tight text-brand-primary">Analizando Geometría...</p>
-            </div>
+              <p className="font-bold text-lg mt-8 tracking-tight text-brand-primary animate-pulse">Optimizando Modelo...</p>
+            </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* RIGHT COLUMN: CONFIGURATION */}
-      <div className="w-full lg:w-[35%] h-auto lg:h-screen bg-white shadow-2xl z-10 flex flex-col border-l border-brand-light/50">
-        <div className="px-8 py-6 border-b border-brand-light flex justify-between items-center sticky top-0 bg-white/95 backdrop-blur z-20">
-          <h2 className="text-2xl font-black text-brand-secondary tracking-tight">Cotización</h2>
+      <motion.div
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+        className="w-full lg:w-[35%] h-auto lg:h-screen bg-white/80 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.1)] z-10 flex flex-col border-l border-white/50"
+      >
+        <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur z-20">
+          <div>
+            <h2 className="text-2xl font-black text-brand-secondary tracking-tight">Cotización</h2>
+            <p className="text-xs text-slate-400 font-medium tracking-wide uppercase mt-1">Configura tu impresión</p>
+          </div>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-brand-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-800 flex items-center gap-3">
-              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div>
-                <strong>Error:</strong> {error}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-sm text-red-800 flex items-center gap-3 shadow-sm"
+            >
+              <div className="p-2 bg-red-100 rounded-full text-red-600">
+                <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
               </div>
-            </div>
+              <div>
+                <strong className="block text-red-900">Ups, hubo un problema:</strong>
+                {error}
+              </div>
+            </motion.div>
           )}
 
           <Configurator
@@ -284,12 +319,14 @@ const App = () => {
           />
 
           {localGeometry && (
-            <ScaleControl
-              scale={autoScale}
-              onChange={handleScaleChange}
-              scaleInfo={scaleInfo}
-              dimensions={localGeometry.dimensions}
-            />
+            <div className="mt-8 pt-8 border-t border-dashed border-slate-200">
+              <ScaleControl
+                scale={autoScale}
+                onChange={handleScaleChange}
+                scaleInfo={scaleInfo}
+                dimensions={localGeometry.dimensions}
+              />
+            </div>
           )}
 
           <PriceSummary
@@ -299,7 +336,7 @@ const App = () => {
             isLoading={isLoading || !quoteData}
           />
         </div>
-      </div>
+      </motion.div>
 
       <OrderModal
         isOpen={isModalOpen}
