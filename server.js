@@ -28,11 +28,43 @@ function log(level, message, data = null) {
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+// Servir archivos convertidos para el frontend
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+/**
+ * Convierte un archivo de formato STEP (.step, .stp) a formato STL (.stl)
+ * utilizando la interfaz de línea de comandos de PrusaSlicer.
+ * 
+ * Esta conversión es necesaria para la visualización en el frontend (Three.js),
+ * mientras que el archivo original se conserva para el slicing preciso.
+ * 
+ * @param {string} stepPath - Ruta absoluta del archivo STEP de origen.
+ * @param {string} stlPath - Ruta absoluta donde se guardará el archivo STL generado.
+ * @returns {Promise<string>} Promesa que se resuelve con la ruta del STL creado.
+ */
+async function convertStepToStl(stepPath, stlPath) {
+    return new Promise((resolve, reject) => {
+        // PrusaSlicer CLI: --export-stl toma input y genera output
+        const command = `${SLICER_COMMAND} --export-stl --output "${stlPath}" "${stepPath}"`;
+        log('INFO', 'Convirtiendo STEP a STL...', { command });
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                log('ERROR', 'Fallo conversión STEP', { stderr });
+                return reject(new Error('Error convirtiendo STEP a STL: ' + stderr));
+            }
+            if (!fs.existsSync(stlPath)) {
+                return reject(new Error('La conversión falló silenciossamente: STL no generado'));
+            }
+            log('INFO', 'Conversión STEP -> STL exitosa');
+            resolve(stlPath);
+        });
+    });
+}
 
 const upload = multer({
     dest: 'uploads/',
-    limits: { fileSize: 50 * 1024 * 1024 }
+    limits: { fileSize: 100 * 1024 * 1024 } // 100MB Límite
 });
 
 const SLICER_COMMAND = '"C:\\Program Files\\Prusa3D\\PrusaSlicer\\prusa-slicer-console.exe"';
@@ -49,7 +81,7 @@ const jobQueue = [];
 let activeJobs = 0;
 const cache = new Map();
 const MAX_CACHE_SIZE = 100;
-const PROCESS_TIMEOUT = 120000; // 2 minutos
+const PROCESS_TIMEOUT = 600000; // 10 minutos para archivos grandes
 
 // === RATE LIMITING ===
 const requestCounts = new Map();
@@ -103,6 +135,57 @@ function getFileHash(filePath) {
     return crypto.createHash('md5').update(fileBuffer).digest('hex');
 }
 
+// Función para obtener dimensiones de un STL Binario (Bounding Box)
+async function getStlBounds(filePath) {
+    return new Promise((resolve) => {
+        if (!fs.existsSync(filePath)) return resolve(null);
+
+        let min = [Infinity, Infinity, Infinity];
+        let max = [-Infinity, -Infinity, -Infinity];
+
+        try {
+            const stream = fs.createReadStream(filePath, { start: 84 }); // Saltar header (80) + tri count (4)
+            let buffer = Buffer.alloc(0);
+
+            stream.on('data', (chunk) => {
+                buffer = Buffer.concat([buffer, chunk]);
+
+                // Procesar triángulos completos de 50 bytes
+                while (buffer.length >= 50) {
+                    // Estructura STL Binario: Normal(12) | V1(12) | V2(12) | V3(12) | Attr(2)
+                    for (let i = 0; i < 3; i++) { // 3 vértices por triángulo
+                        const vOffset = 12 + (i * 12);
+                        const x = buffer.readFloatLE(vOffset);
+                        const y = buffer.readFloatLE(vOffset + 4);
+                        const z = buffer.readFloatLE(vOffset + 8);
+
+                        if (x < min[0]) min[0] = x; if (x > max[0]) max[0] = x;
+                        if (y < min[1]) min[1] = y; if (y > max[1]) max[1] = y;
+                        if (z < min[2]) min[2] = z; if (z > max[2]) max[2] = z;
+                    }
+                    buffer = buffer.subarray(50);
+                }
+            });
+
+            stream.on('end', () => {
+                if (min[0] === Infinity) resolve(null);
+                else resolve({
+                    x: max[0] - min[0],
+                    y: max[1] - min[1],
+                    z: max[2] - min[2]
+                });
+            });
+
+            stream.on('error', (err) => {
+                resolve(null);
+            });
+
+        } catch (e) {
+            resolve(null);
+        }
+    });
+}
+
 // === PROCESADOR DE COLA CON CONCURRENCIA ===
 async function processQueue() {
     // Procesar mientras haya espacio y trabajos pendientes
@@ -143,57 +226,57 @@ async function processSlicing(job) {
         const rotZDegrees = (rotationZ || 0) * (180 / Math.PI);
         const scale = (scaleFactor || 1.0) * 100; // PrusaSlicer usa porcentaje
 
-        // Aplicar rotación física (What You See Is What You Get)
-        // Aplicamos TODAS las rotaciones (X, Y, Z) directamente a los vértices del STL.
-        if (Math.abs(rotX) > 0.001 || Math.abs(rotY) > 0.001 || Math.abs(rotZDegrees) > 0.001) {
-            const rotatedPath = inputPath.replace('.stl', `_rotated_${Date.now()}.stl`);
-            try {
-                // Convertir Z de grados a radianes para rotateSTL
-                const rotZRad = rotZDegrees * (Math.PI / 180);
-
-                log('INFO', `Rotando STL físicamente (X:${rotX.toFixed(2)}, Y:${rotY.toFixed(2)}, Z:${rotZRad.toFixed(2)})...`);
-
-                await rotateSTL(inputPath, rotatedPath, rotX, rotY, rotZRad);
-                inputPath = rotatedPath; // Usar el archivo rotado
-                log('INFO', `STL rotado guardado en: ${rotatedPath}`);
-            } catch (err) {
-                log('ERROR', 'Fallo al rotar STL', err);
-                return reject(new Error('Fallo al rotar geometría STL: ' + err.message));
-            }
-        }
+        // Aplicar rotación: PrusaSlicer CLI soporta rotación en Z.
+        // Rotación completa 3D vía CLI es limitada. Por ahora confiamos en Z.
 
         // Determinar altura de capa según calidad
         let layerHeight = 0.2;
         if (qualityId === 'draft') layerHeight = 0.28;
         if (qualityId === 'high') layerHeight = 0.16;
 
-        // SOLUCIÓN: Usar solo parámetros CLI soportados
-        // Al haber rotado físicamente el STL, no necesitamos rotar en el slicer.
-        const command = `${SLICER_COMMAND} --export-gcode ` +
-            `--center 160,160 ` +
-            // `--dont-arrange ` + 
-            `--ensure-on-bed ` +
-            // (rotZDegrees !== 0 ? `--rotate ${rotZDegrees} ` : '') +  // ROTACIÓN DESHABILITADA (Ya aplicada físicamente)
-            (scale !== 100 ? `--scale ${scale}% ` : '') +
-            `--layer-height ${layerHeight} ` +
-            `--perimeters 2 ` +
-            `--top-solid-layers 3 ` +
-            `--bottom-solid-layers 3 ` +
-            `--fill-density ${infill}% ` +
-            `--fill-pattern ${Number(infill) >= 100 ? 'rectilinear' : 'cubic'} ` +
-            `--perimeter-speed 90 ` +
-            `--infill-speed 200 ` +
-            `--travel-speed 400 ` +
-            `--first-layer-speed 50 ` +
-            `--support-material ` +
-            `--support-material-threshold 30 ` +
-            `--temperature 220 ` +
-            `--bed-temperature 60 ` +
-            `--filament-diameter 1.75 ` +
-            `--nozzle-diameter 0.4 ` +
-            `--retract-length 0.8 ` +
-            `--gcode-comments ` + // Necesario para detectar soportes con Regex
-            `--output "${outputGcode}" "${inputPath}"`;
+        // Construir comando PrusaSlicer
+        const commandParams = [
+            `--export-gcode`,
+            `--center 160,160`,
+            `--ensure-on-bed`,
+            `--load "${configPath}"`,
+            `--output "${outputGcode}"`,
+            `--scale ${scale}%`,
+            (Math.abs(rotZDegrees) > 0.1 ? `--rotate ${rotZDegrees.toFixed(2)}` : ''), // Rotación Z
+
+            // Configuración Base
+            `--layer-height ${layerHeight}`,
+            `--perimeters 2`,
+            `--top-solid-layers 3`,
+            `--bottom-solid-layers 3`,
+            `--fill-density ${infill}%`,
+            `--fill-pattern ${Number(infill) >= 100 ? 'rectilinear' : 'cubic'}`,
+            `--perimeter-speed 90`,
+            `--infill-speed 200`,
+            `--travel-speed 400`,
+            `--first-layer-speed 50`,
+            `--support-material`,
+            `--support-material-threshold 30`,
+            `--temperature 220`,
+            `--bed-temperature 60`,
+            `--filament-diameter 1.75`,
+            `--nozzle-diameter 0.4`,
+            `--retract-length 0.8`,
+            `--gcode-comments`,
+
+            // Input File (siempre al final por seguridad CLI)
+            `"${inputPath}"`
+        ];
+
+        // Material overrides (Insertar antes del input file)
+        const insertIdx = commandParams.length - 1;
+        if (material === 'PETG') {
+            commandParams.splice(insertIdx, 0, `--print-settings "nozzle_temperature=240"`, `--print-settings "bed_temperature=70"`);
+        } else if (material === 'TPU') {
+            commandParams.splice(insertIdx, 0, `--print-settings "nozzle_temperature=230"`, `--print-settings "max_print_speed=30"`);
+        }
+
+        const command = `${SLICER_COMMAND} ${commandParams.filter(Boolean).join(' ')}`;
 
         log('INFO', 'Comando PrusaSlicer', { command });
         const startTime = Date.now();
@@ -207,7 +290,7 @@ async function processSlicing(job) {
             // En Windows: el proceso ya es menos prioritario por defecto
         };
 
-        const childProcess = exec(command, execOptions, (error, stdout, stderr) => {
+        const childProcess = exec(command, execOptions, async (error, stdout, stderr) => {
             const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
             // Log output de PrusaSlicer para debugging
@@ -222,7 +305,26 @@ async function processSlicing(job) {
 
                 // Detectar errores específicos
                 if (stderr && (stderr.includes('outside of the print volume') || stderr.includes('fits the print volume'))) {
-                    return reject(new Error('El modelo es demasiado grande para el volumen de impresión (256x256x256mm). Intenta reducir la escala.'));
+                    log('WARN', 'Modelo fuera de volumen de impresión. Calculando bounds y retornando flag oversized.');
+
+                    // Calcular dimensiones reales usando el STL auxiliar (si existe) o el input (si es STL)
+                    const boundsPath = job.auxStlPath || job.inputPath;
+                    let dimensions = null;
+                    // Solo intentar leer si es STL (getStlBounds es para bin STL)
+                    if (boundsPath && boundsPath.toLowerCase().endsWith('.stl')) {
+                        dimensions = await getStlBounds(boundsPath);
+                    }
+
+                    return resolve({
+                        oversized: true,
+                        dimensions: dimensions, // Dimensiones calculadas por backend
+                        volumen: 0,
+                        peso: 0,
+                        tiempoTexto: '—',
+                        tiempoHoras: 0,
+                        pesoSoportes: 0,
+                        porcentajeSoportes: 0
+                    });
                 }
 
                 return reject(new Error('Slicing failed: ' + error.message));
@@ -255,60 +357,87 @@ async function processSlicing(job) {
             // Usar la lógica que funcionaba en commit 82647ce
 
             // 1. VOLUMEN (cm3) - Múltiples patrones
+            // ---------------------------------------------------------
+            // ANÁLISIS AVANZADO G-CODE (FEATURES + K-FACTOR)
+            // ---------------------------------------------------------
+
+            // 1. Definición de Constantes de Material
+            const MATERIAL_K_FACTORS = {
+                'PLA': 2.98,
+                'PLA-Silk': 2.98,
+                'PETG': 2.98,
+                'ABS': 2.50,
+                'TPU': 2.98
+            };
+            const kFactor = MATERIAL_K_FACTORS[material] || 2.98;
+
+            // 2. Desglose de Features (Modelo vs Soportes vs Desperdicio)
+            let features = {
+                'support': 0, // Soportes + Interfaz
+                'model': 0,   // Perímetros, relleno, etc.
+                'waste': 0    // Skirt, Brim, Wipe Tower
+            };
+
+            const regexFeature = /; (?:feature )?([a-zA-Z\s]+).*?=\s*(\d+(\.\d+)?)\s*mm/gi;
+            let featureMatch;
+            let totalFilamentMm = 0;
+
+            while ((featureMatch = regexFeature.exec(gcodeContent)) !== null) {
+                const name = featureMatch[1].trim().toLowerCase();
+                const valMm = parseFloat(featureMatch[2]);
+
+                if (!isNaN(valMm)) {
+                    totalFilamentMm += valMm;
+
+                    if (name.includes('support')) {
+                        features.support += valMm;
+                    } else if (name.includes('skirt') || name.includes('brim') || name.includes('wipe')) {
+                        features.waste += valMm;
+                    } else {
+                        features.model += valMm;
+                    }
+                }
+            }
+
+            // Conversión a Gramos Real
+            const mmToGrams = (mm) => (mm / 1000) * kFactor;
+
+            const pesoSoportes = mmToGrams(features.support);
+            const pesoDesperdicioExtra = mmToGrams(features.waste);
+            const pesoModeloReal = mmToGrams(features.model);
+            let pesoTotalCalculado = pesoSoportes + pesoDesperdicioExtra + pesoModeloReal;
+
+            console.log(`📊 Desglose Real: Modelo: ${pesoModeloReal.toFixed(2)}g | Soportes: ${pesoSoportes.toFixed(2)}g | Waste: ${pesoDesperdicioExtra.toFixed(2)}g | Total: ${pesoTotalCalculado.toFixed(2)}g`);
+
+            // Fallback Genérico si no halló features
+            if (pesoTotalCalculado === 0) {
+                const matchTotalMm = gcodeContent.match(/; filament used \[mm\] = (\d+(\.\d+)?)/);
+                if (matchTotalMm) {
+                    totalFilamentMm = parseFloat(matchTotalMm[1]);
+                    pesoTotalCalculado = mmToGrams(totalFilamentMm);
+                    console.log(`⚠️ Usando peso total genérico: ${pesoTotalCalculado.toFixed(2)}g`);
+                }
+            }
+
+            // Asignar variables finales
+            let peso = pesoTotalCalculado;
+            // Volumen referencial
             let volumen = 0;
-            const volPatterns = [
-                /; filament used \[cm3\] = (\d+(\.\d+)?)/,
-                /; filament volume: (\d+(\.\d+)?) cm3/i,
-                /(\d+(\.\d+)?) cm3/
-            ];
-            for (const pattern of volPatterns) {
-                const match = gcodeContent.match(pattern);
-                if (match) {
-                    volumen = parseFloat(match[1]);
-                    console.log(`   ✓ Volumen encontrado: ${volumen} cm³ con patrón ${pattern}`);
-                    break;
-                }
-            }
-            if (volumen === 0) console.log(`   ✗ Volumen NO encontrado`);
+            const matchVol = gcodeContent.match(/; filament used \[cm3\] = (\d+(\.\d+)?)/);
+            if (matchVol) volumen = parseFloat(matchVol[1]);
 
-            // 2. PESO (g) - Múltiples patrones
-            let peso = 0;
-            const weightPatterns = [
-                /; filament used \[g\] = (\d+(\.\d+)?)/,
-                /; filament weight = (\d+(\.\d+)?)g/i,
-                /(\d+(\.\d+)?)g/
-            ];
-            for (const pattern of weightPatterns) {
-                const match = gcodeContent.match(pattern);
-                if (match) {
-                    peso = parseFloat(match[1]);
-                    console.log(`   ✓ Peso encontrado: ${peso} g con patrón ${pattern}`);
-                    break;
-                }
-            }
-            if (peso === 0 && volumen > 0) {
-                peso = volumen * 1.24; // Fallback desde volumen
-                console.log(`   ⚠ Peso calculado desde volumen: ${peso.toFixed(2)} g`);
-            } else if (peso === 0) {
-                console.log(`   ✗ Peso NO encontrado`);
-            }
 
-            const timePatterns = [
-                /; estimated printing time \(normal mode\) = (.*)/,
-                /; estimated printing time = (.*)/,
-                /; printing time = (.*)/
-            ];
+            // 3. Tiempo de Impresión (Clean Regex)
+            const timePattern = /; estimated printing time(?: \(normal mode\))? = (.*)/i;
+            const timeMatch = gcodeContent.match(timePattern);
 
             let timeStr = "0m";
-            for (const pattern of timePatterns) {
-                const match = gcodeContent.match(pattern);
-                if (match) {
-                    timeStr = match[1].trim();
-                    console.log(`   Tiempo encontrado con patrón: ${pattern}`);
-                    break;
-                }
+            if (timeMatch) {
+                timeStr = timeMatch[1].trim();
+                timeStr = timeStr.split(';')[0].trim(); // Limpiar comentarios extra
             }
 
+            // Parsing de tiempo a horas...
             let hours = 0;
             const d = timeStr.match(/(\d+)d/);
             const h = timeStr.match(/(\d+)h/);
@@ -332,41 +461,6 @@ async function processSlicing(job) {
             const finalH = Math.floor(totalMinutes / 60);
             const finalM = totalMinutes % 60;
             const tiempoAjustadoStr = `${finalH}h ${finalM}m`;
-
-            // 4. SOPORTES (Para Dificultad)
-
-            let pesoSoportes = 0;
-            const supportPatterns = [
-                // Volumen cm3 (Inglés)
-                { regex: /; support material volume: (\d+(\.\d+)?)/i, type: 'vol' },
-                { regex: /; support material: (\d+(\.\d+)?) cm3/i, type: 'vol' },
-                { regex: /; filament used \[cm3\] \(support\) = (\d+(\.\d+)?)/i, type: 'vol' },
-                // Metros (Español/Inglés) - Factor conversión 1.75mm ~ 2.405g/m
-                { regex: /; support material:.* (\d+(\.\d+)?) m/i, type: 'len' },
-                { regex: /; Material de soporte:.* (\d+(\.\d+)?) m/i, type: 'len' }
-            ];
-
-            for (const item of supportPatterns) {
-                const match = gcodeContent.match(item.regex);
-                if (match) {
-                    let val = parseFloat(match[1]);
-                    if (item.type === 'len') {
-                        // Convertir metros a gramos (aprox PLA 1.75mm)
-                        // 1m = 1000mm. Vol = pi * r^2 * h = 3.1416 * 0.875^2 * 1000 = 2405 mm3 = 2.405 cm3
-                        // Peso = 2.405 * 1.24 = 2.98 g/m
-                        val = val * 2.98;
-                    } else {
-                        // Es volumen cm3 -> a gramos
-                        val = val * 1.24;
-                    }
-
-                    if (val > 0) {
-                        pesoSoportes = val;
-                        console.log(`   ✓ Soportes detectados: ${pesoSoportes.toFixed(2)} g`);
-                        break;
-                    }
-                }
-            }
 
             // 5. DIMENSIONES (Bonus)
             let dimensions = null;
@@ -392,7 +486,8 @@ async function processSlicing(job) {
                 tiempoTexto: tiempoAjustadoStr,
                 tiempoHoras: hours,
                 pesoSoportes,
-                porcentajeSoportes, // Añadir para cálculo de dificultad
+                porcentajeSoportes,
+                gcodeUrl: `/uploads/${path.basename(outputGcode)}`,
                 dimensions: null
             };
 
@@ -410,6 +505,20 @@ async function processSlicing(job) {
                 // if (fs.existsSync(outputGcode)) fs.unlinkSync(outputGcode);
                 console.log(`   📁 GCode preservado en: ${outputGcode}`);
             } catch (e) { }
+
+            // VERIFICACIÓN PARANOICA DE G-CODE
+            if (fs.existsSync(outputGcode)) {
+                const gcodeStats = fs.statSync(outputGcode);
+                log('SUCCESS', 'G-Code generado y verificado en disco', { path: outputGcode, size: gcodeStats.size });
+            } else {
+                log('CRITICAL', 'El Slicer reportó éxito pero el archivo G-Code NO existe en disco', { path: outputGcode });
+                // Intento desesperado: buscar si se generó con otro nombre
+                const possibleAlt = inputPath + '.gcode';
+                if (fs.existsSync(possibleAlt)) {
+                    log('WARN', 'Encontrado G-Code con nombre alternativo, corrigiendo...', { alt: possibleAlt });
+                    fs.renameSync(possibleAlt, outputGcode);
+                }
+            }
 
             resolve(result);
         });
@@ -440,18 +549,51 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
     log('INFO', `Archivo recibido: ${req.file.originalname} (${req.file.size} bytes)`);
 
     const originalPath = path.resolve(req.file.path);
-    const inputPath = path.resolve(req.file.path + '.stl');
+    const ext = path.extname(req.file.originalname).toLowerCase();
+
+    log('DEBUG', `Procesando upload: ${req.file.originalname}`, { detectedExt: ext, size: req.file.size });
+
+    let slicingInputPath;
+    let convertedUrl = null;
+    let auxStlPath = null;
 
     try {
-        fs.renameSync(originalPath, inputPath);
-        log('INFO', `Archivo renombrado: ${inputPath}`);
+        if (ext === '.step' || ext === '.stp') {
+            log('INFO', `🔌 Detectado archivo STEP: ${req.file.originalname} -> Iniciando flujos paralelos (Precision + Visor)...`);
+            const stepPath = path.resolve(req.file.path + ext);
+
+            // Renombrar archivo temporal de multer a .step
+            fs.renameSync(originalPath, stepPath);
+
+            // 1. Para Slicing: Usamos el STEP original (Máxima precisión geométrica)
+            slicingInputPath = stepPath;
+
+            // 2. Para Visor: Convertimos a STL (Necesario para Three.js)
+            const stlPath = path.resolve(req.file.path + '.stl');
+            await convertStepToStl(stepPath, stlPath);
+
+            // Guardamos referencia para usar en cálculo de bounds si falla slicing
+            auxStlPath = stlPath;
+
+            // URL para que el frontend descargue el STL convertido
+            convertedUrl = `/uploads/${path.basename(stlPath)}`;
+        } else {
+            log('INFO', `📂 Archivo STL detectado (o desconocido asumiendo STL): ${ext}`);
+            // Flujo normal STL
+            const stlPath = path.resolve(req.file.path + '.stl');
+            fs.renameSync(originalPath, stlPath);
+            slicingInputPath = stlPath;
+            // Para STL, el input es el mismo path
+            auxStlPath = stlPath;
+        }
+        log('INFO', `Archivo listo para slicing: ${slicingInputPath}`);
     } catch (e) {
-        log('ERROR', `Error al renombrar archivo: ${e.message}`, { stack: e.stack });
-        return res.status(500).json({ error: 'Error procesando archivo' });
+        log('ERROR', `Error al procesar/convertir archivo: ${e.message}`, { stack: e.stack });
+        return res.status(500).json({ error: 'Error procesando archivo: ' + e.message });
     }
 
     const configPath = path.resolve(__dirname, 'backend', 'profiles', 'bambu_realistic.ini');
-    const outputGcode = inputPath + '.gcode';
+    const outputGcode = slicingInputPath + '.gcode';
 
     if (!fs.existsSync(configPath)) {
         return res.status(500).json({ error: 'Perfil no encontrado' });
@@ -467,12 +609,13 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
     const rotationZ = parseFloat(req.body.rotationZ || 0);
     const scaleFactor = parseFloat(req.body.scaleFactor || 1.0);
 
-    const fileHash = getFileHash(inputPath);
+    const fileHash = getFileHash(slicingInputPath);
 
     // Añadir a cola
     const jobPromise = new Promise((resolve, reject) => {
         jobQueue.push({
-            inputPath,
+            inputPath: slicingInputPath,
+            auxStlPath: auxStlPath, // Pasamos el path auxiliar para bounds
             configPath,
             outputGcode,
             material,
@@ -492,6 +635,12 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
 
     try {
         const result = await jobPromise;
+
+        // Si hubo conversión, añadir la URL al resultado
+        if (convertedUrl) {
+            result.convertedStlUrl = convertedUrl;
+        }
+
         log('INFO', 'Slicing completado exitosamente');
         res.json(result);
     } catch (error) {
@@ -515,6 +664,7 @@ app.get('/health', (req, res) => {
 
 app.listen(3001, '0.0.0.0', () => {
     console.log('✅ Backend Cotizador corriendo en puerto 3001');
+    console.log('✨ Soporte STEP/STP: HABILITADO');
     console.log(`📊 Configuración: ${MAX_CONCURRENT} procesos concurrentes | Caché: ${MAX_CACHE_SIZE} items`);
     console.log('🌐 Accesible desde red local en: http://<TU-IP>:3001');
 });

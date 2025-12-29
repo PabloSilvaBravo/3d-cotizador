@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MATERIALS, QUALITIES } from '../../utils/constants';
 import { InfillSelector } from './InfillSelector';
@@ -6,24 +6,33 @@ import { QualitySelector } from './QualitySelector';
 import { useAvailableColors } from '../../hooks/useAvailableColors';
 
 export const Configurator = ({ config, geometry, onChange }) => {
+    // Estado hover imagen
+    const [isImageHovered, setIsImageHovered] = useState(false);
+
     // 1. Cargar colores dinámicos
     const { colors: availableColors, loading, error } = useAvailableColors(config.material);
 
     // 2. Efecto para seleccionar el primer color disponible si el actual NO es explícitamente null y no existe
+    // 2. Efecto para seleccionar el primer color disponible si el actual NO es explícitamente null y no existe
+    // Serializamos los IDs para evitar loops infinitos si la referencia del array cambia pero el contenido no
+    const availableColorsIds = JSON.stringify(availableColors.map(c => c.id));
+
     useEffect(() => {
         if (!loading && availableColors.length > 0) {
             const currentColorExists = availableColors.find(c => c.id === config.colorId);
-            // Solo auto-corregir si hay un ID definido pero inválido (ej: cambio de material)
-            // Si es null, respetamos la decisión del usuario de no tener color
+
+            // Auto-corrección solo si es necesario
             if (config.colorId !== null && !currentColorExists) {
+                console.log("Auto-corrigiendo color inválido:", config.colorId, "->", availableColors[0].id);
                 onChange({ colorId: availableColors[0].id, colorData: availableColors[0] });
             }
-            // Opcional: Si es undefined (carga inicial), seleccionar el primero
+            // Auto-selección inicial
             if (config.colorId === undefined) {
                 onChange({ colorId: availableColors[0].id, colorData: availableColors[0] });
             }
         }
-    }, [availableColors, loading, config.colorId, onChange]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [availableColorsIds, loading, config.colorId]);
 
     return (
         <div className="flex flex-col gap-8 animate-fade-in-up">
@@ -52,12 +61,17 @@ export const Configurator = ({ config, geometry, onChange }) => {
 
                     {/* 2. Contenido (Flota sobre el fondo) */}
                     <div className="relative p-4 flex items-center gap-5">
-                        <div className="w-20 h-20 shrink-0 relative perspective-500 z-50">
+                        <div
+                            className="w-20 h-20 shrink-0 relative perspective-500 z-50"
+                            onMouseEnter={() => setIsImageHovered(true)}
+                            onMouseLeave={() => setIsImageHovered(false)}
+                        >
                             <div className="absolute inset-0 bg-white rounded-xl border border-slate-100 shadow-inner"></div>
                             <motion.img
                                 src="/bambulab_printer.webp"
                                 alt="BambuLab H2D"
-                                className="w-full h-full object-contain relative z-50 mix-blend-multiply drop-shadow-sm origin-center"
+                                className="w-full h-full object-contain relative z-50 mix-blend-multiply origin-center"
+                                initial={{ filter: "drop-shadow(0 0 0 rgba(0,0,0,0))" }}
                                 whileHover={{
                                     scale: 3.2,
                                     rotate: -6,
@@ -66,11 +80,18 @@ export const Configurator = ({ config, geometry, onChange }) => {
                                     zIndex: 100,
                                     filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.2))"
                                 }}
-                                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                                transition={{ type: "spring", stiffness: 120, damping: 15, mass: 1 }}
                             />
                         </div>
 
-                        <div className="flex-1 min-w-0 pointer-events-none relative z-0 group-hover:blur-sm group-hover:opacity-80 transition-all duration-300">
+                        <motion.div
+                            className="flex-1 min-w-0 pointer-events-none relative z-0"
+                            animate={{
+                                filter: isImageHovered ? "blur(4px)" : "blur(0px)",
+                                opacity: isImageHovered ? 0.6 : 1
+                            }}
+                            transition={{ duration: 0.5, ease: "easeInOut" }}
+                        >
                             <div className="flex flex-col">
                                 <h4 className="font-black text-brand-dark text-base tracking-tight mb-1 group-hover:text-brand-primary transition-colors">BambuLab H2D <span className="text-brand-primary font-medium opacity-60 text-xs ml-1">Series</span></h4>
                                 <div className="flex flex-wrap gap-2 mb-2">
@@ -83,13 +104,13 @@ export const Configurator = ({ config, geometry, onChange }) => {
                             <p className="text-[10px] text-slate-500 font-medium leading-relaxed group-hover:text-slate-600">
                                 Impresión de alta fidelidad con calibración automática de flujo. Perfecto para <span className="text-brand-secondary font-bold">prototipos y producción final</span>.
                             </p>
-                        </div>
+                        </motion.div>
                     </div>
                 </motion.div>
-            </div>
+            </div >
 
             {/* Material Selection (Pills Style) */}
-            <div className="space-y-3">
+            < div className="space-y-3" >
                 <div className="flex items-center gap-3 mb-3">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">1</div>
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Material</label>
@@ -173,10 +194,10 @@ export const Configurator = ({ config, geometry, onChange }) => {
                         );
                     })}
                 </motion.div>
-            </div>
+            </div >
 
             {/* Color Selection (Visual Circles - Dynamic) */}
-            <div className="space-y-3">
+            < div className="space-y-3" >
                 <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-3">
                         <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">2</div>
@@ -190,117 +211,119 @@ export const Configurator = ({ config, geometry, onChange }) => {
                     )}
                 </div>
 
-                {loading ? (
-                    // Estado de Carga Skeleton
-                    <div className="flex flex-wrap gap-3 animate-pulse">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="w-10 h-10 rounded-full bg-gray-200"></div>
-                        ))}
-                    </div>
-                ) : error ? (
-                    // Estado de Error
-                    <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg border border-red-100">
-                        Error cargando colores. Intenta recargar.
-                    </div>
-                ) : availableColors.length === 0 ? (
-                    // Estado Vacío
-                    <div className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
-                        No hay stock disponible para este material.
-                    </div>
-                ) : (
-                    // Lista de Colores Real - Diseño GRID Mejorado
-                    <div className="grid grid-cols-5 sm:grid-cols-6 gap-4 max-h-[250px] overflow-y-scroll overflow-x-hidden px-2 pt-1 pb-12 custom-scrollbar">
-                        {availableColors.map((col) => {
-                            const isSelected = config.colorId === col.id;
-                            return (
-                                <motion.button
-                                    key={col.id}
-                                    layout
-                                    whileHover={{ scale: 1.25, zIndex: 20 }}
-                                    whileTap={{ scale: 0.85 }}
-                                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                                    onClick={() => {
-                                        if (isSelected) {
-                                            onChange({ colorId: null, colorData: null });
-                                        } else {
-                                            onChange({ colorId: col.id, colorData: col });
-                                        }
-                                    }}
-                                    className="group relative flex items-center justify-center outline-none p-1"
-                                >
-                                    {/* Círculo Principal */}
-                                    <div
-                                        className={`
+                {
+                    loading ? (
+                        // Estado de Carga Skeleton
+                        <div className="flex flex-wrap gap-3 animate-pulse">
+                            {[1, 2, 3, 4, 5, 6].map(i => (
+                                <div key={i} className="w-10 h-10 rounded-full bg-gray-200"></div>
+                            ))}
+                        </div>
+                    ) : error ? (
+                        // Estado de Error
+                        <div className="text-xs text-red-500 bg-red-50 p-3 rounded-lg border border-red-100">
+                            Error cargando colores. Intenta recargar.
+                        </div>
+                    ) : availableColors.length === 0 ? (
+                        // Estado Vacío
+                        <div className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                            No hay stock disponible para este material.
+                        </div>
+                    ) : (
+                        // Lista de Colores Real - Diseño GRID Mejorado
+                        <div className="grid grid-cols-5 sm:grid-cols-6 gap-4 max-h-[250px] overflow-y-scroll overflow-x-hidden px-2 pt-1 pb-12 custom-scrollbar">
+                            {availableColors.map((col) => {
+                                const isSelected = config.colorId === col.id;
+                                return (
+                                    <motion.button
+                                        key={col.id}
+                                        layout
+                                        whileHover={{ scale: 1.25, zIndex: 20 }}
+                                        whileTap={{ scale: 0.85 }}
+                                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                onChange({ colorId: null, colorData: null });
+                                            } else {
+                                                onChange({ colorId: col.id, colorData: col });
+                                            }
+                                        }}
+                                        className="group relative flex items-center justify-center outline-none p-1"
+                                    >
+                                        {/* Círculo Principal */}
+                                        <div
+                                            className={`
                                             w-10 h-10 rounded-full shadow-sm transition-all duration-300 border-2 relative
                                             ${isSelected
-                                                ? 'border-white z-10 shadow-lg'
-                                                : 'border-white/50 ring-1 ring-gray-200'
-                                            }
+                                                    ? 'border-white z-10 shadow-lg'
+                                                    : 'border-white/50 ring-1 ring-gray-200'
+                                                }
                                         `}
-                                        style={{
-                                            backgroundColor: col.hex,
-                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-                                        }}
-                                    >
-                                        {/* Anillo Morado Punteado (Selección) */}
-                                        {isSelected && (
-                                            <motion.div
-                                                layoutId="color-ring"
-                                                className="absolute -inset-[4px] rounded-full z-[-1] border-2 border-dashed border-brand-primary"
-                                                initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
-                                                animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                                                exit={{ opacity: 0, scale: 0.8 }}
-                                                transition={{ duration: 0.3, ease: "backOut" }}
-                                            />
-                                        )}
-                                        {/* Icono Check (Motion) */}
-                                        <AnimatePresence>
+                                            style={{
+                                                backgroundColor: col.hex,
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+                                            }}
+                                        >
+                                            {/* Anillo Morado Punteado (Selección) */}
                                             {isSelected && (
-                                                <motion.span
-                                                    initial={{ scale: 0, rotate: -180, opacity: 0 }}
-                                                    animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                                                    exit={{ scale: 0, opacity: 0, transition: { duration: 0.1 } }}
-                                                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                                                    className={`
+                                                <motion.div
+                                                    layoutId="color-ring"
+                                                    className="absolute -inset-[4px] rounded-full z-[-1] border-2 border-dashed border-brand-primary"
+                                                    initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
+                                                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.8 }}
+                                                    transition={{ duration: 0.3, ease: "backOut" }}
+                                                />
+                                            )}
+                                            {/* Icono Check (Motion) */}
+                                            <AnimatePresence>
+                                                {isSelected && (
+                                                    <motion.span
+                                                        initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                                                        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                                                        exit={{ scale: 0, opacity: 0, transition: { duration: 0.1 } }}
+                                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                                        className={`
                                                         absolute inset-0 flex items-center justify-center
                                                     `}
-                                                >
-                                                    <svg className={`w-6 h-6 drop-shadow-sm ${['#ffffff', '#fff13f', '#eac642', '#f4f9ff'].includes(col.hex) ? 'text-brand-primary' : 'text-[#e9d5ff]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                </motion.span>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                                                    >
+                                                        <svg className={`w-6 h-6 drop-shadow-sm ${['#ffffff', '#fff13f', '#eac642', '#f4f9ff'].includes(col.hex) ? 'text-brand-primary' : 'text-[#e9d5ff]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
 
-                                    {/* Tooltip Flotante */}
-                                    <div className={`
+                                        {/* Tooltip Flotante */}
+                                        <div className={`
                                         absolute left-1/2 -translate-x-1/2 px-1.5 py-0.5
                                         bg-brand-secondary text-white text-[10px] font-bold rounded text-center
                                         opacity-0 group-hover:opacity-100 transition-all duration-200 
                                         pointer-events-none whitespace-nowrap z-50 shadow-sm
                                         top-full mt-1.5 translate-y-[-2px] group-hover:translate-y-0
                                     `}>
-                                        {col.name}
-                                        <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-brand-secondary rotate-45 -top-1"></div>
-                                    </div>
+                                            {col.name}
+                                            <div className="absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-brand-secondary rotate-45 -top-1"></div>
+                                        </div>
 
-                                    {/* Badge Stock Crítico */}
-                                    {col.stock < 5 && (
-                                        <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5 translate-x-1 translate-y-1 z-30 pointer-events-none">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
-                                        </span>
-                                    )}
-                                </motion.button>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+                                        {/* Badge Stock Crítico */}
+                                        {col.stock < 5 && (
+                                            <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5 translate-x-1 translate-y-1 z-30 pointer-events-none">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
+                                            </span>
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    )
+                }
+            </div >
 
             {/* Quality Selector - NEW */}
-            <div className="space-y-3">
+            < div className="space-y-3" >
                 <div className="flex items-center gap-3 mb-3">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">3</div>
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Calidad</label>
@@ -309,10 +332,10 @@ export const Configurator = ({ config, geometry, onChange }) => {
                     value={config.qualityId}
                     onChange={onChange}
                 />
-            </div>
+            </div >
 
             {/* Infill Selector - NEW */}
-            <div className="space-y-3">
+            < div className="space-y-3" >
                 <div className="flex items-center gap-3 mb-3">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">4</div>
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Relleno</label>
@@ -321,10 +344,10 @@ export const Configurator = ({ config, geometry, onChange }) => {
                     value={config.infill}
                     onChange={(newInfill) => onChange({ infill: newInfill })}
                 />
-            </div>
+            </div >
 
             {/* Quantity */}
-            <div className="flex items-center justify-between pt-4 border-t border-dashed border-brand-light/60">
+            < div className="flex items-center justify-between pt-4 border-t border-dashed border-brand-light/60" >
                 <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-accent/10 text-brand-accent text-xs font-bold ring-1 ring-brand-accent/20">#</div>
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Copias</label>
@@ -342,9 +365,9 @@ export const Configurator = ({ config, geometry, onChange }) => {
                         onClick={() => onChange({ quantity: config.quantity + 1 })}
                     >+</motion.button>
                 </div>
-            </div>
+            </div >
 
-        </div>
+        </div >
     );
 };
 

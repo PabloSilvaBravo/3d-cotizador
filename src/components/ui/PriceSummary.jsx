@@ -139,6 +139,38 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                                         : '—'}
                                 </span>
                             </div>
+
+                            <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                <span className="text-slate-500 font-medium">¿Soportes?</span>
+                                <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider ${estimate.pesoSoportes > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    {estimate.pesoSoportes > 0 ? 'SÍ' : 'NO'}
+                                </span>
+                            </div>
+
+                            <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                <span className="text-slate-500 font-medium">Peso Soportes</span>
+                                <span className="font-mono font-bold text-slate-700">
+                                    {estimate.pesoSoportes > 0 ? `${estimate.pesoSoportes.toFixed(1)} g` : '0 g'}
+                                </span>
+                            </div>
+
+                            {estimate.gcodeUrl && (
+                                <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
+                                    <span className="text-slate-500 font-medium">Archivo G-Code</span>
+                                    <a
+                                        href={`http://${window.location.hostname}:3001${estimate.gcodeUrl}`}
+                                        download
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="font-bold px-3 py-1.5 rounded-md text-[10px] tracking-wider uppercase border bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 cursor-pointer no-underline"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        Descargar
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

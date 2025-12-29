@@ -22,6 +22,8 @@ const App = () => {
   const [localGeometry, setLocalGeometry] = useState(null);
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Estado para indicar conversión de formato (STEP -> STL)
+  const [isConverting, setIsConverting] = useState(false);
 
   // Estado para orientación y escala óptimas
   const [optimalRotation, setOptimalRotation] = useState([0, 0, 0]);
@@ -31,16 +33,47 @@ const App = () => {
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
   const handleFileSelect = (selectedFile) => {
-    const url = URL.createObjectURL(selectedFile);
+    const ext = selectedFile.name.split('.').pop().toLowerCase();
+
+    // Resetear estados
+    setIsConverting(false);
     setFile(selectedFile);
-    setFileUrl(url);
     setLocalGeometry(null);
     resetQuote();
 
+    if (ext === 'stl') {
+      const url = URL.createObjectURL(selectedFile);
+      setFileUrl(url);
+    } else {
+      // Si es STEP, esperamos a que el backend devuelva el STL convertido
+      console.log("Archivo STEP detectado. Esperando conversión del servidor...");
+      setIsConverting(true);
+      setFileUrl(null);
+    }
 
     getQuote(selectedFile, config.material, config.qualityId, config.infill, [0, 0, 0], 1.0)
-      .catch(err => console.error('Error al obtener cotizacion inicial:', err));
+      .catch(err => {
+        console.error('Error al obtener cotizacion inicial:', err);
+        setIsConverting(false);
+      });
   };
+
+  // Efecto: Si el backend devuelve una URL de STL convertido, usarla solo si cambia
+  useEffect(() => {
+    if (quoteData) {
+      setIsConverting(false);
+      if (quoteData.convertedStlUrl) {
+        const backendHost = window.location.hostname;
+        const fullUrl = `http://${backendHost}:3001${quoteData.convertedStlUrl}`;
+
+        // Evitar loop infinito
+        if (fileUrl !== fullUrl) {
+          console.log('🔄 Modelo convertido recibido (actualizando visor):', fullUrl);
+          setFileUrl(fullUrl);
+        }
+      }
+    }
+  }, [quoteData, fileUrl]);
 
   const handleGeometryLoaded = (geometry) => {
     // Viewer3D ahora pasa geometry directamente (version original)
@@ -278,7 +311,9 @@ const App = () => {
               className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center text-brand-secondary"
             >
               <CubeLoader />
-              <p className="font-bold text-lg mt-8 tracking-tight text-brand-primary animate-pulse">Optimizando Modelo...</p>
+              <p className="font-bold text-lg mt-8 tracking-tight text-brand-primary animate-pulse">
+                {isConverting ? 'Convirtiendo formato STEP ➔ STL...' : 'Optimizando Modelo...'}
+              </p>
             </motion.div>
           )}
         </div>
@@ -316,6 +351,45 @@ const App = () => {
               <div>
                 <strong className="block text-red-900">Ups, hubo un problema:</strong>
                 {error}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Alerta de Modelo Oversized */}
+          {quoteData?.oversized && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-900 shadow-sm"
+            >
+              <div className="flex gap-3">
+                <div className="p-2 bg-amber-100 rounded-full h-fit text-amber-600">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <strong className="block text-amber-800 mb-1 text-base">Modelo fuera de límites</strong>
+                  <p className="mb-2 text-amber-700/80">El modelo excede el volumen de impresión disponible.</p>
+
+                  <div className="bg-white/60 rounded-lg p-2.5 mb-2 text-xs grid grid-cols-2 gap-x-4 gap-y-1 border border-amber-200/50">
+                    <span className="text-amber-800/60 font-medium">Tu Modelo:</span>
+                    <span className="font-mono font-bold text-red-600 text-right">
+                      {localGeometry
+                        ? `${localGeometry.dimensions.x.toFixed(0)} × ${localGeometry.dimensions.y.toFixed(0)} × ${localGeometry.dimensions.z.toFixed(0)} mm`
+                        : quoteData?.dimensions
+                          ? `${quoteData.dimensions.x.toFixed(0)} × ${quoteData.dimensions.y.toFixed(0)} × ${quoteData.dimensions.z.toFixed(0)} mm`
+                          : 'Calculando...'}
+                    </span>
+
+                    <span className="text-amber-800/60 font-medium">Máximo:</span>
+                    <span className="font-mono font-bold text-emerald-600 text-right">325 × 320 × 325 mm</span>
+                  </div>
+
+                  <p className="text-xs font-bold text-amber-800">
+                    📉 Por favor reduce la escala abajo para continuar.
+                  </p>
+                </div>
               </div>
             </motion.div>
           )}

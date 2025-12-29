@@ -6,6 +6,7 @@ export const useBackendQuote = () => {
     const [quoteData, setQuoteData] = useState(null);
     const debounceTimerRef = useRef(null);
     const abortControllerRef = useRef(null);
+    const lastRequestHash = useRef('');
 
     const getQuote = useCallback(async (file, materialId, qualityId, infill, rotation = [0, 0, 0], scale = 1.0) => {
         // Cancelar timer anterior
@@ -24,7 +25,20 @@ export const useBackendQuote = () => {
         // Debouncing: esperar 500ms después del último cambio
         return new Promise((resolve, reject) => {
             debounceTimerRef.current = setTimeout(async () => {
+
+                // Generar hash único de la petición
+                const currentHash = `${file.name}_${file.size}_${materialId}_${qualityId}_${infill}_${rotation.join(',')}_${scale}`;
+
+                // Evitar repetir exactamente la misma petición si ya tenemos datos
+                if (lastRequestHash.current === currentHash && quoteData) {
+                    console.log("⚡ [Circuit Breaker] Petición idéntica detectada. Usando caché local.");
+                    setIsLoading(false);
+                    resolve(quoteData);
+                    return;
+                }
+
                 setQuoteData(null);
+                lastRequestHash.current = currentHash;
 
                 const formData = new FormData();
                 formData.append('file', file);
@@ -50,6 +64,7 @@ export const useBackendQuote = () => {
                     });
 
                     if (!response.ok) {
+                        lastRequestHash.current = ''; // Reset hash on error para permitir reintento
                         let errorMessage = 'Error al conectar con el servidor de cotización';
                         try {
                             const errorData = await response.json();
@@ -57,11 +72,13 @@ export const useBackendQuote = () => {
 
                             // === DETECCIÓN MODELOS GIGANTES ===
                             // Si el error es por tamaño, no fallamos, retornamos flag para estimación manual
+                            // Ahora el backend devuelve status 200 con { oversized: true }, pero si devolviera error:
                             if (errorMessage.includes('demasiado grande') || errorMessage.includes('print volume')) {
                                 console.warn("Modelo demasiado grande para Slicer. Usando estimación geométrica.");
-                                setQuoteData({ oversized: true });
+                                const fallbackData = { oversized: true };
+                                setQuoteData(fallbackData);
                                 setIsLoading(false);
-                                resolve({ oversized: true });
+                                resolve(fallbackData);
                                 return;
                             }
 
@@ -99,13 +116,14 @@ export const useBackendQuote = () => {
                         return;
                     }
                     console.error(err);
+                    lastRequestHash.current = ''; // Reset hash on error
                     setError(err.message || 'Error desconocido');
                     setIsLoading(false);
                     reject(err);
                 }
             }, 500); // 500ms debounce
         });
-    }, []);
+    }, [quoteData]); // Añadir quoteData a dependencias para poder retornarlo en cache hit
 
     const resetQuote = () => {
         setQuoteData(null);

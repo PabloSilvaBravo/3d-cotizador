@@ -32,14 +32,14 @@ export const FileUpload = ({ onFileSelect }) => {
 
     const validateAndUpload = (file) => {
         const extension = file.name.split('.').pop()?.toLowerCase();
-        if (extension === 'stl') {
-            if (file.size > 50 * 1024 * 1024) {
-                alert("El archivo es muy grande. Máximo 50MB.");
+        if (['stl', 'step', 'stp'].includes(extension)) {
+            if (file.size > 100 * 1024 * 1024) {
+                alert("El archivo es muy grande. Máximo 100MB.");
                 return;
             }
             onFileSelect(file);
         } else {
-            alert("Solo se soportan archivos .STL actualmente.");
+            alert("Solo se soportan archivos .STL y .STEP actualmente.");
         }
     };
 
@@ -65,7 +65,7 @@ export const FileUpload = ({ onFileSelect }) => {
         >
             <input
                 type="file"
-                accept=".stl"
+                accept=".stl, .step, .stp"
                 className="hidden"
                 ref={inputRef}
                 onChange={handleChange}
@@ -86,12 +86,12 @@ export const FileUpload = ({ onFileSelect }) => {
                 </motion.div>
 
                 <div className="space-y-2">
-                    <h3 className="text-2xl font-bold text-slate-700">Arrastra tu archivo STL aquí</h3>
+                    <h3 className="text-2xl font-bold text-slate-700">Arrastra tu archivo STL o STEP aquí</h3>
                     <p className="text-slate-500 font-medium">o haz clic para buscar en tu equipo</p>
                 </div>
 
                 <div className="text-xs text-slate-400 font-medium bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                    Máx. 50MB • Formato .STL
+                    Máx. 100MB • Formatos .STL, .STEP
                 </div>
             </div>
         </motion.div>
