@@ -214,14 +214,52 @@ async function processSlicing(job) {
         const cacheKey = `${fileHash}-${material}-${qualityId}-${infill}-${rotationX}-${rotationY}-${rotationZ}-${scaleFactor}`;
         if (cache.has(cacheKey)) return resolve(cache.get(cacheKey));
 
-        // Convertir radianes a grados para PrusaSlicer
-        const rotZDegrees = (rotationZ || 0) * (180 / Math.PI);
+        // 1. GESTIÓN DE ROTACIÓN
+        // PrusaSlicer CLI maneja bien Z, pero X/Y requieren pre-procesamiento o comandos complejos.
+        // Usamos nuestra utilidad stlRotator para rotaciones complejas.
+        let finalInputPath = inputPath;
+        let tempFiles = [];
+        let cliRotationZ = 0;
+
+        if (Math.abs(rotationX) > 0.001 || Math.abs(rotationY) > 0.001) {
+            try {
+                const rotatedPath = inputPath + `.rot_${Date.now()}.stl`;
+                log('INFO', 'Aplicando rotación 3D (X/Y detectados)', { x: rotationX, y: rotationY, z: rotationZ });
+                
+                await rotateSTL(inputPath, rotatedPath, rotationX, rotationY, rotationZ);
+                
+                finalInputPath = rotatedPath;
+                tempFiles.push(rotatedPath);
+                cliRotationZ = 0; // Rotación aplicada geométricamente
+            } catch (err) {
+                log('ERROR', 'Fallo al rotar STL', err);
+                return reject(new Error('Error rotando STL: ' + err.message));
+            }
+        } else {
+            // Solo Z -> Dejamos que PrusaSlicer lo haga (es más rápido)
+            cliRotationZ = (rotationZ || 0) * (180 / Math.PI);
+        }
+
         const scale = (scaleFactor || 1.0) * 100; // PrusaSlicer usa porcentaje
 
         // Determinar altura de capa según calidad
         let layerHeight = 0.2;
         if (qualityId === 'draft') layerHeight = 0.28;
         if (qualityId === 'high') layerHeight = 0.16;
+
+        // Configuración de Material
+        let nozzleTemp = 220;
+        let bedTemp = 60;
+        let extraParams = [];
+
+        if (material === 'PETG') {
+            nozzleTemp = 240;
+            bedTemp = 70;
+        } else if (material === 'TPU') {
+            nozzleTemp = 230;
+            // TPU: Reducir velocidad máxima
+            extraParams.push('--max-print-speed', '30'); 
+        }
 
         // Construir comando PrusaSlicer
         const commandParams = [
@@ -231,7 +269,7 @@ async function processSlicing(job) {
             `--load "${configPath}"`,
             `--output "${outputGcode}"`,
             `--scale ${scale}%`,
-            (Math.abs(rotZDegrees) > 0.1 ? `--rotate ${rotZDegrees.toFixed(2)}` : ''), // Rotación Z
+            (Math.abs(cliRotationZ) > 0.1 ? `--rotate ${cliRotationZ.toFixed(2)}` : ''), 
 
             // Configuración Base
             `--layer-height ${layerHeight}`,
@@ -246,31 +284,31 @@ async function processSlicing(job) {
             `--first-layer-speed 50`,
             `--support-material`,
             `--support-material-threshold 30`,
-            `--temperature 220`,
-            `--bed-temperature 60`,
+            `--temperature ${nozzleTemp}`,
+            `--bed-temperature ${bedTemp}`,
             `--filament-diameter 1.75`,
             `--nozzle-diameter 0.4`,
             `--retract-length 0.8`,
-            `--gcode-comments`,
+            `--gcode-comments`,  // Flag booleano estándar
+
+             ...extraParams,
 
             // Input File (siempre al final por seguridad CLI)
-            `"${inputPath}"`
+            `"${finalInputPath}"`
         ];
 
-        // Material overrides (Insertar antes del input file)
-        const insertIdx = commandParams.length - 1;
-        if (material === 'PETG') {
-            commandParams.splice(insertIdx, 0, `--print-settings "nozzle_temperature=240"`, `--print-settings "bed_temperature=70"`);
-        } else if (material === 'TPU') {
-            commandParams.splice(insertIdx, 0, `--print-settings "nozzle_temperature=230"`, `--print-settings "max_print_speed=30"`);
-        }
-
         const command = `${SLICER_COMMAND} ${commandParams.filter(Boolean).join(' ')}`;
-        const startTime = Date.now();
-
+        
         // Asignar childProcess para timeout
         const childProcess = exec(command, { timeout: PROCESS_TIMEOUT, windowsHide: true }, async (error, stdout, stderr) => {
+            // Helper para limpieza
+            const cleanup = () => {
+                try { if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath); } catch (e) { }
+                tempFiles.forEach(f => { try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch (e) {} });
+            };
+
             if (error) {
+                cleanup();
                 if (stderr && (stderr.includes('outside') || stderr.includes('fits'))) {
                     return resolve({ oversized: true, volumen: 0, peso: 0, tiempoTexto: '—', porcentajeSoportes: 0 });
                 }
@@ -279,9 +317,13 @@ async function processSlicing(job) {
 
             let gcodeContent = "";
             try {
-                if (!fs.existsSync(outputGcode)) return reject(new Error(`GCode no generado`));
+                if (!fs.existsSync(outputGcode)) {
+                    cleanup();
+                    return reject(new Error(`GCode no generado`));
+                }
                 gcodeContent = fs.readFileSync(outputGcode, 'utf8');
             } catch (err) {
+                cleanup();
                 return reject(new Error(`Error leyendo GCode: ${err.message}`));
             }
 
@@ -326,17 +368,67 @@ async function processSlicing(job) {
                 console.log(`   ⚠ Peso calculado desde volumen: ${pesoTotal.toFixed(2)} g (Densidad ${density})`);
             }
 
-            // Soportes (Versión Simplificada)
+            // =========================================================
+            // CÁLCULO PROPORCIONAL DE SOPORTES (MÉTODO OPTIMIZADO)
+            // =========================================================
+
             let pesoSoportes = 0;
-            // Intentar recuperar peso de soportes si está explícito en gramos
-            const matchSupportG = gcodeContent.match(/; feature support material used \[g\] = (\d+(\.\d+)?)/);
-            if (matchSupportG) {
-                pesoSoportes = parseFloat(matchSupportG[1]);
+
+            // 1. Obtener longitud total de filamento (dato duro de Prusa)
+            let totalFilamentMm = 0;
+            const matchTotalMm = gcodeContent.match(/; filament used \[mm\] = (\d+(\.\d+)?)/);
+            if (matchTotalMm) {
+                totalFilamentMm = parseFloat(matchTotalMm[1]);
+                console.log(`   📏 Total Filamento detectado: ${totalFilamentMm.toFixed(1)} mm`);
             } else {
-                // Intento de fallback a volumen de soportes si existe (para no devolver siempre 0)
-                const matchSupportVol = gcodeContent.match(/; support material volume: (\d+(\.\d+)?) cm3/i);
-                if (matchSupportVol) {
-                    pesoSoportes = parseFloat(matchSupportVol[1]) * 1.24;
+                console.log(`   ⚠️ No se detectó "filament used [mm]" en el G-code`);
+            }
+
+            // 2. Sumar longitud de filamento dedicado a soportes
+            // PrusaSlicer reporta features individuales en el formato:
+            // "; support material = XXX.XX mm" o "; support material interface = XXX.XX mm"
+            let supportFilamentMm = 0;
+
+            // Regex flexible que captura:
+            // - "support material = XXX mm"
+            // - "support material interface = XXX mm"
+            // - "support material: XXX mm" (variante con dos puntos)
+            const regexSupport = /;\s*support material(?: interface)?.*?[:=]\s*(\d+(\.\d+)?)\s*mm/gi;
+            let matchSupport;
+            let supportMatchCount = 0;
+
+            while ((matchSupport = regexSupport.exec(gcodeContent)) !== null) {
+                const mmValue = parseFloat(matchSupport[1]);
+                if (!isNaN(mmValue)) {
+                    supportFilamentMm += mmValue;
+                    supportMatchCount++;
+                }
+            }
+
+            console.log(`   🔍 Líneas de soporte detectadas: ${supportMatchCount}, Total: ${supportFilamentMm.toFixed(1)} mm`);
+
+            // 3. Aplicar Método Proporcional
+            if (pesoTotal > 0 && totalFilamentMm > 0 && supportFilamentMm > 0) {
+                // Fórmula: PesoSoportes = PesoTotal × (LongitudSoportes / LongitudTotal)
+                const ratio = supportFilamentMm / totalFilamentMm;
+                pesoSoportes = pesoTotal * ratio;
+
+                console.log(`   📐 Método Proporcional:`);
+                console.log(`      Total Filamento: ${totalFilamentMm.toFixed(1)} mm`);
+                console.log(`      Soporte Filamento: ${supportFilamentMm.toFixed(1)} mm`);
+                console.log(`      Ratio: ${(ratio * 100).toFixed(1)}%`);
+                console.log(`      ✓ Peso Soportes: ${pesoSoportes.toFixed(2)}g (${(ratio * 100).toFixed(1)}% del total)`);
+            } else if (supportFilamentMm === 0) {
+                // No hay soportes en este modelo
+                console.log(`   ✓ Modelo sin soportes`);
+            } else {
+                // Fallback: Si no tenemos datos de longitud, intentar volumen
+                const matchSupportVol = gcodeContent.match(/; support material(?: volume)?.*?[:=]\s*(\d+(\.\d+)?)\s*cm3/i);
+                if (matchSupportVol && volumen > 0) {
+                    const supportVol = parseFloat(matchSupportVol[1]);
+                    const volRatio = supportVol / volumen;
+                    pesoSoportes = pesoTotal * volRatio;
+                    console.log(`   ⚠️ Fallback (Volumen): Soportes ${pesoSoportes.toFixed(2)}g`);
                 }
             }
 
@@ -383,7 +475,8 @@ async function processSlicing(job) {
 
             if (cache.size >= MAX_CACHE_SIZE) cache.delete(cache.keys().next().value);
             cache.set(cacheKey, result);
-            try { if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath); } catch (e) { }
+            
+            cleanup();
 
             resolve(result);
         });
