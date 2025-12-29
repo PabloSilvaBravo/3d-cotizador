@@ -1,0 +1,101 @@
+// REEMPLAZO PARA server.js - LÍNEAS 371-434
+// Copiar y pegar este bloque completo reemplazando el bloque actual de "CÁLCULO PROPORCIONAL DE SOPORTES"
+
+            // =========================================================
+            // CÁLCULO REAL DE SOPORTES (PARSER DE G-CODE COMPLETO)
+            // =========================================================
+            
+            let pesoSoportes = 0;
+            
+            // 1. Obtener longitud total de filamento (dato confiable del resumen)
+            let totalFilamentMm = 0;
+            const matchTotalMm = gcodeContent.match(/; filament used \[mm\] = (\d+(\.\d+)?)/);
+            if (matchTotalMm) {
+                totalFilamentMm = parseFloat(matchTotalMm[1]);
+                console.log(`   📏 Total Filamento detectado: ${totalFilamentMm.toFixed(1)} mm`);
+            } else {
+                console.log(`   ⚠️ No se detectó "filament used [mm]" en el G-code`);
+            }
+            
+            // 2. Analizar G-code línea por línea para detectar secciones de soporte
+            // PrusaSlicer marca secciones con: ";TYPE:Support material" o ";TYPE:Support material interface"
+            let supportExtrusionMm = 0;
+            let currentMode = null;
+            let lastE = 0; // Último valor E absoluto
+            let isRelativeE = false; // Si usa modo relativo (M83)
+            
+            const lines = gcodeContent.split('\n');
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                
+                // Detectar cambio de modo
+                if (trimmed.startsWith(';TYPE:')) {
+                    currentMode = trimmed.substring(6).toLowerCase();
+                    continue;
+                }
+                
+                // Detectar modo de extrusión
+                if (trimmed === 'M82') {
+                    isRelativeE = false; // Modo absoluto
+                    continue;
+                } else if (trimmed === 'M83') {
+                    isRelativeE = true; // Modo relativo
+                    continue;
+                }
+                
+                // Si estamos en modo soporte, sumar extrusión
+                if (currentMode && currentMode.includes('support')) {
+                    // Buscar comandos G1 con extrusión (E)
+                    const matchE = trimmed.match(/G1\s.*E([\d.-]+)/i);
+                    if (matchE) {
+                        const eValue = parseFloat(matchE[1]);
+                        
+                        if (isRelativeE) {
+                            // Modo relativo: E es la cantidad extruida en este movimiento
+                            if (eValue > 0) { // Solo sumas positivas (no retracciones)
+                                supportExtrusionMm += eValue;
+                            }
+                        } else {
+                            // Modo absoluto: E es posición acumulada
+                            if (eValue > lastE) {
+                                supportExtrusionMm += (eValue - lastE);
+                            }
+                            lastE = eValue;
+                        }
+                    }
+                } else if (!currentMode || !currentMode.includes('support')) {
+                    // Si no estamos en soporte, actualizar lastE para modo absoluto
+                    const matchE = trimmed.match(/G1\s.*E([\d.-]+)/i);
+                    if (matchE && !isRelativeE) {
+                        lastE = parseFloat(matchE[1]);
+                    }
+                }
+            }
+            
+            console.log(`   🔍 Extrusión de soporte detectada: ${supportExtrusionMm.toFixed(1)} mm (de G-code real)`);
+            
+            // 3. Aplicar Método Proporcional con el dato real
+            if (pesoTotal > 0 && totalFilamentMm > 0 && supportExtrusionMm > 0) {
+                // Fórmula: PesoSoportes = PesoTotal × (ExtrusionSoporte / TotalFilamento)
+                const ratio = supportExtrusionMm / totalFilamentMm;
+                pesoSoportes = pesoTotal * ratio;
+                
+                console.log(`   📐 Método Proporcional (Real):`);
+                console.log(`      Total Filamento: ${totalFilamentMm.toFixed(1)} mm`);
+                console.log(`      Soporte Real: ${supportExtrusionMm.toFixed(1)} mm`);
+                console.log(`      Ratio: ${(ratio * 100).toFixed(1)}%`);
+                console.log(`      ✓ Peso Soportes: ${pesoSoportes.toFixed(2)}g (${(ratio * 100).toFixed(1)}% del total)`);
+            } else if (supportExtrusionMm === 0) {
+                // No hay soportes en este modelo
+                console.log(`   ✓ Modelo sin soportes (confirmado por análisis G-code)`);
+            } else {
+                // Fallback: Si no tenemos datos de longitud total, intentar volumen
+                const matchSupportVol = gcodeContent.match(/; support material(?: volume)?.*?[:=]\s*(\d+(\.\d+)?)\s*cm3/i);
+                if (matchSupportVol && volumen > 0) {
+                    const supportVol = parseFloat(matchSupportVol[1]);
+                    const volRatio = supportVol / volumen;
+                    pesoSoportes = pesoTotal * volRatio;
+                    console.log(`   ⚠️ Fallback (Volumen): Soportes ${pesoSoportes.toFixed(2)}g`);
+                }
+            }

@@ -13,6 +13,7 @@ import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
+import FileAvailabilitySelector from './components/FileAvailabilitySelector';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -24,6 +25,8 @@ const App = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   // Estado para indicar conversión de formato (STEP -> STL)
   const [isConverting, setIsConverting] = useState(false);
+  // Estado para la selección inicial (null = no ha elegido, true = tiene archivo, false = necesita ayuda)
+  const [userHasFile, setUserHasFile] = useState(null);
 
   // Estado para orientación y escala óptimas
   const [optimalRotation, setOptimalRotation] = useState([0, 0, 0]);
@@ -240,7 +243,7 @@ const App = () => {
 
 
 
-  // --- LANDING VIEW (UPLOAD SIMPLE) ---
+  // --- LANDING VIEW (SELECTOR INICIAL O UPLOAD) ---
   if (!file) {
     return (
       <div className="min-h-screen flex flex-col bg-brand-light font-sans text-brand-dark overflow-hidden relative">
@@ -251,9 +254,62 @@ const App = () => {
           <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
           <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up py-20">
-            <div className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10">
-              <FileUpload onFileSelect={handleFileSelect} />
-            </div>
+            <AnimatePresence mode="wait">
+              {userHasFile === null && (
+                <motion.div
+                  key="selector"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.4 }}
+                  className="w-full"
+                >
+                  <FileAvailabilitySelector
+                    onHasFile={() => setUserHasFile(true)}
+                    onNeedsHelp={() => setUserHasFile(false)}
+                  />
+                </motion.div>
+              )}
+
+              {userHasFile === true && (
+                <motion.div
+                  key="upload"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10"
+                >
+                  <FileUpload onFileSelect={handleFileSelect} />
+                </motion.div>
+              )}
+
+              {userHasFile === false && (
+                <motion.div
+                  key="tutorial"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-12 rounded-[2rem] shadow-2xl border border-white mt-10"
+                >
+                  <div className="text-center">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                      Tutorial de Obtención de Archivos 3D
+                    </h2>
+                    <p className="text-gray-600 mb-8">
+                      Próximamente: Guía completa de cómo obtener archivos STL/STEP
+                    </p>
+                    <button
+                      onClick={() => setUserHasFile(null)}
+                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:shadow-lg transition-all"
+                    >
+                      ← Volver
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </main>
         </div>
 

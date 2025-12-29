@@ -225,9 +225,9 @@ async function processSlicing(job) {
             try {
                 const rotatedPath = inputPath + `.rot_${Date.now()}.stl`;
                 log('INFO', 'Aplicando rotación 3D (X/Y detectados)', { x: rotationX, y: rotationY, z: rotationZ });
-                
+
                 await rotateSTL(inputPath, rotatedPath, rotationX, rotationY, rotationZ);
-                
+
                 finalInputPath = rotatedPath;
                 tempFiles.push(rotatedPath);
                 cliRotationZ = 0; // Rotación aplicada geométricamente
@@ -258,7 +258,7 @@ async function processSlicing(job) {
         } else if (material === 'TPU') {
             nozzleTemp = 230;
             // TPU: Reducir velocidad máxima
-            extraParams.push('--max-print-speed', '30'); 
+            extraParams.push('--max-print-speed', '30');
         }
 
         // Construir comando PrusaSlicer
@@ -269,7 +269,7 @@ async function processSlicing(job) {
             `--load "${configPath}"`,
             `--output "${outputGcode}"`,
             `--scale ${scale}%`,
-            (Math.abs(cliRotationZ) > 0.1 ? `--rotate ${cliRotationZ.toFixed(2)}` : ''), 
+            (Math.abs(cliRotationZ) > 0.1 ? `--rotate ${cliRotationZ.toFixed(2)}` : ''),
 
             // Configuración Base
             `--layer-height ${layerHeight}`,
@@ -291,20 +291,20 @@ async function processSlicing(job) {
             `--retract-length 0.8`,
             `--gcode-comments`,  // Flag booleano estándar
 
-             ...extraParams,
+            ...extraParams,
 
             // Input File (siempre al final por seguridad CLI)
             `"${finalInputPath}"`
         ];
 
         const command = `${SLICER_COMMAND} ${commandParams.filter(Boolean).join(' ')}`;
-        
+
         // Asignar childProcess para timeout
         const childProcess = exec(command, { timeout: PROCESS_TIMEOUT, windowsHide: true }, async (error, stdout, stderr) => {
             // Helper para limpieza
             const cleanup = () => {
                 try { if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath); } catch (e) { }
-                tempFiles.forEach(f => { try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch (e) {} });
+                tempFiles.forEach(f => { try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch (e) { } });
             };
 
             if (error) {
@@ -460,22 +460,19 @@ async function processSlicing(job) {
             if (bBox) dimensions = { x: parseFloat(bBox[1]), y: parseFloat(bBox[2]), z: parseFloat(bBox[3]) };
 
             // RESULTADO FINAL
-            const porcentajeSoportes = pesoTotal > 0 ? (pesoSoportes / pesoTotal) * 100 : 0;
-
             const result = {
                 volumen,
                 peso: parseFloat(pesoTotal.toFixed(2)),
                 tiempoTexto,
                 tiempoHoras: hours,
-                pesoSoportes: parseFloat(pesoSoportes.toFixed(2)),
-                porcentajeSoportes: parseFloat(porcentajeSoportes.toFixed(1)),
+                tieneSoportes,
                 gcodeUrl: `/uploads/${path.basename(outputGcode)}`,
                 dimensions
             };
 
             if (cache.size >= MAX_CACHE_SIZE) cache.delete(cache.keys().next().value);
             cache.set(cacheKey, result);
-            
+
             cleanup();
 
             resolve(result);
