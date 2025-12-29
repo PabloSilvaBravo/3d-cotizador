@@ -205,29 +205,18 @@ async function processQueue() {
     }
 }
 
-// === FUNCIÓN DE SLICING ===
-// === FUNCIÓN DE SLICING ===
+// === FUNCIÓN DE SLICING (LÓGICA CLÁSICA RESTAURADA) ===
 async function processSlicing(job) {
     return new Promise(async (resolve, reject) => {
         let { inputPath, configPath, outputGcode, material, qualityId, infill, fileHash, rotationX, rotationY, rotationZ, scaleFactor } = job;
 
         // Verificar caché (incluir rotación y escala en clave)
         const cacheKey = `${fileHash}-${material}-${qualityId}-${infill}-${rotationX}-${rotationY}-${rotationZ}-${scaleFactor}`;
-        if (cache.has(cacheKey)) {
-            console.log('✅ Desde caché (instantáneo)');
-            return resolve(cache.get(cacheKey));
-        }
+        if (cache.has(cacheKey)) return resolve(cache.get(cacheKey));
 
         // Convertir radianes a grados para PrusaSlicer
-        const rotX = (rotationX || 0); // Radianes para nuestra utilidad
-        const rotY = (rotationY || 0);
-        // PrusaSlicer solo recibirá rotación Z vía CLI si lo deseamos, o podemos rotar todo nosotros.
-        // ESTRATEGIA: Rotar X e Y nosotros en binario. Z se lo dejamos a PrusaSlicer (es más barato, solo gira en cama).
         const rotZDegrees = (rotationZ || 0) * (180 / Math.PI);
         const scale = (scaleFactor || 1.0) * 100; // PrusaSlicer usa porcentaje
-
-        // Aplicar rotación: PrusaSlicer CLI soporta rotación en Z.
-        // Rotación completa 3D vía CLI es limitada. Por ahora confiamos en Z.
 
         // Determinar altura de capa según calidad
         let layerHeight = 0.2;
@@ -277,248 +266,124 @@ async function processSlicing(job) {
         }
 
         const command = `${SLICER_COMMAND} ${commandParams.filter(Boolean).join(' ')}`;
-
-        log('INFO', 'Comando PrusaSlicer', { command });
         const startTime = Date.now();
 
-        // Opciones de proceso: Baja prioridad, buffer limitado
-        const execOptions = {
-            timeout: PROCESS_TIMEOUT,
-            maxBuffer: 10 * 1024 * 1024, // 10MB buffer max
-            windowsHide: true,
-            // En Linux: nice -n 19 (baja prioridad)
-            // En Windows: el proceso ya es menos prioritario por defecto
-        };
-
-        const childProcess = exec(command, execOptions, async (error, stdout, stderr) => {
-            const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
-
-            // Log output de PrusaSlicer para debugging
-            if (stdout) log('INFO', 'PrusaSlicer stdout', { stdout: stdout.substring(0, 500) });
-            if (stderr) log('WARN', 'PrusaSlicer stderr', { stderr: stderr.substring(0, 500) });
-
+        // Asignar childProcess para timeout
+        const childProcess = exec(command, { timeout: PROCESS_TIMEOUT, windowsHide: true }, async (error, stdout, stderr) => {
             if (error) {
-                log('ERROR', `Error ejecutando PrusaSlicer (${processingTime}s)`, {
-                    message: error.message,
-                    code: error.code
-                });
-
-                // Detectar errores específicos
-                if (stderr && (stderr.includes('outside of the print volume') || stderr.includes('fits the print volume'))) {
-                    log('WARN', 'Modelo fuera de volumen de impresión. Calculando bounds y retornando flag oversized.');
-
-                    // Calcular dimensiones reales usando el STL auxiliar (si existe) o el input (si es STL)
-                    const boundsPath = job.auxStlPath || job.inputPath;
-                    let dimensions = null;
-                    // Solo intentar leer si es STL (getStlBounds es para bin STL)
-                    if (boundsPath && boundsPath.toLowerCase().endsWith('.stl')) {
-                        dimensions = await getStlBounds(boundsPath);
-                    }
-
-                    return resolve({
-                        oversized: true,
-                        dimensions: dimensions, // Dimensiones calculadas por backend
-                        volumen: 0,
-                        peso: 0,
-                        tiempoTexto: '—',
-                        tiempoHoras: 0,
-                        pesoSoportes: 0,
-                        porcentajeSoportes: 0
-                    });
+                if (stderr && (stderr.includes('outside') || stderr.includes('fits'))) {
+                    return resolve({ oversized: true, volumen: 0, peso: 0, tiempoTexto: '—', porcentajeSoportes: 0 });
                 }
-
                 return reject(new Error('Slicing failed: ' + error.message));
             }
 
-            console.log(`✅ Slicing OK (${processingTime}s)`);
-
             let gcodeContent = "";
             try {
-                if (!fs.existsSync(outputGcode)) {
-                    // Si no existe el archivo, verificar si fue por fuera de volumen
-                    if (stderr && (stderr.includes('outside of the print volume') || stderr.includes('fits the print volume'))) {
-                        return reject(new Error('El modelo es demasiado grande para el volumen de impresión (325x320x325mm). Intenta reducir la escala.'));
-                    }
-
-                    log('ERROR', 'Archivo GCode no existe', { outputGcode });
-                    return reject(new Error(`Archivo GCode no encontrado: ${outputGcode}`));
-                }
-                const stats = fs.statSync(outputGcode);
-                log('INFO', `Leyendo GCode (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+                if (!fs.existsSync(outputGcode)) return reject(new Error(`GCode no generado`));
                 gcodeContent = fs.readFileSync(outputGcode, 'utf8');
-                log('INFO', `GCode leído exitosamente (${gcodeContent.length} caracteres)`);
             } catch (err) {
-                log('ERROR', 'Error leyendo GCode', { error: err.message, outputGcode });
                 return reject(new Error(`Error leyendo GCode: ${err.message}`));
             }
 
-            // === PARSEO DE DATOS ===
+            // =========================================================
+            //  ESTRATEGIA CLÁSICA RESTAURADA (VOLUMEN/PESO)
+            // =========================================================
 
-            // Usar la lógica que funcionaba en commit 82647ce
-
-            // 1. VOLUMEN (cm3) - Múltiples patrones
-            // ---------------------------------------------------------
-            // ANÁLISIS AVANZADO G-CODE (FEATURES + K-FACTOR)
-            // ---------------------------------------------------------
-
-            // 1. Definición de Constantes de Material
-            const MATERIAL_K_FACTORS = {
-                'PLA': 2.98,
-                'PLA-Silk': 2.98,
-                'PETG': 2.98,
-                'ABS': 2.50,
-                'TPU': 2.98
-            };
-            const kFactor = MATERIAL_K_FACTORS[material] || 2.98;
-
-            // 2. Desglose de Features (Modelo vs Soportes vs Desperdicio)
-            let features = {
-                'support': 0, // Soportes + Interfaz
-                'model': 0,   // Perímetros, relleno, etc.
-                'waste': 0    // Skirt, Brim, Wipe Tower
-            };
-
-            const regexFeature = /; (?:feature )?([a-zA-Z\s]+).*?=\s*(\d+(\.\d+)?)\s*mm/gi;
-            let featureMatch;
-            let totalFilamentMm = 0;
-
-            while ((featureMatch = regexFeature.exec(gcodeContent)) !== null) {
-                const name = featureMatch[1].trim().toLowerCase();
-                const valMm = parseFloat(featureMatch[2]);
-
-                if (!isNaN(valMm)) {
-                    totalFilamentMm += valMm;
-
-                    if (name.includes('support')) {
-                        features.support += valMm;
-                    } else if (name.includes('skirt') || name.includes('brim') || name.includes('wipe')) {
-                        features.waste += valMm;
-                    } else {
-                        features.model += valMm;
-                    }
-                }
-            }
-
-            // Conversión a Gramos Real
-            const mmToGrams = (mm) => (mm / 1000) * kFactor;
-
-            const pesoSoportes = mmToGrams(features.support);
-            const pesoDesperdicioExtra = mmToGrams(features.waste);
-            const pesoModeloReal = mmToGrams(features.model);
-            let pesoTotalCalculado = pesoSoportes + pesoDesperdicioExtra + pesoModeloReal;
-
-            console.log(`📊 Desglose Real: Modelo: ${pesoModeloReal.toFixed(2)}g | Soportes: ${pesoSoportes.toFixed(2)}g | Waste: ${pesoDesperdicioExtra.toFixed(2)}g | Total: ${pesoTotalCalculado.toFixed(2)}g`);
-
-            // Fallback Genérico si no halló features
-            if (pesoTotalCalculado === 0) {
-                const matchTotalMm = gcodeContent.match(/; filament used \[mm\] = (\d+(\.\d+)?)/);
-                if (matchTotalMm) {
-                    totalFilamentMm = parseFloat(matchTotalMm[1]);
-                    pesoTotalCalculado = mmToGrams(totalFilamentMm);
-                    console.log(`⚠️ Usando peso total genérico: ${pesoTotalCalculado.toFixed(2)}g`);
-                }
-            }
-
-            // Asignar variables finales
-            let peso = pesoTotalCalculado;
-            // Volumen referencial
             let volumen = 0;
-            const matchVol = gcodeContent.match(/; filament used \[cm3\] = (\d+(\.\d+)?)/);
-            if (matchVol) volumen = parseFloat(matchVol[1]);
+            const volPatterns = [
+                /; filament used \[cm3\] = (\d+(\.\d+)?)/,
+                /; filament volume: (\d+(\.\d+)?) cm3/i,
+                /(\d+(\.\d+)?) cm3/
+            ];
+            for (const pattern of volPatterns) {
+                const match = gcodeContent.match(pattern);
+                if (match) {
+                    volumen = parseFloat(match[1]);
+                    console.log(`   ✓ Volumen encontrado: ${volumen} cm³`);
+                    break;
+                }
+            }
 
+            let pesoTotal = 0;
+            const weightPatterns = [
+                /; filament used \[g\] = (\d+(\.\d+)?)/,
+                /; filament weight = (\d+(\.\d+)?)g/i,
+                /(\d+(\.\d+)?)g/
+            ];
+            for (const pattern of weightPatterns) {
+                const match = gcodeContent.match(pattern);
+                if (match) {
+                    pesoTotal = parseFloat(match[1]);
+                    console.log(`   ✓ Peso encontrado: ${pesoTotal} g`);
+                    break;
+                }
+            }
 
-            // 3. Tiempo de Impresión (Clean Regex)
+            if (pesoTotal === 0 && volumen > 0) {
+                // Fallback clásico: Densidad PLA genérica (1.24) siempre
+                const density = 1.24;
+                pesoTotal = volumen * density;
+                console.log(`   ⚠ Peso calculado desde volumen: ${pesoTotal.toFixed(2)} g (Densidad ${density})`);
+            }
+
+            // Soportes (Versión Simplificada)
+            let pesoSoportes = 0;
+            // Intentar recuperar peso de soportes si está explícito en gramos
+            const matchSupportG = gcodeContent.match(/; feature support material used \[g\] = (\d+(\.\d+)?)/);
+            if (matchSupportG) {
+                pesoSoportes = parseFloat(matchSupportG[1]);
+            } else {
+                // Intento de fallback a volumen de soportes si existe (para no devolver siempre 0)
+                const matchSupportVol = gcodeContent.match(/; support material volume: (\d+(\.\d+)?) cm3/i);
+                if (matchSupportVol) {
+                    pesoSoportes = parseFloat(matchSupportVol[1]) * 1.24;
+                }
+            }
+
+            // --- CÁLCULO DE TIEMPO Y DIMENSIONES ---
             const timePattern = /; estimated printing time(?: \(normal mode\))? = (.*)/i;
             const timeMatch = gcodeContent.match(timePattern);
-
-            let timeStr = "0m";
-            if (timeMatch) {
-                timeStr = timeMatch[1].trim();
-                timeStr = timeStr.split(';')[0].trim(); // Limpiar comentarios extra
-            }
-
-            // Parsing de tiempo a horas...
             let hours = 0;
-            const d = timeStr.match(/(\d+)d/);
-            const h = timeStr.match(/(\d+)h/);
-            const m = timeStr.match(/(\d+)m/);
-            const s = timeStr.match(/(\d+)s/);
+            let tiempoTexto = "0m";
 
-            if (d) hours += parseInt(d[1]) * 24;
-            if (h) hours += parseInt(h[1]);
-            if (m) hours += parseInt(m[1]) / 60;
-            if (s) hours += parseInt(s[1]) / 3600;
+            if (timeMatch) {
+                let tStr = timeMatch[1].split(';')[0].trim();
+                const d = tStr.match(/(\d+)d/);
+                const h = tStr.match(/(\d+)h/);
+                const m = tStr.match(/(\d+)m/);
+                const s = tStr.match(/(\d+)s/);
+                if (d) hours += parseInt(d[1]) * 24;
+                if (h) hours += parseInt(h[1]);
+                if (m) hours += parseInt(m[1]) / 60;
+                if (s) hours += parseInt(s[1]) / 3600;
 
-            // Corrección de tiempo (AJUSTADO)
-            const STARTUP_MINUTES = 6; // Calentamiento + calibración + purga
-            const SAFETY_MARGIN = 1.05;
-            const slicerHours = hours;
-            hours = (hours * SAFETY_MARGIN) + (STARTUP_MINUTES / 60);
+                // Ajuste de seguridad
+                hours = (hours * 1.05) + (6 / 60);
+                const tm = Math.round(hours * 60);
+                tiempoTexto = `${Math.floor(tm / 60)}h ${tm % 60}m`;
+            }
 
-            console.log(`   Tiempo Slicer: ${timeStr} (${slicerHours.toFixed(2)}h) → Final: ${hours.toFixed(2)}h (+${STARTUP_MINUTES}min)`);
-
-            const totalMinutes = Math.round(hours * 60);
-            const finalH = Math.floor(totalMinutes / 60);
-            const finalM = totalMinutes % 60;
-            const tiempoAjustadoStr = `${finalH}h ${finalM}m`;
-
-            // 5. DIMENSIONES (Bonus)
             let dimensions = null;
-            const boundingMatch = gcodeContent.match(/; bounding box: X: \[[\d.]+,([\d.]+)\], Y: \[[\d.]+,([\d.]+)\], Z: \[[\d.]+,([\d.]+)\]/);
-            if (boundingMatch) {
-                dimensions = {
-                    x: parseFloat(boundingMatch[1]),
-                    y: parseFloat(boundingMatch[2]),
-                    z: parseFloat(boundingMatch[3])
-                };
-                console.log(`   ✓ Dimensiones: ${dimensions.x} x ${dimensions.y} x ${dimensions.z} mm`);
-            }
+            const bBox = gcodeContent.match(/; bounding box: X: \[[\d.-]+,([\d.-]+)\], Y: \[[\d.-]+,([\d.-]+)\], Z: \[[\d.-]+,([\d.-]+)\]/);
+            if (bBox) dimensions = { x: parseFloat(bBox[1]), y: parseFloat(bBox[2]), z: parseFloat(bBox[3]) };
 
-            // 6. CALCULAR PORCENTAJE DE SOPORTES para factor de dificultad
-            const porcentajeSoportes = peso > 0 ? (pesoSoportes / peso) * 100 : 0;
-            if (porcentajeSoportes > 0) {
-                log('INFO', `Porcentaje de soportes: ${porcentajeSoportes.toFixed(1)}%`);
-            }
+            // RESULTADO FINAL
+            const porcentajeSoportes = pesoTotal > 0 ? (pesoSoportes / pesoTotal) * 100 : 0;
 
             const result = {
                 volumen,
-                peso,
-                tiempoTexto: tiempoAjustadoStr,
+                peso: parseFloat(pesoTotal.toFixed(2)),
+                tiempoTexto,
                 tiempoHoras: hours,
-                pesoSoportes,
-                porcentajeSoportes,
+                pesoSoportes: parseFloat(pesoSoportes.toFixed(2)),
+                porcentajeSoportes: parseFloat(porcentajeSoportes.toFixed(1)),
                 gcodeUrl: `/uploads/${path.basename(outputGcode)}`,
-                dimensions: null
+                dimensions
             };
 
-            // Guardar en caché
-            if (cache.size >= MAX_CACHE_SIZE) {
-                const firstKey = cache.keys().next().value;
-                cache.delete(firstKey);
-            }
+            if (cache.size >= MAX_CACHE_SIZE) cache.delete(cache.keys().next().value);
             cache.set(cacheKey, result);
-
-            // Limpieza (temporalmente deshabilitada para inspección)
-            try {
-                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-                // NO borrar el GCode para poder inspeccionarlo
-                // if (fs.existsSync(outputGcode)) fs.unlinkSync(outputGcode);
-                console.log(`   📁 GCode preservado en: ${outputGcode}`);
-            } catch (e) { }
-
-            // VERIFICACIÓN PARANOICA DE G-CODE
-            if (fs.existsSync(outputGcode)) {
-                const gcodeStats = fs.statSync(outputGcode);
-                log('SUCCESS', 'G-Code generado y verificado en disco', { path: outputGcode, size: gcodeStats.size });
-            } else {
-                log('CRITICAL', 'El Slicer reportó éxito pero el archivo G-Code NO existe en disco', { path: outputGcode });
-                // Intento desesperado: buscar si se generó con otro nombre
-                const possibleAlt = inputPath + '.gcode';
-                if (fs.existsSync(possibleAlt)) {
-                    log('WARN', 'Encontrado G-Code con nombre alternativo, corrigiendo...', { alt: possibleAlt });
-                    fs.renameSync(possibleAlt, outputGcode);
-                }
-            }
+            try { if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath); } catch (e) { }
 
             resolve(result);
         });
