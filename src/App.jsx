@@ -231,21 +231,21 @@ const App = () => {
 
   // --- APP VIEW (SPLIT SCREEN) ---
   return (
-    <div className="min-h-screen bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-20 lg:pt-24">
+    <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-16">
       <Header />
 
-      {/* Fondo Decorativo Sutil (Solo visible en pantallas grandes para no molestar en móvil) */}
+      {/* Fondo Decorativo Sutil */}
       <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
       <div className="absolute bottom-[-20%] right-[40%] w-[600px] h-[600px] bg-brand-accent/5 rounded-full blur-[100px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
 
-      {/* LEFT COLUMN: 3D VIEWER */}
+      {/* LEFT COLUMN: 3D VIEWER (FIJO) */}
       <motion.div
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full lg:w-[65%] h-[50vh] lg:h-screen relative p-4 lg:p-6 bg-transparent flex flex-col z-0"
+        className="w-full lg:w-[65%] h-full relative p-4 lg:p-2 bg-transparent flex flex-col z-0 overflow-hidden"
       >
-        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-900/5 group">
+        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-900/5 group h-full">
           <div className="absolute top-6 left-6 z-20 flex items-center gap-3">
             <button
               onClick={handleReset}
@@ -284,12 +284,12 @@ const App = () => {
         </div>
       </motion.div>
 
-      {/* RIGHT COLUMN: CONFIGURATION */}
+      {/* RIGHT COLUMN: CONFIGURATION (SCROLLABLE) */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-        className="w-full lg:w-[35%] h-auto lg:h-screen bg-white/80 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.1)] z-10 flex flex-col border-l border-white/50"
+        className="w-full lg:w-[35%] h-full bg-white/80 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.1)] z-10 flex flex-col border-l border-white/50 overflow-hidden"
       >
         <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur z-20">
           <div>

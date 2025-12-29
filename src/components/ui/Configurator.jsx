@@ -28,6 +28,66 @@ export const Configurator = ({ config, geometry, onChange }) => {
     return (
         <div className="flex flex-col gap-8 animate-fade-in-up">
 
+            {/* Printer Info (Step 0) - Información Informativa */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">0</div>
+                    <label className="text-sm font-bold text-gray-800 tracking-wide uppercase">Impresora Asignada</label>
+                </div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    whileHover={{ y: -2 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="relative group cursor-help z-0 hover:z-50"
+                >
+                    {/* 1. Fondo Visual de la Tarjeta (Separado) */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl shadow-sm group-hover:shadow-[0_20px_40px_-10px_rgba(96,23,177,0.15)] group-hover:border-brand-primary/30 transition-all duration-300">
+                        <div className="absolute inset-0 overflow-hidden rounded-2xl">
+                            <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-brand-primary/5 rounded-full blur-2xl group-hover:bg-brand-primary/10 transition-colors duration-500 group-hover:scale-150"></div>
+                        </div>
+                    </div>
+
+                    {/* 2. Contenido (Flota sobre el fondo) */}
+                    <div className="relative p-4 flex items-center gap-5">
+                        <div className="w-20 h-20 shrink-0 relative perspective-500 z-50">
+                            <div className="absolute inset-0 bg-white rounded-xl border border-slate-100 shadow-inner"></div>
+                            <motion.img
+                                src="/bambulab_printer.webp"
+                                alt="BambuLab H2D"
+                                className="w-full h-full object-contain relative z-50 mix-blend-multiply drop-shadow-sm origin-center"
+                                whileHover={{
+                                    scale: 3.2,
+                                    rotate: -6,
+                                    x: 50,
+                                    y: 10,
+                                    zIndex: 100,
+                                    filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.2))"
+                                }}
+                                transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                            />
+                        </div>
+
+                        <div className="flex-1 min-w-0 pointer-events-none relative z-0 group-hover:blur-sm group-hover:opacity-80 transition-all duration-300">
+                            <div className="flex flex-col">
+                                <h4 className="font-black text-brand-dark text-base tracking-tight mb-1 group-hover:text-brand-primary transition-colors">BambuLab H2D <span className="text-brand-primary font-medium opacity-60 text-xs ml-1">Series</span></h4>
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-white text-[9px] font-bold shadow-md shadow-slate-900/10 ring-1 ring-white/20 group-hover:bg-brand-primary group-hover:ring-brand-accent/50 transition-all">
+                                        <svg className="w-3 h-3 text-emerald-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                        COMPATIBLE CON MODELO
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed group-hover:text-slate-600">
+                                Impresión de alta fidelidad con calibración automática de flujo. Perfecto para <span className="text-brand-secondary font-bold">prototipos y producción final</span>.
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+
             {/* Material Selection (Pills Style) */}
             <div className="space-y-3">
                 <div className="flex items-center gap-3 mb-3">
@@ -66,6 +126,13 @@ export const Configurator = ({ config, geometry, onChange }) => {
                                     ${isSelected ? 'py-6 sm:row-span-3 h-full shadow-md' : 'py-3 hover:shadow-md'}
                                 `}
                             >
+                                {mat.id === 'PLA' && (
+                                    <div className={`absolute top-0 right-0 ${isSelected ? 'p-2' : 'p-1'}`}>
+                                        <div className={`bg-brand-accent text-white font-bold rounded-bl-xl shadow-sm flex items-center justify-center ${isSelected ? 'px-3 py-1 text-[10px]' : 'w-4 h-4 rounded-tr-lg'}`}>
+                                            {isSelected ? 'MÁS COMÚN' : <span className="text-[8px]">★</span>}
+                                        </div>
+                                    </div>
+                                )}
                                 <motion.div layout="position" className="flex justify-between items-center relative z-10 w-full mb-1">
                                     <motion.span
                                         layout="position"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QUALITIES } from '../../utils/constants';
 
@@ -41,10 +41,27 @@ const LayerPreview = ({ layerHeight }) => {
 
 export const QualitySelector = ({ value, onChange }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const containerRef = useRef(null);
     const selectedOption = QUALITIES.find(q => q.id === value) || QUALITIES[0];
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
+
     return (
-        <div className="relative z-30">
+        <div className="relative z-30" ref={containerRef}>
             {/* Toggle Button Compacto */}
             <motion.button
                 layout

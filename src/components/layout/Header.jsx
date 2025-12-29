@@ -48,7 +48,7 @@ export const Header = () => {
 
             {/* Brand Header */}
             <header className="fixed top-0 w-full z-50 transition-all duration-300 backdrop-blur-xl bg-brand-primary border-b border-white/10 shadow-lg shadow-brand-primary/20">
-                <div className="max-w-7xl mx-auto px-3 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-3 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
 
                     {/* Logo con Navegación y Efecto de Presión */}
                     <div
@@ -56,7 +56,7 @@ export const Header = () => {
                         onClick={handleHomeClick}
                         title="Volver a MechatronicStore.cl"
                     >
-                        <MechatronicLogo />
+                        <MechatronicLogo className="h-9 w-auto transition-all duration-300" />
                     </div>
 
                     <div className="flex items-center space-x-2 md:space-x-3">
