@@ -37,7 +37,6 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
             id: 'has-file',
             title: 'Tengo mi archivo',
             description: 'Subir archivo STL/STEP para cotizar',
-            badge: 'Más rápido',
             icon: Upload,
             action: onHasFile
         },
@@ -45,7 +44,6 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
             id: 'needs-help',
             title: 'No tengo el archivo',
             description: 'Ver tutorial y recursos para obtenerlo',
-            badge: 'Tutorial',
             icon: BookOpen,
             action: onNeedsHelp
         }
@@ -102,15 +100,7 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
                                     }
                                 }}
                             >
-                                {/* Badge superior */}
-                                <div className="absolute top-4 right-4">
-                                    <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${index === 0
-                                        ? 'bg-green-100 text-green-700 border border-green-200'
-                                        : 'bg-blue-100 text-blue-700 border border-blue-200'
-                                        }`}>
-                                        {option.badge}
-                                    </span>
-                                </div>
+
 
                                 {/* Shimmer effect sutil */}
                                 <motion.div

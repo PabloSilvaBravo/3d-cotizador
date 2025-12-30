@@ -16,6 +16,8 @@ import { Footer } from './components/layout/Footer';
 import FileAvailabilitySelector from './components/FileAvailabilitySelector';
 import CircuitBackground from './components/CircuitBackground';
 import StepIndicator from './components/ui/StepIndicator';
+import DiscoveryPortal from './components/DiscoveryPortal';
+import SuccessScreen from './components/SuccessScreen';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -34,6 +36,8 @@ const App = () => {
   const [optimalRotation, setOptimalRotation] = useState([0, 0, 0]);
   const [autoScale, setAutoScale] = useState(1.0);
   const [scaleInfo, setScaleInfo] = useState(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isSimpleMode, setIsSimpleMode] = useState(false);
 
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
@@ -140,6 +144,13 @@ const App = () => {
     }
   };
 
+  // Resetear configuración al modo simple
+  useEffect(() => {
+    if (isSimpleMode) {
+      setConfig(prev => ({ ...prev, material: 'PLA', qualityId: 'standard', infill: 15 }));
+    }
+  }, [isSimpleMode]);
+
 
 
   useEffect(() => {
@@ -162,15 +173,16 @@ const App = () => {
     setLocalGeometry(null);
     setConfig(DEFAULT_CONFIG);
     resetQuote();
+    setUserHasFile(null);
+    setIsSuccess(false);
   }
 
   const handleOrderSubmit = async (customerData) => {
     console.log("Order Submitted:", { ...customerData, file, config, quoteData });
     try {
       await new Promise(resolve => setTimeout(resolve, 1500));
-      alert("¡Pedido recibido con éxito! Te contactaremos pronto.");
       setIsModalOpen(false);
-      handleReset();
+      setIsSuccess(true);
     } catch (e) {
       alert("Error al enviar pedido");
     }
@@ -241,11 +253,11 @@ const App = () => {
         <CircuitBackground />
         <Header />
 
-        <div className="flex-1 flex flex-col justify-center items-center px-4 relative z-10">
+        <div className="flex-1 flex flex-col justify-center items-center px-4 relative z-10 pt-24 pb-12">
           <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
-          <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up py-20">
+          <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up py-10">
             <AnimatePresence mode="wait">
               {userHasFile === null && (
                 <motion.div
@@ -290,43 +302,27 @@ const App = () => {
               )}
 
               {userHasFile === false && (
-                <motion.div
-                  key="tutorial"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-12 rounded-[2rem] shadow-2xl border border-white mt-10"
-                >
-                  <div className="text-center">
-                    <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                      Tutorial de Obtención de Archivos 3D
-                    </h2>
-                    <p className="text-gray-600 mb-8">
-                      Próximamente: Guía completa de cómo obtener archivos STL/STEP
-                    </p>
-                    <button
-                      onClick={() => setUserHasFile(null)}
-                      className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:shadow-lg transition-all"
-                    >
-                      ← Volver
-                    </button>
-                  </div>
-                </motion.div>
+                <DiscoveryPortal
+                  onClose={() => setUserHasFile(null)}
+                  onUploadClick={() => setUserHasFile(true)}
+                />
               )}
             </AnimatePresence>
-          </main>
-        </div>
+          </main >
+        </div >
 
         <Footer />
-      </div>
+      </div >
     );
   }
 
   // --- APP VIEW (SPLIT SCREEN) ---
   return (
     <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-16">
-      <Header />
+      <AnimatePresence>
+        {isSuccess && <SuccessScreen onReset={handleReset} />}
+      </AnimatePresence>
+      <Header isSimpleMode={isSimpleMode} onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)} />
 
       {/* Fondo Decorativo Sutil */}
       <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
@@ -337,21 +333,23 @@ const App = () => {
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full lg:w-[65%] h-full relative p-4 lg:p-2 bg-transparent flex flex-col z-0 overflow-hidden"
+        className="w-full lg:flex-1 h-[40vh] lg:h-full relative p-2 lg:p-2 bg-transparent flex flex-col z-0 overflow-hidden shrink-0"
       >
         <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-200/50 group h-full">
-          <div className="absolute top-6 left-6 z-20 flex items-center gap-3">
+          <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-20 flex items-center gap-2 lg:gap-3">
             <button
               onClick={handleReset}
-              className="w-10 h-10 bg-white/90 backdrop-blur border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 shadow-sm hover:scale-105 hover:bg-white active:scale-95 transition-all group/btn"
+              className="w-8 h-8 lg:w-10 lg:h-10 bg-white/90 backdrop-blur border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 shadow-sm hover:scale-105 hover:bg-white active:scale-95 transition-all group/btn"
               title="Volver al inicio"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
-            <StepIndicator currentStep={3} />
-            <div className="bg-white/90 backdrop-blur border border-slate-200 px-4 py-2 rounded-xl text-slate-700 font-bold text-sm shadow-sm flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              {file.name}
+            <div className="hidden sm:block">
+              <StepIndicator currentStep={3} />
+            </div>
+            <div className="bg-white/30 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full text-slate-600 font-medium text-xs shadow-sm flex items-center gap-2 pointer-events-none select-none max-w-[150px] lg:max-w-[250px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0"></span>
+              <span className="truncate opacity-90">{file.name}</span>
             </div>
           </div>
 
@@ -373,8 +371,8 @@ const App = () => {
               className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center text-brand-secondary"
             >
               <CubeLoader />
-              <p className="font-bold text-lg mt-8 tracking-tight text-brand-primary animate-pulse">
-                {isConverting ? 'Convirtiendo formato STEP ➔ STL...' : 'Optimizando Modelo...'}
+              <p className="font-bold text-lg mt-8 tracking-tight text-brand-primary animate-pulse text-center px-4">
+                {isConverting ? 'Convirtiendo formato...' : 'Optimizando Modelo...'}
               </p>
             </motion.div>
           )}
@@ -385,19 +383,19 @@ const App = () => {
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-        className="w-full lg:w-[35%] h-full bg-white/60 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(148,163,184,0.15)] z-10 flex flex-col border-l border-slate-200/50 overflow-hidden rounded-l-3xl"
+        className="w-full lg:w-[420px] xl:w-[480px] 2xl:w-[550px] shrink-0 h-full flex-1 lg:flex-none bg-white/60 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(148,163,184,0.15)] z-10 flex flex-col border-l border-slate-200/50 overflow-hidden lg:rounded-l-3xl rounded-t-3xl lg:rounded-t-none -mt-6 lg:mt-0 pt-6 lg:pt-0 ring-1 ring-slate-900/5 lg:ring-0"
       >
-        <div className="px-8 py-6 border-b border-slate-200/50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur z-20">
+        <div className="px-6 lg:px-8 py-4 lg:py-6 border-b border-slate-200/50 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur z-20">
           <div>
-            <h2 className="text-2xl font-black text-slate-700 tracking-tight">Cotización</h2>
-            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase mt-1">Configura tu impresión</p>
+            <h2 className="text-xl lg:text-2xl font-black text-slate-700 tracking-tight">Cotización</h2>
+            <p className="text-[10px] lg:text-xs text-slate-500 font-medium tracking-wide uppercase mt-0.5 lg:mt-1">Configura tu impresión</p>
           </div>
-          <div className="w-8 h-8 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-50">
             <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-8 pb-20 lg:pb-8">
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -459,6 +457,8 @@ const App = () => {
             config={config}
             geometry={localGeometry}
             onChange={handleConfigChange}
+            isSimpleMode={isSimpleMode}
+            onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)}
           />
 
           {localGeometry && (
@@ -479,7 +479,7 @@ const App = () => {
             isLoading={isLoading || !quoteData}
           />
 
-          <div className="mt-12 -mx-8 -mb-8">
+          <div className="mt-4 -mx-8 -mb-8">
             <Footer />
           </div>
         </div>
@@ -498,7 +498,7 @@ const App = () => {
         }}
       />
 
-    </div>
+    </div >
   );
 };
 

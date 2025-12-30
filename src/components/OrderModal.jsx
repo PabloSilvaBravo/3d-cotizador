@@ -1,10 +1,19 @@
 import { X, Send, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', comments: '' });
     const [sending, setSending] = useState(false);
+
+    // Cerrar con ESC
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (isOpen && e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
 
     // Variantes para el contenedor principal (Modal)
     // Efecto de aparición elástica (Spring) + Stagger (Cascada)
@@ -49,7 +58,7 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSending(true);
-        await onSubmit({ ...formData, ...orderData });
+        await onSubmit({ ...formData, phone: `+56${formData.phone}`, ...orderData });
         setSending(false);
     };
 
@@ -150,18 +159,35 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 />
-                                <motion.input
-                                    variants={itemVariants}
-                                    whileHover={{ scale: 1.02, rotateX: 2, borderColor: "rgba(96, 23, 177, 0.4)", backgroundColor: "rgba(255,255,255,1)" }}
-                                    whileFocus={{ scale: 1.02, borderColor: "rgba(96, 23, 177, 0.8)", backgroundColor: "rgba(255,255,255,1)", outline: "none", boxShadow: "0 0 0 4px rgba(96, 23, 177, 0.1)" }}
-                                    style={{ backgroundColor: "rgba(255,255,255,0.6)", borderColor: "rgba(96, 23, 177, 0.1)" }}
-                                    type="tel"
-                                    placeholder="Teléfono (Ej: +56 9...)"
-                                    className="w-full text-brand-dark placeholder-slate-400 p-4 rounded-xl border shadow-sm transition-all font-medium"
-                                    required
-                                    value={formData.phone}
-                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                />
+                                {/* Input de Teléfono Controlado con +56 Fijo */}
+                                <motion.div variants={itemVariants} className="relative group">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold border-r border-slate-300 pr-2 pointer-events-none z-10 transition-colors group-focus-within:text-brand-primary group-focus-within:border-brand-primary/50">
+                                        +56
+                                    </span>
+                                    <motion.input
+                                        whileHover={{ scale: 1.02, rotateX: 2, borderColor: "rgba(96, 23, 177, 0.4)", backgroundColor: "rgba(255,255,255,1)" }}
+                                        whileFocus={{ scale: 1.02, borderColor: "rgba(96, 23, 177, 0.8)", backgroundColor: "rgba(255,255,255,1)", outline: "none", boxShadow: "0 0 0 4px rgba(96, 23, 177, 0.1)" }}
+                                        style={{ backgroundColor: "rgba(255,255,255,0.6)", borderColor: "rgba(96, 23, 177, 0.1)" }}
+                                        type="tel"
+                                        name="phone"
+                                        autoComplete="tel"
+                                        placeholder="9 1234 5678"
+                                        className="w-full text-brand-dark placeholder-slate-300 p-4 pl-16 rounded-xl border shadow-sm transition-all font-medium tracking-wide"
+                                        required
+                                        value={formData.phone}
+                                        onChange={e => {
+                                            let val = e.target.value.replace(/\D/g, '');
+                                            // Si el navegador autocompleta con 569..., quitamos el 56
+                                            if (val.startsWith('56') && val.length > 9) {
+                                                val = val.substring(2);
+                                            }
+                                            // Limitamos a 9 dígitos
+                                            if (val.length > 9) val = val.substring(0, 9);
+
+                                            setFormData({ ...formData, phone: val });
+                                        }}
+                                    />
+                                </motion.div>
 
                                 <motion.textarea
                                     variants={itemVariants}
@@ -176,22 +202,88 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
 
                                 <motion.button
                                     variants={itemVariants}
-                                    whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     type="submit"
                                     disabled={sending}
+                                    animate={{
+                                        width: sending ? "60px" : "100%",
+                                        borderRadius: sending ? "50%" : "0.75rem"
+                                    }}
+                                    transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }} // Curva Bezier suave
                                     className={`
-                                        mt-2 w-full py-4 rounded-xl font-black text-lg uppercase tracking-widest shadow-lg
-                                        flex items-center justify-center gap-2
-                                        transition-all duration-300
-                                        ${sending ? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-brand-secondary to-brand-primary text-white hover:shadow-brand-primary/40'}
+                                        bg-gradient-to-r from-brand-secondary to-brand-primary text-white
+                                        group relative mt-2 py-4 font-black text-lg uppercase tracking-widest shadow-lg
+                                        flex items-center justify-center overflow-hidden mx-auto
+                                        transition-colors duration-300
+                                        ${sending ? 'cursor-wait' : 'hover:shadow-brand-primary/40'}
                                     `}
                                     style={{
-                                        boxShadow: "0 10px 20px -5px rgba(96, 23, 177, 0.4)"
+                                        boxShadow: "0 10px 20px -5px rgba(96, 23, 177, 0.4)",
+                                        height: "60px" // Altura fija para evitar saltos al transformarse
                                     }}
                                 >
-                                    {sending ? <Loader2 className="animate-spin" /> : <Send size={20} />}
-                                    {sending ? 'Enviando...' : 'Enviar Cotización'}
+                                    <motion.div
+                                        layout
+                                        className="flex items-center justify-center gap-3 relative z-10 w-full h-full"
+                                    >
+                                        {/* ICONO PERSISTENTE */}
+                                        <motion.div
+                                            layout
+                                            className={`relative z-10 filter drop-shadow-sm transition-all duration-500 ease-in-out ${!sending ? 'group-hover:translate-x-14 group-hover:scale-125' : ''}`}
+                                            animate={sending ? {
+                                                y: [0, -3, 0, 3, 0],
+                                                rotate: [0, -2, 0, 2, 0],
+                                                scale: [1, 1.1, 1]
+                                            } : {
+                                                y: 0, rotate: 0, scale: 1
+                                            }}
+                                            transition={sending ? {
+                                                duration: 0.4,
+                                                repeat: Infinity,
+                                                ease: "linear"
+                                            } : { duration: 0.3 }}
+                                        >
+                                            <Send size={sending ? 24 : 22} className={`text-white ${sending ? 'rotate-[-45deg]' : ''}`} style={sending ? { transform: 'rotate(-45deg)' } : {}} />
+                                        </motion.div>
+
+                                        {/* TEXTO COLAPSABLE */}
+                                        <AnimatePresence>
+                                            {!sending && (
+                                                <motion.span
+                                                    layout
+                                                    initial={{ opacity: 1, width: "auto", scale: 1 }}
+                                                    exit={{ opacity: 0, width: 0, scale: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className="whitespace-nowrap transition-all duration-500 ease-in-out group-hover:opacity-0 group-hover:translate-x-10 filter drop-shadow-md overflow-hidden"
+                                                >
+                                                    Enviar Cotización
+                                                </motion.span>
+                                            )}
+                                        </AnimatePresence>
+                                    </motion.div>
+
+                                    {/* ESTELAS (Solo visibles cuando enviando) */}
+                                    <AnimatePresence>
+                                        {sending && (
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="absolute inset-0 pointer-events-none"
+                                            >
+                                                <motion.div
+                                                    className="absolute right-3 top-1/2 w-8 h-0.5 bg-white/50 rounded-full"
+                                                    animate={{ x: [-10, -30], opacity: [0, 1, 0] }}
+                                                    transition={{ duration: 0.4, repeat: Infinity, delay: 0.1 }}
+                                                />
+                                                <motion.div
+                                                    className="absolute right-4 bottom-1/3 w-6 h-0.5 bg-white/30 rounded-full"
+                                                    animate={{ x: [-10, -25], opacity: [0, 1, 0] }}
+                                                    transition={{ duration: 0.3, repeat: Infinity, delay: 0 }}
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </motion.button>
                             </form>
                         </div>

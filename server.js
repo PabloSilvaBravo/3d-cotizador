@@ -397,8 +397,11 @@ async function processSlicing(job) {
                 if (m) hours += parseInt(m[1]) / 60;
                 if (s) hours += parseInt(s[1]) / 3600;
 
-                // Ajuste de seguridad
-                hours = (hours * 1.05) + (6 / 60);
+                // Ajuste de seguridad: Eliminado.
+                // Factor de Corrección para Alta Velocidad (Bambu Lab / Klipper): x0.75
+                // Si el perfil base es Prusa standar (6h), esto lo baja a ~4.5h
+                hours = hours * 0.80;
+
                 const tm = Math.round(hours * 60);
                 tiempoTexto = `${Math.floor(tm / 60)}h ${tm % 60}m`;
             }

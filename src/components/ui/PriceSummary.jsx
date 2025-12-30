@@ -201,6 +201,13 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                                 <span>${estimate.unitPrice.toLocaleString('es-CL')}</span>
                             </div>
                         )}
+
+                        {/* Disclaimer de Precio Referencial */}
+                        <div className="mt-3 pt-3 border-t border-brand-secondary/5 flex gap-2 justify-center">
+                            <p className="text-[10px] text-slate-400 leading-snug text-center italic max-w-[90%]">
+                                * Precio referencial. Sujeto a confirmación tras análisis de viabilidad técnica.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

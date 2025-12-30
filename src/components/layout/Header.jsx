@@ -36,19 +36,19 @@ export const Header = () => {
         <>
             {/* Toast de Copiado */}
             {showCopyToast && (
-                <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-brand-dark text-white px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 border border-brand-accent/20">
-                        <div className="bg-green-500 rounded-full p-0.5">
-                            <CheckCircle2 size={14} className="text-white" />
+                <div className="fixed bottom-10 left-1/2 z-[100] -translate-x-1/2 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
+                    <div className="flex items-center gap-3 px-5 py-3 bg-zinc-900 text-white rounded-full border border-white/10 ring-1 ring-black/20">
+                        <div className="bg-green-500 rounded-full p-0.5 shadow-sm shadow-green-500/50">
+                            <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
                         </div>
-                        <span className="text-sm font-bold">Correo copiado al portapapeles</span>
+                        <span className="font-semibold text-sm tracking-wide">Correo copiado al portapapeles</span>
                     </div>
                 </div>
             )}
 
             {/* Brand Header */}
             <header className="fixed top-0 w-full z-50 transition-all duration-300 backdrop-blur-xl bg-brand-primary border-b border-white/10 shadow-lg shadow-brand-primary/20">
-                <div className="max-w-7xl mx-auto px-3 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-0  flex items-center justify-between">
 
                     {/* Logo con Navegación y Efecto de Presión */}
                     <div
@@ -76,8 +76,8 @@ export const Header = () => {
                             <button
                                 onClick={() => setIsHelpOpen(!isHelpOpen)}
                                 className={`
-                  flex items-center gap-1.5 text-[10px] font-bold text-white/90 hover:text-white px-3 py-1.5 rounded-full transition-all border 
-                  ${isHelpOpen ? 'bg-white/20 border-white/20' : 'hover:bg-white/10 border-transparent hover:border-white/10'}
+                    flex items-center gap-1.5 text-[10px] font-bold text-white/90 hover:text-white px-3 py-1.5 rounded-full transition-all border 
+                    ${isHelpOpen ? 'bg-white/20 border-white/20' : 'hover:bg-white/10 border-transparent hover:border-white/10'}
                 `}
                             >
                                 <span className="hidden sm:inline">Centro de Ayuda</span>

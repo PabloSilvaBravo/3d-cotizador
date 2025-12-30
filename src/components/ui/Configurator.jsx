@@ -5,7 +5,7 @@ import { InfillSelector } from './InfillSelector';
 import { QualitySelector } from './QualitySelector';
 import { useAvailableColors } from '../../hooks/useAvailableColors';
 
-export const Configurator = ({ config, geometry, onChange }) => {
+export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggleSimpleMode }) => {
     // Estado hover imagen
     const [isImageHovered, setIsImageHovered] = useState(false);
 
@@ -36,6 +36,57 @@ export const Configurator = ({ config, geometry, onChange }) => {
 
     return (
         <div className="flex flex-col gap-8 animate-fade-in-up">
+
+            {/* --- MODO SIMPLE / EXPERTO TOGGLE --- */}
+            <div className="mb-6">
+                <div className="relative bg-slate-100 p-1 rounded-xl flex items-center justify-between border border-slate-200 shadow-inner">
+                    {/* Botón Modo Simple */}
+                    <button
+                        onClick={() => !isSimpleMode && onToggleSimpleMode()}
+                        className={`relative z-10 flex-1 py-2.5 text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 rounded-lg ${isSimpleMode ? 'text-brand-dark' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <span>Modo Simple</span>
+                    </button>
+
+                    {/* Botón Modo Experto */}
+                    <button
+                        onClick={() => isSimpleMode && onToggleSimpleMode()}
+                        className={`relative z-10 flex-1 py-2.5 text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 rounded-lg ${!isSimpleMode ? 'text-brand-primary' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <span>Modo Experto</span>
+                    </button>
+
+                    {/* Fondo Deslizante (El "Puck") */}
+                    <motion.div
+                        className="absolute top-1 bottom-1 bg-white rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)] border border-slate-100 z-0"
+                        initial={false}
+                        animate={{
+                            left: isSimpleMode ? '4px' : '50%',
+                            x: isSimpleMode ? 0 : -4,
+                            width: 'calc(50% - 0px)'
+                        }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                </div>
+
+                {/* Texto Explicativo Animado */}
+                <div className="mt-3 px-1 min-h-[30px] flex items-start justify-center text-center">
+                    <AnimatePresence mode='wait'>
+                        <motion.p
+                            key={isSimpleMode ? "simple" : "expert"}
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 5 }}
+                            transition={{ duration: 0.2 }}
+                            className={`text-[11px] font-medium leading-relaxed max-w-[90%] ${isSimpleMode ? 'text-slate-500' : 'text-brand-primary/80'}`}
+                        >
+                            {isSimpleMode
+                                ? "Parámetros optimizados automáticamente para obtener la mejor relación velocidad/calidad sin complicaciones."
+                                : "Control total sobre el material, altura de capa, relleno y otros parámetros avanzados de impresión."}
+                        </motion.p>
+                    </AnimatePresence>
+                </div>
+            </div>
 
             {/* Printer Info (Step 0) - Información Informativa */}
             <div className="space-y-3">
@@ -109,98 +160,100 @@ export const Configurator = ({ config, geometry, onChange }) => {
                 </motion.div>
             </div >
 
-            {/* Material Selection (Pills Style) */}
-            < div className="space-y-3" >
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">1</div>
-                    <label className="text-sm font-bold text-gray-800 tracking-wide">Material</label>
-                </div>
+            {/* Material Selection (Pills Style) - OCULTO EN MODO SIMPLE */}
+            {!isSimpleMode && (
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">1</div>
+                        <label className="text-sm font-bold text-gray-800 tracking-wide">Material</label>
+                    </div>
 
-                <motion.div
-                    layout
-                    className={`
+                    <motion.div
+                        layout
+                        className={`
                         grid gap-3
                         ${config.material
-                            ? 'grid-cols-1 sm:grid-cols-[1.3fr_0.7fr] items-stretch'
-                            : 'grid-cols-1 sm:grid-cols-2 items-start'
-                        }
+                                ? 'grid-cols-1 sm:grid-cols-[1.3fr_0.7fr] items-stretch'
+                                : 'grid-cols-1 sm:grid-cols-2 items-start'
+                            }
                     `}
-                >
-                    {Object.values(MATERIALS).map((mat) => {
-                        const isSelected = config.material === mat.id;
-                        return (
-                            <motion.button
-                                layout
-                                key={mat.id}
-                                onClick={() => onChange({ material: isSelected ? null : mat.id })}
-                                style={{ order: isSelected ? -1 : 1 }}
-                                initial={false}
-                                animate={{
-                                    backgroundColor: isSelected ? 'rgba(241, 196, 15, 0.05)' : '#ffffff',
-                                    borderColor: isSelected ? 'var(--color-brand-accent)' : '#cbd5e1'
-                                }}
-                                whileHover={{ scale: 1.02, borderColor: isSelected ? 'var(--color-brand-accent)' : 'var(--color-brand-accent)' }}
-                                whileTap={{ scale: 0.98 }}
-                                transition={{ type: "spring", stiffness: 120, damping: 20 }} // Ultra smooth
-                                className={`
+                    >
+                        {Object.values(MATERIALS).map((mat) => {
+                            const isSelected = config.material === mat.id;
+                            return (
+                                <motion.button
+                                    layout
+                                    key={mat.id}
+                                    onClick={() => onChange({ material: isSelected ? null : mat.id })}
+                                    style={{ order: isSelected ? -1 : 1 }}
+                                    initial={false}
+                                    animate={{
+                                        backgroundColor: isSelected ? 'rgba(241, 196, 15, 0.05)' : '#ffffff',
+                                        borderColor: isSelected ? 'var(--color-brand-accent)' : '#cbd5e1'
+                                    }}
+                                    whileHover={{ scale: 1.02, borderColor: isSelected ? 'var(--color-brand-accent)' : 'var(--color-brand-accent)' }}
+                                    whileTap={{ scale: 0.98 }}
+                                    transition={{ type: "spring", stiffness: 120, damping: 20 }} // Ultra smooth
+                                    className={`
                                     relative px-4 rounded-2xl border-2 text-left group overflow-hidden flex flex-col justify-center
                                     ${isSelected ? 'py-6 sm:row-span-3 h-full shadow-md' : 'py-3 hover:shadow-md'}
                                 `}
-                            >
-                                {mat.id === 'PLA' && (
-                                    <div className={`absolute top-0 right-0 ${isSelected ? 'p-2' : 'p-1'}`}>
-                                        <div className={`bg-brand-accent text-white font-bold rounded-bl-xl shadow-sm flex items-center justify-center ${isSelected ? 'px-3 py-1 text-[10px]' : 'w-4 h-4 rounded-tr-lg'}`}>
-                                            {isSelected ? 'MÁS COMÚN' : <span className="text-[8px]">★</span>}
+                                >
+                                    {mat.id === 'PLA' && (
+                                        <div className={`absolute top-0 right-0 ${isSelected ? 'p-2' : 'p-1'}`}>
+                                            <div className={`bg-brand-accent text-white font-bold rounded-bl-xl shadow-sm flex items-center justify-center ${isSelected ? 'px-3 py-1 text-[10px]' : 'w-4 h-4 rounded-tr-lg'}`}>
+                                                {isSelected ? 'MÁS COMÚN' : <span className="text-[8px]">★</span>}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                <motion.div layout="position" className="flex justify-between items-center relative z-10 w-full mb-1">
-                                    <motion.span
-                                        layout="position"
-                                        className={`font-bold text-sm ${isSelected ? 'text-brand-primary text-lg mb-1' : 'text-brand-dark group-hover:text-brand-primary'}`}
-                                    >
-                                        {mat.name}
-                                    </motion.span>
-
-                                    <motion.div layout="position">
-                                        {isSelected ? (
-                                            <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)] self-start mt-2"></div>
-                                        ) : (
-                                            <div className="w-2 h-2 rounded-full bg-slate-200 group-hover:bg-brand-primary/30 transition-colors"></div>
-                                        )}
-                                    </motion.div>
-                                </motion.div>
-
-                                <AnimatePresence>
-                                    {isSelected && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0, y: 10 }} // Empieza abajo e invisible
-                                            animate={{ opacity: 1, height: "auto", y: 0 }} // Sube y aparece
-                                            exit={{ opacity: 0, height: 0, y: -10, transition: { duration: 0.2 } }} // Sale rápido
-                                            transition={{
-                                                duration: 0.4,
-                                                delay: 0.2, // ESPERAR a que la tarjeta se expanda
-                                                ease: "easeOut"
-                                            }}
-                                            className="overflow-hidden"
-                                        >
-                                            <p className="text-xs leading-relaxed text-brand-primary/90 font-medium pt-2">
-                                                {mat.description}
-                                            </p>
-                                        </motion.div>
                                     )}
-                                </AnimatePresence>
-                            </motion.button>
-                        );
-                    })}
-                </motion.div>
-            </div >
+                                    <motion.div layout="position" className="flex justify-between items-center relative z-10 w-full mb-1">
+                                        <motion.span
+                                            layout="position"
+                                            className={`font-bold text-sm ${isSelected ? 'text-brand-primary text-lg mb-1' : 'text-brand-dark group-hover:text-brand-primary'}`}
+                                        >
+                                            {mat.name}
+                                        </motion.span>
+
+                                        <motion.div layout="position">
+                                            {isSelected ? (
+                                                <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary),0.5)] self-start mt-2"></div>
+                                            ) : (
+                                                <div className="w-2 h-2 rounded-full bg-slate-200 group-hover:bg-brand-primary/30 transition-colors"></div>
+                                            )}
+                                        </motion.div>
+                                    </motion.div>
+
+                                    <AnimatePresence>
+                                        {isSelected && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0, y: 10 }} // Empieza abajo e invisible
+                                                animate={{ opacity: 1, height: "auto", y: 0 }} // Sube y aparece
+                                                exit={{ opacity: 0, height: 0, y: -10, transition: { duration: 0.2 } }} // Sale rápido
+                                                transition={{
+                                                    duration: 0.4,
+                                                    delay: 0.2, // ESPERAR a que la tarjeta se expanda
+                                                    ease: "easeOut"
+                                                }}
+                                                className="overflow-hidden"
+                                            >
+                                                <p className="text-xs leading-relaxed text-brand-primary/90 font-medium pt-2">
+                                                    {mat.description}
+                                                </p>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </motion.button>
+                            );
+                        })}
+                    </motion.div>
+                </div>
+            )}
 
             {/* Color Selection (Visual Circles - Dynamic) */}
-            < div className="space-y-3" >
+            <div className="space-y-3">
                 <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">2</div>
+                        <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">{isSimpleMode ? 1 : 2}</div>
                         <label className="text-sm font-bold text-gray-800 tracking-wide">Color</label>
                     </div>
                     {/* Contador de Stock */}
@@ -320,34 +373,42 @@ export const Configurator = ({ config, geometry, onChange }) => {
                         </div>
                     )
                 }
-            </div >
+            </div>
 
-            {/* Quality Selector - NEW */}
-            < div className="space-y-3" >
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">3</div>
-                    <label className="text-sm font-bold text-gray-800 tracking-wide">Calidad</label>
-                </div>
-                <QualitySelector
-                    value={config.qualityId}
-                    onChange={onChange}
-                />
-            </div >
+            {/* Quality Selector - NEW (OCULTO EN MODO SIMPLE) */}
+            {
+                !isSimpleMode && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">3</div>
+                            <label className="text-sm font-bold text-gray-800 tracking-wide">Calidad</label>
+                        </div>
+                        <QualitySelector
+                            value={config.qualityId}
+                            onChange={onChange}
+                        />
+                    </div>
+                )
+            }
 
-            {/* Infill Selector - NEW */}
-            < div className="space-y-3" >
-                <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">4</div>
-                    <label className="text-sm font-bold text-gray-800 tracking-wide">Relleno</label>
-                </div>
-                <InfillSelector
-                    value={config.infill}
-                    onChange={(newInfill) => onChange({ infill: newInfill })}
-                />
-            </div >
+            {/* Infill Selector - NEW (OCULTO EN MODO SIMPLE) */}
+            {
+                !isSimpleMode && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">4</div>
+                            <label className="text-sm font-bold text-gray-800 tracking-wide">Relleno</label>
+                        </div>
+                        <InfillSelector
+                            value={config.infill}
+                            onChange={(newInfill) => onChange({ infill: newInfill })}
+                        />
+                    </div>
+                )
+            }
 
             {/* Quantity */}
-            < div className="flex items-center justify-between pt-4 border-t border-dashed border-brand-light/60" >
+            <div className="flex items-center justify-between pt-4 border-t border-dashed border-brand-light/60">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-accent/10 text-brand-accent text-xs font-bold ring-1 ring-brand-accent/20">#</div>
                     <label className="text-sm font-bold text-gray-800 tracking-wide">Copias</label>
@@ -365,7 +426,7 @@ export const Configurator = ({ config, geometry, onChange }) => {
                         onClick={() => onChange({ quantity: config.quantity + 1 })}
                     >+</motion.button>
                 </div>
-            </div >
+            </div>
 
         </div >
     );
