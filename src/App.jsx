@@ -186,17 +186,15 @@ const App = () => {
       return {
         weightGrams: quoteData.peso,
         timeHours: quoteData.tiempoHoras,
-        pesoSoportes: quoteData.pesoSoportes || 0
+        tieneSoportes: quoteData.tieneSoportes || false,
+        pesoSoportes: 0 // Deprecated
       };
     }
 
     // 2. CASO GIGANTE / FALLBACK: Usamos geometría pura
     // Peso = Volumen * Densidad(1.24) * Factor_Consolidado(Relleno + Paredes + Soportes)
     const densityFactor = 0.45 + (config.infill / 200);
-    const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale; // Corregir por escala si aplica (aunque geometry ya debería ser scaled?)
-    // NOTA: localGeometry es del STL original. Si autoScale != 1, hay que ajustar volumen.
-    // Pero espera, Viewer3D pasa geometry original. 
-    // Mejor usamos localGeometry.volumeCm3 * (autoScale^3).
+    const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale;
 
     // Tiempo: Regla de 3 simple conservadora (ej. 40g/hora)
     const time = weight / 40;
@@ -204,7 +202,7 @@ const App = () => {
     return {
       weightGrams: weight,
       timeHours: time,
-      pesoSoportes: weight * 0.15, // Asumimos 15% soportes genérico
+      tieneSoportes: false, // En fallback asumimos NO hasta demostrar lo contrario
       isEstimated: true
     };
   };
@@ -215,11 +213,9 @@ const App = () => {
     ...calculatePriceFromStats(config, stats),
     // Agregar volumen real del STL para transparencia
     volumeStlCm3: localGeometry.volumeCm3,
-    // Info de Soportes para UI
-    supportsInfo: {
-      percentage: stats.weightGrams > 0 ? (stats.pesoSoportes / stats.weightGrams) * 100 : 0,
-      weight: stats.pesoSoportes
-    },
+    // Propiedad directa para UI de soportes
+    tieneSoportes: stats.tieneSoportes,
+    pesoSoportes: 0, // Legacy support to avoid crashes if used elsewhere
     // Agregar dimensiones para el desglose
     dimensions: localGeometry.dimensions ? {
       x: (localGeometry.dimensions.x / 10).toFixed(2), // mm a cm
@@ -231,14 +227,7 @@ const App = () => {
   // === DEBUG DE PRECIOS (Solo Consola) ===
   useEffect(() => {
     if (estimateForUI) {
-      console.groupCollapsed('💰 Debug de Precios (Interno)');
-      console.log(`⚖️ Peso Total: ${estimateForUI.weightGrams.toFixed(2)}g`);
-      console.log(`🏗️ Soportes: ${estimateForUI.supportsInfo.weight.toFixed(2)}g (${estimateForUI.supportsInfo.percentage.toFixed(1)}%)`);
-
-      // Calcular factor inverso para mostrar
-      // precioTotal aprox = (material + tiempo*Factor) ... es complejo deducirlo exacto, mejor mostramos lo que hay
-      console.log(`ℹ️ Si el % es > 5% se aplica recargo. % Actual: ${estimateForUI.supportsInfo.percentage.toFixed(1)}%`);
-      console.groupEnd();
+      console.log('💰 Nueva Estimación UI:', estimateForUI);
     }
   }, [estimateForUI]);
 

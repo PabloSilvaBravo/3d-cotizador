@@ -283,7 +283,7 @@ async function processSlicing(job) {
             `--travel-speed 400`,
             `--first-layer-speed 50`,
             `--support-material`,
-            `--support-material-threshold 30`,
+            `--support-material-threshold 0`, // 0 = Automático (Recomendado)
             `--temperature ${nozzleTemp}`,
             `--bed-temperature ${bedTemp}`,
             `--filament-diameter 1.75`,
@@ -369,15 +369,14 @@ async function processSlicing(job) {
             }
 
             // =========================================================
-            //  DETECCIÓN SIMPLE DE SOPORTES (CORREGIDO)
+            //  DETECCIÓN DE SOPORTES (VERSIÓN ROBUSTA/REGEX)
             // =========================================================
-            // Buscamos solo las etiquetas de cambio de tipo de impresión.
-            // PrusaSlicer usa ";TYPE:Support material" o ";TYPE:Support material interface"
-            // cuando realmente está imprimiendo soportes.
+            // Usamos Regex para tolerar espacios extra como ";TYPE: Support" 
+            // y asegurarnos de no leer la configuración del final.
 
-            const tieneSoportes =
-                gcodeContent.includes(';TYPE:Support material') ||
-                gcodeContent.includes(';TYPE:Support material interface');
+            // Busca líneas que empiecen con ";TYPE:" seguido opcionalmente de espacios
+            // y luego la palabra "Support" (sin importar mayúsculas/minúsculas).
+            const tieneSoportes = /;TYPE:\s*Support/i.test(gcodeContent);
 
             console.log(`   🔍 Detección de soportes: ${tieneSoportes ? '✅ SÍ requiere soportes' : '❌ NO requiere soportes'}`);
 

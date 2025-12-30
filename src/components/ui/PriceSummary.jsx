@@ -140,17 +140,10 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                                 </span>
                             </div>
 
-                            <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
-                                <span className="text-slate-500 font-medium">¿Soportes?</span>
-                                <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider ${estimate.pesoSoportes > 0 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                                    {estimate.pesoSoportes > 0 ? 'SÍ' : 'NO'}
-                                </span>
-                            </div>
-
-                            <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
-                                <span className="text-slate-500 font-medium">Peso Soportes</span>
-                                <span className="font-mono font-bold text-slate-700">
-                                    {estimate.pesoSoportes > 0 ? `${estimate.pesoSoportes.toFixed(1)} g` : '0 g'}
+                            <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
+                                <span className="text-slate-500 font-medium">¿Requiere Soportes?</span>
+                                <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider ${estimate.tieneSoportes ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                    {estimate.tieneSoportes ? 'SÍ' : 'NO'}
                                 </span>
                             </div>
 
