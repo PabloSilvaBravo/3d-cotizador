@@ -410,3 +410,70 @@ export async function autoOrientSTL(inputPath, outputPath) {
         }
     });
 }
+
+/**
+ * Obtiene las dimensiones (Bounding Box) de un archivo STL binario
+ * @param {string} inputPath - Ruta al archivo STL
+ * @returns {Promise<{x: number, y: number, z: number, min: {x:number,y:number,z:number}, max: {x:number,y:number,z:number}}>}
+ */
+export async function getStlBounds(inputPath) {
+    return new Promise((resolve, reject) => {
+        try {
+            const buffer = fs.readFileSync(inputPath);
+
+            if (buffer.length < 84) {
+                return reject(new Error('Archivo STL demasiado pequeño o inválido'));
+            }
+
+            const triangleCount = buffer.readUInt32LE(80);
+
+            let minX = Infinity, minY = Infinity, minZ = Infinity;
+            let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+            let offset = 84;
+            for (let i = 0; i < triangleCount; i++) {
+                // Leer 3 vértices (cada uno tiene 3 floats: x, y, z)
+                // V1
+                const v1x = buffer.readFloatLE(offset + 12);
+                const v1y = buffer.readFloatLE(offset + 16);
+                const v1z = buffer.readFloatLE(offset + 20);
+
+                // V2
+                const v2x = buffer.readFloatLE(offset + 24);
+                const v2y = buffer.readFloatLE(offset + 28);
+                const v2z = buffer.readFloatLE(offset + 32);
+
+                // V3
+                const v3x = buffer.readFloatLE(offset + 36);
+                const v3y = buffer.readFloatLE(offset + 40);
+                const v3z = buffer.readFloatLE(offset + 44);
+
+                // Actualizar bounds
+                minX = Math.min(minX, v1x, v2x, v3x);
+                minY = Math.min(minY, v1y, v2y, v3y);
+                minZ = Math.min(minZ, v1z, v2z, v3z);
+
+                maxX = Math.max(maxX, v1x, v2x, v3x);
+                maxY = Math.max(maxY, v1y, v2y, v3y);
+                maxZ = Math.max(maxZ, v1z, v2z, v3z);
+
+                offset += 50;
+            }
+
+            const width = maxX - minX;
+            const depth = maxY - minY;
+            const height = maxZ - minZ;
+
+            resolve({
+                x: parseFloat(width.toFixed(2)),
+                y: parseFloat(depth.toFixed(2)),
+                z: parseFloat(height.toFixed(2)),
+                min: { x: minX, y: minY, z: minZ },
+                max: { x: maxX, y: maxY, z: maxZ }
+            });
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}

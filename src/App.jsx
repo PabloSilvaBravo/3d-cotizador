@@ -14,6 +14,8 @@ import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale 
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import FileAvailabilitySelector from './components/FileAvailabilitySelector';
+import CircuitBackground from './components/CircuitBackground';
+import StepIndicator from './components/ui/StepIndicator';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -247,6 +249,7 @@ const App = () => {
   if (!file) {
     return (
       <div className="min-h-screen flex flex-col bg-brand-light font-sans text-brand-dark overflow-hidden relative">
+        <CircuitBackground />
         <Header />
 
         <div className="flex-1 flex flex-col justify-center items-center px-4 relative z-10">
@@ -272,16 +275,29 @@ const App = () => {
               )}
 
               {userHasFile === true && (
-                <motion.div
-                  key="upload"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white mt-10"
-                >
-                  <FileUpload onFileSelect={handleFileSelect} />
-                </motion.div>
+                <>
+                  <motion.div
+                    key="step-indicator"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="text-center mb-6"
+                  >
+                    <StepIndicator currentStep={2} />
+                  </motion.div>
+
+                  <motion.div
+                    key="upload"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                    className="w-full max-w-4xl bg-white/60 backdrop-blur-xl p-3 rounded-[2rem] shadow-2xl border border-white"
+                  >
+                    <FileUpload onFileSelect={handleFileSelect} onBack={() => setUserHasFile(null)} />
+                  </motion.div>
+                </>
               )}
 
               {userHasFile === false && (
@@ -334,7 +350,7 @@ const App = () => {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="w-full lg:w-[65%] h-full relative p-4 lg:p-2 bg-transparent flex flex-col z-0 overflow-hidden"
       >
-        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-900/5 group h-full">
+        <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-200/50 group h-full">
           <div className="absolute top-6 left-6 z-20 flex items-center gap-3">
             <button
               onClick={handleReset}
@@ -343,6 +359,7 @@ const App = () => {
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
+            <StepIndicator currentStep={3} />
             <div className="bg-white/90 backdrop-blur border border-slate-200 px-4 py-2 rounded-xl text-slate-700 font-bold text-sm shadow-sm flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
               {file.name}
@@ -375,20 +392,19 @@ const App = () => {
         </div>
       </motion.div>
 
-      {/* RIGHT COLUMN: CONFIGURATION (SCROLLABLE) */}
       <motion.div
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
-        className="w-full lg:w-[35%] h-full bg-white/80 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(0,0,0,0.1)] z-10 flex flex-col border-l border-white/50 overflow-hidden"
+        className="w-full lg:w-[35%] h-full bg-white/60 backdrop-blur-xl shadow-[-20px_0_40px_-10px_rgba(148,163,184,0.15)] z-10 flex flex-col border-l border-slate-200/50 overflow-hidden rounded-l-3xl"
       >
-        <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur z-20">
+        <div className="px-8 py-6 border-b border-slate-200/50 flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur z-20">
           <div>
-            <h2 className="text-2xl font-black text-brand-secondary tracking-tight">Cotización</h2>
-            <p className="text-xs text-slate-400 font-medium tracking-wide uppercase mt-1">Configura tu impresión</p>
+            <h2 className="text-2xl font-black text-slate-700 tracking-tight">Cotización</h2>
+            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase mt-1">Configura tu impresión</p>
           </div>
           <div className="w-8 h-8 rounded-full flex items-center justify-center">
-            <svg className="w-4 h-4 text-brand-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
           </div>
         </div>
 

@@ -8,7 +8,7 @@ import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
 import { fileURLToPath } from 'url';
-import { rotateSTL } from './backend/utils/stlRotator.js';
+import { rotateSTL, autoOrientSTL } from './backend/utils/stlRotator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -369,68 +369,17 @@ async function processSlicing(job) {
             }
 
             // =========================================================
-            // CÁLCULO PROPORCIONAL DE SOPORTES (MÉTODO OPTIMIZADO)
+            //  DETECCIÓN SIMPLE DE SOPORTES (CORREGIDO)
             // =========================================================
+            // Buscamos solo las etiquetas de cambio de tipo de impresión.
+            // PrusaSlicer usa ";TYPE:Support material" o ";TYPE:Support material interface"
+            // cuando realmente está imprimiendo soportes.
 
-            let pesoSoportes = 0;
+            const tieneSoportes =
+                gcodeContent.includes(';TYPE:Support material') ||
+                gcodeContent.includes(';TYPE:Support material interface');
 
-            // 1. Obtener longitud total de filamento (dato duro de Prusa)
-            let totalFilamentMm = 0;
-            const matchTotalMm = gcodeContent.match(/; filament used \[mm\] = (\d+(\.\d+)?)/);
-            if (matchTotalMm) {
-                totalFilamentMm = parseFloat(matchTotalMm[1]);
-                console.log(`   📏 Total Filamento detectado: ${totalFilamentMm.toFixed(1)} mm`);
-            } else {
-                console.log(`   ⚠️ No se detectó "filament used [mm]" en el G-code`);
-            }
-
-            // 2. Sumar longitud de filamento dedicado a soportes
-            // PrusaSlicer reporta features individuales en el formato:
-            // "; support material = XXX.XX mm" o "; support material interface = XXX.XX mm"
-            let supportFilamentMm = 0;
-
-            // Regex flexible que captura:
-            // - "support material = XXX mm"
-            // - "support material interface = XXX mm"
-            // - "support material: XXX mm" (variante con dos puntos)
-            const regexSupport = /;\s*support material(?: interface)?.*?[:=]\s*(\d+(\.\d+)?)\s*mm/gi;
-            let matchSupport;
-            let supportMatchCount = 0;
-
-            while ((matchSupport = regexSupport.exec(gcodeContent)) !== null) {
-                const mmValue = parseFloat(matchSupport[1]);
-                if (!isNaN(mmValue)) {
-                    supportFilamentMm += mmValue;
-                    supportMatchCount++;
-                }
-            }
-
-            console.log(`   🔍 Líneas de soporte detectadas: ${supportMatchCount}, Total: ${supportFilamentMm.toFixed(1)} mm`);
-
-            // 3. Aplicar Método Proporcional
-            if (pesoTotal > 0 && totalFilamentMm > 0 && supportFilamentMm > 0) {
-                // Fórmula: PesoSoportes = PesoTotal × (LongitudSoportes / LongitudTotal)
-                const ratio = supportFilamentMm / totalFilamentMm;
-                pesoSoportes = pesoTotal * ratio;
-
-                console.log(`   📐 Método Proporcional:`);
-                console.log(`      Total Filamento: ${totalFilamentMm.toFixed(1)} mm`);
-                console.log(`      Soporte Filamento: ${supportFilamentMm.toFixed(1)} mm`);
-                console.log(`      Ratio: ${(ratio * 100).toFixed(1)}%`);
-                console.log(`      ✓ Peso Soportes: ${pesoSoportes.toFixed(2)}g (${(ratio * 100).toFixed(1)}% del total)`);
-            } else if (supportFilamentMm === 0) {
-                // No hay soportes en este modelo
-                console.log(`   ✓ Modelo sin soportes`);
-            } else {
-                // Fallback: Si no tenemos datos de longitud, intentar volumen
-                const matchSupportVol = gcodeContent.match(/; support material(?: volume)?.*?[:=]\s*(\d+(\.\d+)?)\s*cm3/i);
-                if (matchSupportVol && volumen > 0) {
-                    const supportVol = parseFloat(matchSupportVol[1]);
-                    const volRatio = supportVol / volumen;
-                    pesoSoportes = pesoTotal * volRatio;
-                    console.log(`   ⚠️ Fallback (Volumen): Soportes ${pesoSoportes.toFixed(2)}g`);
-                }
-            }
+            console.log(`   🔍 Detección de soportes: ${tieneSoportes ? '✅ SÍ requiere soportes' : '❌ NO requiere soportes'}`);
 
             // --- CÁLCULO DE TIEMPO Y DIMENSIONES ---
             const timePattern = /; estimated printing time(?: \(normal mode\))? = (.*)/i;
@@ -455,9 +404,28 @@ async function processSlicing(job) {
                 tiempoTexto = `${Math.floor(tm / 60)}h ${tm % 60}m`;
             }
 
+            // CORRECCIÓN DIMENSIONES:
+            // PrusaSlicer no pone el bounding box en el GCode.
+            // Intentamos recuperar la altura Z máxima real del GCode si existe,
+            // si no, confiamos en lo que diga el frontend o el análisis previo del STL.
+
             let dimensions = null;
-            const bBox = gcodeContent.match(/; bounding box: X: \[[\d.-]+,([\d.-]+)\], Y: \[[\d.-]+,([\d.-]+)\], Z: \[[\d.-]+,([\d.-]+)\]/);
-            if (bBox) dimensions = { x: parseFloat(bBox[1]), y: parseFloat(bBox[2]), z: parseFloat(bBox[3]) };
+
+            // Intentar leer altura máxima de impresión (común en PrusaSlicer moderno)
+            const maxZMatch = gcodeContent.match(/; max_layer_z = ([\d\.]+)/);
+            let realZ = maxZMatch ? parseFloat(maxZMatch[1]) : 0;
+
+            // Si tenías bounds calculados previamente (debes pasarlos en el objeto job)
+            if (job.preCalculatedBounds) {
+                dimensions = {
+                    ...job.preCalculatedBounds,
+                    // Si encontramos Z real en gcode, la usamos (es más precisa porque incluye soportes/balsas)
+                    z: realZ > job.preCalculatedBounds.z ? realZ : job.preCalculatedBounds.z
+                };
+            } else {
+                // Fallback si no hay datos previos: solo podemos garantizar la altura Z
+                dimensions = { x: 0, y: 0, z: realZ };
+            }
 
             // RESULTADO FINAL
             const result = {
@@ -566,9 +534,20 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
 
     const fileHash = getFileHash(slicingInputPath);
 
+
+    // Calcular dimensiones (Bounding Box) PREVIO al slicing para mayor precisión
+    let detectedBounds = null;
+    try {
+        detectedBounds = await calcStlBounds(slicingInputPath);
+        log('INFO', 'Dimensiones STL calculadas:', detectedBounds);
+    } catch (err) {
+        log('WARN', 'No se pudieron calcular dimensiones previas:', err.message);
+    }
+
     // Añadir a cola
     const jobPromise = new Promise((resolve, reject) => {
         jobQueue.push({
+            preCalculatedBounds: detectedBounds, // <--- Nueva propiedad
             inputPath: slicingInputPath,
             auxStlPath: auxStlPath, // Pasamos el path auxiliar para bounds
             configPath,
@@ -603,6 +582,69 @@ app.post('/api/quote', upload.single('file'), async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+/**
+ * Función local para calcular dimensiones STL (Bounding Box) directamente del binario
+ */
+async function calcStlBounds(inputPath) {
+    return new Promise((resolve, reject) => {
+        try {
+            const buffer = fs.readFileSync(inputPath);
+
+            if (buffer.length < 84) {
+                return reject(new Error('Archivo STL demasiado pequeño o inválido'));
+            }
+
+            const triangleCount = buffer.readUInt32LE(80);
+
+            let minX = Infinity, minY = Infinity, minZ = Infinity;
+            let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+
+            let offset = 84;
+            for (let i = 0; i < triangleCount; i++) {
+                // V1
+                const v1x = buffer.readFloatLE(offset + 12);
+                const v1y = buffer.readFloatLE(offset + 16);
+                const v1z = buffer.readFloatLE(offset + 20);
+
+                // V2
+                const v2x = buffer.readFloatLE(offset + 24);
+                const v2y = buffer.readFloatLE(offset + 28);
+                const v2z = buffer.readFloatLE(offset + 32);
+
+                // V3
+                const v3x = buffer.readFloatLE(offset + 36);
+                const v3y = buffer.readFloatLE(offset + 40);
+                const v3z = buffer.readFloatLE(offset + 44);
+
+                minX = Math.min(minX, v1x, v2x, v3x);
+                minY = Math.min(minY, v1y, v2y, v3y);
+                minZ = Math.min(minZ, v1z, v2z, v3z);
+
+                maxX = Math.max(maxX, v1x, v2x, v3x);
+                maxY = Math.max(maxY, v1y, v2y, v3y);
+                maxZ = Math.max(maxZ, v1z, v2z, v3z);
+
+                offset += 50;
+            }
+
+            const width = maxX - minX;
+            const depth = maxY - minY;
+            const height = maxZ - minZ;
+
+            resolve({
+                x: parseFloat(width.toFixed(2)),
+                y: parseFloat(depth.toFixed(2)),
+                z: parseFloat(height.toFixed(2)),
+                min: { x: minX, y: minY, z: minZ },
+                max: { x: maxX, y: maxY, z: maxZ }
+            });
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
 
 // === HEALTH CHECK ===
 app.get('/health', (req, res) => {
