@@ -8,7 +8,9 @@ import Configurator from './components/ui/Configurator';
 import PriceSummary from './components/ui/PriceSummary';
 import ScaleControl from './components/ui/ScaleControl';
 import OrderModal from './components/OrderModal';
-import { DEFAULT_CONFIG, COLORS } from './utils/constants';
+import { DEFAULT_CONFIG, COLORS, MATERIALS, QUALITIES } from './utils/constants'; // Actualizar import
+import { enviarCorreo } from './services/emailService';
+import { uploadToDrive } from './services/driveService';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
 import { Header } from './components/layout/Header';
@@ -178,13 +180,194 @@ const App = () => {
   }
 
   const handleOrderSubmit = async (customerData) => {
-    console.log("Order Submitted:", { ...customerData, file, config, quoteData });
+    console.log("Procesando envío de pedido...", { ...customerData, file, config, quoteData });
+
+    // 1. Subir a Drive primero (Crítico para que Ventas tenga el archivo)
+    let driveLink = null;
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setIsModalOpen(false);
-      setIsSuccess(true);
+      // Podríamos mostrar un estado de "Subiendo archivo..." aquí si tuviéramos un toast
+      console.log("Iniciando carga a Drive...");
+      const resultUrl = await uploadToDrive(file);
+      driveLink = resultUrl;
+    } catch (err) {
+      console.error("Error subiendo a Drive:", err);
+      // Opcional: Decidir si abortar o seguir. 
+      // Por ahora seguimos pero el link será null (se notará en el correo)
+      // alert("Advertencia: No se pudo subir el archivo a la nube. Se enviará sin enlace.");
+    }
+
+    // Obtener nombres legibles
+    const materialName = MATERIALS[config.material]?.name || config.material;
+    const qualityName = QUALITIES.find(q => q.id === config.qualityId)?.name || config.qualityId;
+    const colorName = config.colorData?.name || COLORS.find(c => c.id === config.colorId)?.name || 'Sin especificar';
+
+    // Calcular dimensiones finales
+    const finalDims = {
+      x: (localGeometry?.size?.x || 0) * autoScale,
+      y: (localGeometry?.size?.y || 0) * autoScale,
+      z: (localGeometry?.size?.z || 0) * autoScale,
+    };
+    const dimsStr = `${finalDims.x.toFixed(1)} x ${finalDims.y.toFixed(1)} x ${finalDims.z.toFixed(1)} mm`;
+    const volStr = `${(quoteData?.volumen || 0).toFixed(2)} cm³`;
+    const scaleStr = `${(autoScale * 100).toFixed(0)}%`;
+
+    const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+
+    const htmlBody = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+        
+        <!-- HEADER ESTILO REFERENCIA -->
+        <div style="background-color: #6017b1; padding: 25px 30px; color: white;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <h1 style="margin: 0; font-size: 20px; font-weight: 700; text-transform: uppercase; color: #fbbf24; letter-spacing: 0.5px;">Nueva Cotización Web</h1>
+                <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9; color: #e9d5ff;">Solicitud Cotizador 3D</p>
+              </td>
+              <td align="right" valign="top">
+                 <div style="color: #ffffff; font-weight: 700; font-size: 14px;">${dateStr}</div>
+                 <div style="color: #e9d5ff; font-size: 12px; margin-top: 2px;">${timeStr}</div>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="padding: 35px;">
+        
+          <!-- SECCION: DATOS CLIENTE -->
+          <div style="background-color: #faf5ff; border-left: 5px solid #7c3aed; padding: 12px 15px; margin-bottom: 25px;">
+             <h3 style="margin: 0; color: #5b21b6; font-size: 13px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Datos del Cliente</h3>
+          </div>
+
+          <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 10px;">
+             <tr>
+               <td width="33%" valign="top" style="padding-bottom: 20px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">NOMBRE</div>
+                 <div style="font-size: 15px; color: #334155; font-weight: 700; text-transform: uppercase;">${customerData.name}</div>
+               </td>
+               <td width="33%" valign="top" style="padding-bottom: 20px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">EMAIL</div>
+                 <div style="font-size: 15px; color: #4338ca; font-weight: 600;">${customerData.email}</div>
+               </td>
+               <td width="33%" valign="top" style="padding-bottom: 20px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TELÉFONO</div>
+                 <div style="font-size: 15px; color: #334155; font-weight: 500;">${customerData.phone}</div>
+               </td>
+             </tr>
+             ${customerData.comments ? `
+             <tr>
+               <td colspan="3">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">COMENTARIOS</div>
+                 <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; color: #475569; font-style: italic;">
+                   "${customerData.comments}"
+                 </div>
+               </td>
+             </tr>` : ''}
+          </table>
+
+          <div style="height: 20px;"></div>
+
+          <!-- SECCION: ESPECIFICACIONES -->
+          <div style="background-color: #faf5ff; border-left: 5px solid #7c3aed; padding: 12px 15px; margin-bottom: 25px;">
+             <h3 style="margin: 0; color: #5b21b6; font-size: 13px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Especificaciones Técnicas</h3>
+          </div>
+          
+          <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+             <tr>
+               <td width="50%" valign="top" style="padding-bottom: 20px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ARCHIVO 3D</div>
+                 <div style="font-size: 14px; color: #334155; font-weight: 700;">${file.name}</div>
+                 ${driveLink
+        ? `<div style="margin-top: 6px;"><a href="${driveLink}" style="color: #2563eb; font-weight: 600; font-size: 12px; text-decoration: underline;">📥 Ver en Google Drive</a></div>`
+        : '<div style="margin-top: 6px; color: #ef4444; font-size: 11px;">(⚠️ Error subida nube)</div>'}
+               </td>
+               <td width="25%" valign="top" style="padding-bottom: 20px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DIMENSIONES</div>
+                 <div style="font-size: 14px; color: #334155; font-family: monospace;">${dimsStr}</div>
+               </td>
+               <td width="25%" valign="top" style="padding-bottom: 20px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">VOLUMEN</div>
+                 <div style="font-size: 14px; color: #334155; font-weight: 700;">${volStr}</div>
+               </td>
+             </tr>
+             <tr>
+               <td width="50%" valign="top" style="padding-bottom: 15px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">MATERIAL & COLOR</div>
+                 <div style="font-size: 14px; color: #334155;">${materialName} - ${colorName}</div>
+               </td>
+               <td width="25%" valign="top" style="padding-bottom: 15px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">RELLENO</div>
+                 <div style="font-size: 14px; color: #334155;">${config.infill}%</div>
+               </td>
+               <td width="25%" valign="top" style="padding-bottom: 15px;">
+                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">CANTIDAD</div>
+                 <div style="font-size: 14px; color: #334155;"><strong>${config.quantity}</strong> un.</div>
+               </td>
+             </tr>
+          </table>
+
+          <!-- COTIZACIÓN RESUMEN -->
+          <div style="border-top: 2px dashed #e2e8f0; margin-top: 10px; padding-top: 25px;">
+             <table width="100%" cellspacing="0" cellpadding="0">
+               <tr>
+                 <td valign="top">
+                    <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TIEMPO EST. IMPRESIÓN</div>
+                    <div style="font-size: 16px; color: #334155; font-weight: 600;">${quoteData?.tiempoTexto || '--'}</div>
+                 </td>
+                 <td valign="top">
+                    <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">PESO EST. TOTAL</div>
+                    <div style="font-size: 16px; color: #334155; font-weight: 600;">${estimateForUI?.weightGrams?.toFixed(1) || 0}g</div>
+                 </td>
+                 <td align="right" valign="top">
+                    <div style="background-color: #fffbeb; border: 1px solid #fcd34d; padding: 15px 25px; border-radius: 8px; display: inline-block; text-align: right;">
+                       <div style="font-size: 11px; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL REFERENCIAL</div>
+                       <div style="font-size: 28px; color: #d97706; font-weight: 800; line-height: 1.2;">$${estimateForUI?.totalPrice?.toLocaleString('es-CL') || 0}</div>
+                       <div style="font-size: 10px; color: #b45309; opacity: 0.8; margin-top: 2px;">+ IVA INCLUIDO EN ESTIMACIÓN</div>
+                    </div>
+                 </td>
+               </tr>
+             </table>
+          </div>
+
+          <!-- ALERTA IMPORTANTE (ESTILO IMAGEN) -->
+          <div style="margin-top: 40px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
+             <div style="color: #166534; font-size: 13px;">
+               <span style="font-size: 16px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
+               <strong>IMPORTANTE:</strong> Al responder este correo, escribirás directamente al cliente: 
+               <a href="mailto:${customerData.email}" style="color: #2563eb; font-weight: 700; text-decoration: underline;">${customerData.email}</a>
+             </div>
+          </div>
+
+        </div>
+
+        <!-- FOOTER SIMPLE -->
+        <div style="background-color: #f8fafc; padding: 15px; border-top: 2px solid #6017b1; text-align: center;">
+           <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 700;">MechatronicStore B2B - Notificación Interna</p>
+           <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">Generado automát. el ${dateStr} a las ${timeStr}</p>
+        </div>
+
+      </div>
+    `;
+
+    try {
+      const result = await enviarCorreo({
+        to: 'ventas@mechatronicstore.cl',
+        replyTo: customerData.email,
+        subject: `[Cotizador 3D] Pedido de ${customerData.name} - ${file.name}`,
+        body: htmlBody
+      });
+
+      if (result.success) {
+        setIsModalOpen(false);
+        setIsSuccess(true);
+      } else {
+        alert("Hubo un error al enviar el pedido. Por favor intente nuevamente.");
+        console.error("Email error:", result.error);
+      }
     } catch (e) {
-      alert("Error al enviar pedido");
+      console.error("Error crítico enviando pedido:", e);
+      alert("Error de conexión al enviar pedido.");
     }
   };
 
@@ -229,10 +412,11 @@ const App = () => {
     tieneSoportes: stats.tieneSoportes,
     pesoSoportes: 0, // Legacy support to avoid crashes if used elsewhere
     // Agregar dimensiones para el desglose
-    dimensions: localGeometry.dimensions ? {
-      x: (localGeometry.dimensions.x / 10).toFixed(2), // mm a cm
-      y: (localGeometry.dimensions.y / 10).toFixed(2),
-      z: (localGeometry.dimensions.z / 10).toFixed(2)
+    // Agregar dimensiones para el desglose (en mm y escaladas)
+    dimensions: localGeometry?.size ? {
+      x: (localGeometry.size.x * autoScale).toFixed(2),
+      y: (localGeometry.size.y * autoScale).toFixed(2),
+      z: (localGeometry.size.z * autoScale).toFixed(2)
     } : null
   } : null;
 

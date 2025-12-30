@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import os from 'os';
 import { fileURLToPath } from 'url';
 import { rotateSTL, autoOrientSTL } from './backend/utils/stlRotator.js';
+import { uploadFileToDrive } from './backend/driveManager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -659,6 +660,38 @@ app.get('/health', (req, res) => {
         cacheSize: cache.size,
         cacheHitRate: cache.size > 0 ? '~estimado' : 'sin datos'
     });
+});
+
+// === ENDPOINT DRIVE UPLOAD ===
+app.post('/api/upload-drive', upload.single('file'), async (req, res) => {
+    log('INFO', 'Solicitud upload Drive recibida');
+
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se envió archivo' });
+    }
+
+    try {
+        // Subir a Drive usando nuestro manager
+        // Nota: req.file.path es la ruta temporal donde multer guardó el archivo
+        const result = await uploadFileToDrive(req.file.path, req.file.originalname, req.file.mimetype);
+
+        // Limpiar archivo temporal si Multer no lo borra auto (aquí lo mantenemos un poco o dependemos de limpieza periódica)
+        // Por seguridad, no lo borramos inmediatamente si la limpieza periódica se encarga, 
+        // pero DriveManager ya leyó el stream.
+
+        res.json({
+            success: true,
+            driveUrl: result.webViewLink,
+            driveId: result.id
+        });
+
+    } catch (error) {
+        log('ERROR', 'Error subiendo a Drive', { msg: error.message });
+        res.status(500).json({
+            success: false,
+            error: error.message || 'Error interno subiendo a Drive'
+        });
+    }
 });
 
 app.listen(3001, '0.0.0.0', () => {
