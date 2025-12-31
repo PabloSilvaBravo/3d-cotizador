@@ -181,18 +181,20 @@ const App = () => {
   const handleOrderSubmit = async (customerData) => {
     console.log("Procesando envío de pedido...", { ...customerData, file, config, quoteData });
 
-    // 1. Subir a Drive primero (Crítico para que Ventas tenga el archivo)
-    let driveLink = null;
+    // 1. Convertir archivo a Base64 para adjuntarlo al correo
+    let fileBase64 = null;
     try {
-      // Podríamos mostrar un estado de "Subiendo archivo..." aquí si tuviéramos un toast
-      console.log("Iniciando carga a Drive...");
-      const resultUrl = await uploadToDrive(file);
-      driveLink = resultUrl;
+      console.log("Convirtiendo archivo a Base64...");
+      fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
+      console.log("✅ Archivo convertido a Base64");
     } catch (err) {
-      console.error("Error subiendo a Drive:", err);
-      // Opcional: Decidir si abortar o seguir. 
-      // Por ahora seguimos pero el link será null (se notará en el correo)
-      // alert("Advertencia: No se pudo subir el archivo a la nube. Se enviará sin enlace.");
+      console.error("❌ Error convirtiendo archivo:", err);
+      // Continuamos sin adjunto si falla
     }
 
     // Obtener nombres legibles
@@ -354,7 +356,12 @@ const App = () => {
         to: 'ventas@mechatronicstore.cl',
         replyTo: customerData.email,
         subject: `[Cotizador 3D] Pedido de ${customerData.name} - ${file.name}`,
-        body: htmlBody
+        body: htmlBody,
+        attachments: fileBase64 ? [{
+          fileName: file.name,
+          base64: fileBase64,
+          mimeType: file.type || 'application/octet-stream'
+        }] : []
       });
 
       if (result.success) {
