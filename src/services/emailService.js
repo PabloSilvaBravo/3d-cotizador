@@ -10,9 +10,10 @@ const EMAIL_API_URL = 'https://dashboard.mechatronicstore.cl/api/email/send.php'
  * @param {string} [options.cc] - Copia (opcional)
  * @param {string} [options.bcc] - Copia oculta (opcional)
  * @param {string} [options.replyTo] - Responder a (opcional)
+ * @param {Array} [options.attachments] - Array de adjuntos [{fileName, base64, mimeType}]
  * @returns {Promise<{success: boolean, message: string, messageId?: string, error?: string}>}
  */
-export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo }) {
+export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attachments }) {
     try {
         const response = await fetch(EMAIL_API_URL, {
             method: 'POST',
@@ -26,6 +27,7 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo }) {
                 ...(cc && { cc }),
                 ...(bcc && { bcc }),
                 ...(replyTo && { replyTo }),
+                ...(attachments && attachments.length > 0 && { attachments }),
             }),
         });
 

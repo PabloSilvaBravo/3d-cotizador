@@ -10,7 +10,6 @@ import ScaleControl from './components/ui/ScaleControl';
 import OrderModal from './components/OrderModal';
 import { DEFAULT_CONFIG, COLORS, MATERIALS, QUALITIES } from './utils/constants'; // Actualizar import
 import { enviarCorreo } from './services/emailService';
-import { uploadToDrive } from './services/driveService';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
 import { Header } from './components/layout/Header';
@@ -343,8 +342,8 @@ const App = () => {
 
         <!-- FOOTER SIMPLE -->
         <div style="background-color: #f8fafc; padding: 15px; border-top: 2px solid #6017b1; text-align: center;">
-           <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 700;">MechatronicStore B2B - Notificación Interna</p>
-           <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">Generado automát. el ${dateStr} a las ${timeStr}</p>
+           <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 700;">MechatronicStore Cotizaciones 3D</p>
+           <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">Generado el ${dateStr} a las ${timeStr}</p>
         </div>
 
       </div>
