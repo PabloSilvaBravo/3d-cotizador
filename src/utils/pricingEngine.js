@@ -48,6 +48,13 @@ export const calculatePriceFromStats = (config, stats) => {
     // 7. REDONDEO ($100)
     totalUnit = Math.round(totalUnit / 100) * 100;
 
+    // 8. APLICAR PRECIO MÍNIMO ($3000)
+    const MINIMUM_PRICE = 3000;
+    const isMinimumPrice = totalUnit < MINIMUM_PRICE;
+    if (isMinimumPrice) {
+        totalUnit = MINIMUM_PRICE;
+    }
+
     const totalPrice = totalUnit * config.quantity;
 
     return {
@@ -58,6 +65,7 @@ export const calculatePriceFromStats = (config, stats) => {
         unitPrice: totalUnit,
         estimatedTimeHours: stats.timeHours * config.quantity,
         weightGrams: stats.weightGrams,
+        isMinimumPrice, // Flag para mostrar advertencia en UI
         debug: {
             porcentajeSoportes: porcentajeSoportes.toFixed(1) + "%",
             pesoSoportes: pesoSoportes.toFixed(1) + "g",

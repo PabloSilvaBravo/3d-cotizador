@@ -215,6 +215,11 @@ const App = () => {
     const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 
+    // Detectar si se aplicó precio mínimo (necesitamos recalcular o acceder a estimateForUI)
+    const stats = getEstimatedStats();
+    const priceData = stats ? calculatePriceFromStats(config, stats) : null;
+    const isMinimumPrice = priceData?.isMinimumPrice || false;
+
     const htmlBody = `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         
@@ -331,8 +336,19 @@ const App = () => {
              </table>
           </div>
 
+          ${isMinimumPrice ? `
+          <!-- ALERTA PRECIO MÍNIMO -->
+          <div style="margin-top: 30px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 15px;">
+             <div style="color: #92400e; font-size: 13px;">
+               <span style="font-size: 16px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
+               <strong>PRECIO MÍNIMO APLICADO:</strong> Este pedido está bajo nuestro precio mínimo de trabajo ($3.000 CLP). 
+               <strong>El precio final será confirmado al cliente por correo electrónico.</strong>
+             </div>
+          </div>
+          ` : ''}
+
           <!-- ALERTA IMPORTANTE (ESTILO IMAGEN) -->
-          <div style="margin-top: 40px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
+          <div style="margin-top: ${isMinimumPrice ? '20px' : '40px'}; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
              <div style="color: #166534; font-size: 13px;">
                <span style="font-size: 16px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
                <strong>IMPORTANTE:</strong> Al responder este correo, escribirás directamente al cliente: 

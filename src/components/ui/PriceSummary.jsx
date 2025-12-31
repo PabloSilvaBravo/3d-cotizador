@@ -208,6 +208,21 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                                 * Precio referencial. Sujeto a confirmación tras análisis de viabilidad técnica.
                             </p>
                         </div>
+
+                        {/* Alerta de Precio Mínimo */}
+                        {estimate.isMinimumPrice && (
+                            <div className="mt-3 pt-3 border-t border-amber-200 bg-amber-50 rounded-lg p-3 border border-amber-200">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-amber-600 text-lg">⚠️</span>
+                                    <div>
+                                        <p className="text-xs font-bold text-amber-900 mb-1">Precio Mínimo Aplicado</p>
+                                        <p className="text-[10px] text-amber-700 leading-snug">
+                                            Este pedido está bajo nuestro precio mínimo de $3.000. El precio final se confirmará por correo electrónico.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
