@@ -284,9 +284,7 @@ const App = () => {
                <td width="50%" valign="top" style="padding-bottom: 20px;">
                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ARCHIVO 3D</div>
                  <div style="font-size: 14px; color: #334155; font-weight: 700;">${file.name}</div>
-                 ${driveLink
-        ? `<div style="margin-top: 6px;"><a href="${driveLink}" style="color: #2563eb; font-weight: 600; font-size: 12px; text-decoration: underline;">📥 Ver en Google Drive</a></div>`
-        : '<div style="margin-top: 6px; color: #ef4444; font-size: 11px;">(⚠️ Error subida nube)</div>'}
+                 <div style="margin-top: 6px; color: #059669; font-size: 11px;">📎 Adjunto en este correo</div>
                </td>
                <td width="25%" valign="top" style="padding-bottom: 20px;">
                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DIMENSIONES</div>
