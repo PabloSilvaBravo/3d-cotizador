@@ -489,7 +489,7 @@ const App = () => {
                   className="w-full"
                 >
                   <FileAvailabilitySelector
-                    onHasFile={() => setUserHasFile(true)}
+                    onFileSelect={handleFileSelect}
                     onNeedsHelp={() => setUserHasFile(false)}
                   />
                 </motion.div>

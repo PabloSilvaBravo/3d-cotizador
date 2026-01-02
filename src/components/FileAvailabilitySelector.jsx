@@ -1,11 +1,32 @@
 import { motion } from 'framer-motion';
 import { Upload, BookOpen } from 'lucide-react';
 import StepIndicator from './ui/StepIndicator';
+import { useDropzone } from 'react-dropzone';
+import { useCallback } from 'react';
 
 /**
  * Componente de selección inicial con diseño de pestaña principal
  */
-export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
+export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp, onFileSelect }) {
+
+    // Configuración Dropzone para carga directa
+    const onDrop = useCallback((acceptedFiles) => {
+        if (acceptedFiles?.length > 0 && onFileSelect) {
+            onFileSelect(acceptedFiles[0]);
+        }
+    }, [onFileSelect]);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+        onDrop,
+        accept: {
+            'model/stl': ['.stl'],
+            'model/step': ['.step', '.stp'],
+            'model/obj': ['.obj']
+        },
+        maxSize: 100 * 1024 * 1024, // 100MB
+        multiple: false
+    });
+
     const containerVariants = {
         hidden: { opacity: 0, y: 20 },
         visible: {
@@ -35,17 +56,19 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
     const options = [
         {
             id: 'has-file',
-            title: 'Tengo mi archivo',
-            description: 'Subir archivo STL/STEP para cotizar',
+            title: isDragActive ? '¡Suéltalo Aquí!' : 'Tengo mi archivo',
+            description: isDragActive ? 'Liberar para cargar' : 'Arrastra o haz clic para subir STL/STEP',
             icon: Upload,
-            action: onHasFile
+            isDropzone: true // Flag especial
+            // action: removido, el dropzone maneja el click
         },
         {
             id: 'needs-help',
             title: 'No tengo el archivo',
             description: 'Ver tutorial y recursos para obtenerlo',
             icon: BookOpen,
-            action: onNeedsHelp
+            action: onNeedsHelp,
+            isDropzone: false
         }
     ];
 
@@ -73,15 +96,24 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
                 <div className="grid md:grid-cols-2 gap-6 mb-8">
                     {options.map((option, index) => {
                         const Icon = option.icon;
+                        const isDropzoneInfo = option.isDropzone;
+
+                        // Props específicas si es Dropzone
+                        const dropzoneProps = isDropzoneInfo ? getRootProps() : {};
+                        const borderStyle = isDropzoneInfo ? 'border-dashed border-2 bg-brand-primary/5' : 'border-solid border-[3px] bg-white/40';
+                        const hoverColor = isDropzoneInfo ? 'rgba(96, 23, 177, 0.05)' : 'rgba(59, 130, 246, 0.05)'; // Brand vs Blue
+                        const activeClass = isDropzoneInfo && isDragActive ? '!border-brand-primary !bg-brand-primary/10 scale-105 shadow-2xl' : '';
+
                         return (
                             <motion.button
                                 key={option.id}
                                 variants={cardVariants}
-                                onClick={option.action}
-                                className="group relative border-[3px] border-solid border-slate-300 rounded-[2rem] py-12 px-8 text-center transition-all duration-300 cursor-pointer bg-white/40 hover:border-brand-primary hover:bg-brand-primary/5 hover:shadow-xl overflow-hidden"
+                                onClick={!isDropzoneInfo ? option.action : undefined}
+                                {...dropzoneProps} // Inject Dropzone props
+                                className={`group relative rounded-[2rem] py-12 px-8 text-center transition-all duration-300 cursor-pointer overflow-hidden border-slate-300 hover:border-brand-primary hover:shadow-xl ${borderStyle} ${activeClass}`}
                                 whileHover={{
                                     borderColor: 'var(--color-brand-primary)',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                                    backgroundColor: hoverColor,
                                     scale: 1.03,
                                     y: -5,
                                     transition: {
@@ -100,6 +132,7 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp }) {
                                     }
                                 }}
                             >
+                                {isDropzoneInfo && <input {...getInputProps()} />}
 
 
                                 {/* Shimmer effect sutil */}
