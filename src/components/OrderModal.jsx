@@ -271,15 +271,24 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
                                                 exit={{ opacity: 0 }}
                                                 className="absolute inset-0 pointer-events-none"
                                             >
+                                                {/* Estela Central Larga */}
                                                 <motion.div
-                                                    className="absolute right-3 top-1/2 w-8 h-0.5 bg-white/50 rounded-full"
-                                                    animate={{ x: [-10, -30], opacity: [0, 1, 0] }}
+                                                    className="absolute left-1/2 top-1/2 w-0.5 h-8 bg-white/50 rounded-full"
+                                                    style={{ x: '-50%' }}
+                                                    animate={{ y: [10, 35], opacity: [0, 1, 0] }}
                                                     transition={{ duration: 0.4, repeat: Infinity, delay: 0.1 }}
                                                 />
+                                                {/* Estela Derecha Corta */}
                                                 <motion.div
-                                                    className="absolute right-4 bottom-1/3 w-6 h-0.5 bg-white/30 rounded-full"
-                                                    animate={{ x: [-10, -25], opacity: [0, 1, 0] }}
+                                                    className="absolute left-1/2 top-1/2 w-0.5 h-5 bg-white/30 rounded-full ml-2"
+                                                    animate={{ y: [15, 30], opacity: [0, 1, 0] }}
                                                     transition={{ duration: 0.3, repeat: Infinity, delay: 0 }}
+                                                />
+                                                {/* Estela Izquierda Corta */}
+                                                <motion.div
+                                                    className="absolute left-1/2 top-1/2 w-0.5 h-5 bg-white/30 rounded-full -ml-2"
+                                                    animate={{ y: [15, 30], opacity: [0, 1, 0] }}
+                                                    transition={{ duration: 0.35, repeat: Infinity, delay: 0.05 }}
                                                 />
                                             </motion.div>
                                         )}

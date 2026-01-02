@@ -213,9 +213,9 @@ const App = () => {
 
     // Calcular dimensiones finales
     const finalDims = {
-      x: (localGeometry?.size?.x || 0) * autoScale,
-      y: (localGeometry?.size?.y || 0) * autoScale,
-      z: (localGeometry?.size?.z || 0) * autoScale,
+      x: (localGeometry?.dimensions?.x || 0) * autoScale,
+      y: (localGeometry?.dimensions?.y || 0) * autoScale,
+      z: (localGeometry?.dimensions?.z || 0) * autoScale,
     };
     const dimsStr = `${finalDims.x.toFixed(1)} x ${finalDims.y.toFixed(1)} x ${finalDims.z.toFixed(1)} mm`;
     const volStr = `${(quoteData?.volumen || 0).toFixed(2)} cm³`;
@@ -308,10 +308,11 @@ const App = () => {
                </td>
              </tr>
              <tr>
-               <td width="50%" valign="top" style="padding-bottom: 15px;">
-                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">MATERIAL & COLOR</div>
-                 <div style="font-size: 14px; color: #334155;">${materialName} - ${colorName}</div>
-               </td>
+                <td width="50%" valign="top" style="padding-bottom: 15px;">
+                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">MATERIAL, COLOR Y CALIDAD</div>
+                  <div style="font-size: 14px; color: #334155;">${materialName} - ${colorName}</div>
+                  <div style="font-size: 12px; color: #475569; margin-top: 2px;">Calidad: <strong>${qualityName}</strong></div>
+                </td>
                <td width="25%" valign="top" style="padding-bottom: 15px;">
                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">RELLENO</div>
                  <div style="font-size: 14px; color: #334155;">${config.infill}%</div>
