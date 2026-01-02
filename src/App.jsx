@@ -74,8 +74,11 @@ const App = () => {
     if (quoteData) {
       setIsConverting(false);
       if (quoteData.convertedStlUrl) {
-        const backendHost = window.location.hostname;
-        const fullUrl = `http://${backendHost}:3001${quoteData.convertedStlUrl}`;
+        // const backendHost = window.location.hostname;
+        // const fullUrl = `http://${backendHost}:3001${quoteData.convertedStlUrl}`;
+
+        // TEMPORAL: Forzar localhost
+        const fullUrl = `http://localhost:3001${quoteData.convertedStlUrl}`;
 
         // Evitar loop infinito
         if (fileUrl !== fullUrl) {
