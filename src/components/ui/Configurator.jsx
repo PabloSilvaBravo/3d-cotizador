@@ -293,7 +293,7 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                                         layout
                                         whileHover={{ scale: 1.25, zIndex: 20 }}
                                         whileTap={{ scale: 0.85 }}
-                                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                                        transition={{ duration: 0.2, ease: "easeInOut" }}
                                         onClick={() => {
                                             if (isSelected) {
                                                 onChange({ colorId: null, colorData: null });
@@ -325,7 +325,7 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                                                     initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
                                                     animate={{ opacity: 1, scale: 1, rotate: 0 }}
                                                     exit={{ opacity: 0, scale: 0.8 }}
-                                                    transition={{ duration: 0.3, ease: "backOut" }}
+                                                    transition={{ duration: 0.3, ease: "easeOut" }}
                                                 />
                                             )}
                                             {/* Icono Check (Motion) */}
@@ -335,7 +335,7 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                                                         initial={{ scale: 0, rotate: -180, opacity: 0 }}
                                                         animate={{ scale: 1, rotate: 0, opacity: 1 }}
                                                         exit={{ scale: 0, opacity: 0, transition: { duration: 0.1 } }}
-                                                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                                        transition={{ duration: 0.2, ease: "easeOut" }}
                                                         className={`
                                                         absolute inset-0 flex items-center justify-center
                                                     `}
