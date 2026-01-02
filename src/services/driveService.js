@@ -30,7 +30,9 @@ export async function uploadToDrive(file, fileName = null) {
         const response = await fetch(API_URL, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "User-Agent": "Bianca",
+                "X-User-Agent": "Bianca" // Fallback para firewalls si el navegador bloquea el estándar
             },
             body: JSON.stringify({
                 fileName: fileName || file.name || "archivo_" + new Date().getTime(),
