@@ -3,6 +3,10 @@
 
 const API_URL = "https://dashboard.mechatronicstore.cl/api/3d/upload-to-drive.php";
 
+// ID de la carpeta de Google Drive donde se guardan los archivos
+// Puedes cambiarlo aquí sin tocar el backend
+const DRIVE_FOLDER_ID = "16w8o5wnUondpBZ0MW8jQeGiGroA2WQAW";
+
 /**
  * Convierte un File/Blob a Base64
  */
@@ -19,10 +23,11 @@ function fileToBase64(file) {
  * Sube un archivo a Google Drive
  * @param {File|Blob} file - Archivo a subir
  * @param {string} fileName - Nombre del archivo (opcional)
+ * @param {string} folderId - ID carpeta Drive (opcional, usa DRIVE_FOLDER_ID por defecto)
  * @returns {Promise<string>} URL pública del archivo en Drive
  */
-export async function uploadToDrive(file, fileName = null) {
-    console.log("Subiendo archivo a Drive...", API_URL);
+export async function uploadToDrive(file, fileName = null, folderId = null) {
+    console.log("Subiendo archivo a Drive...");
 
     try {
         const base64Data = await fileToBase64(file);
@@ -31,13 +36,14 @@ export async function uploadToDrive(file, fileName = null) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "User-Agent": "Bianca",
-                "X-User-Agent": "Bianca" // Fallback para firewalls si el navegador bloquea el estándar
+                "User-Agent": "Bianca",      // Mantenido para bypass firewall
+                "X-User-Agent": "Bianca"     // Mantenido para bypass firewall
             },
             body: JSON.stringify({
                 fileName: fileName || file.name || "archivo_" + new Date().getTime(),
                 base64: base64Data,
-                mimeType: file.type || "application/octet-stream"
+                mimeType: file.type || "application/octet-stream",
+                folderId: folderId || DRIVE_FOLDER_ID
             })
         });
 
