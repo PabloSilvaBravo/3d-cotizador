@@ -28,3 +28,8 @@ logs/
 # Build
 dist/
 build/
+
+# Google Drive
+client_secret*.json
+drive_token.json
+vendor/
