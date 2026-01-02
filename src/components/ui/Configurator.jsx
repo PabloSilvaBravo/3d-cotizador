@@ -91,22 +91,23 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
             {/* Printer Info (Step 0) - Información Informativa */}
             <div className="space-y-3">
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold ring-1 ring-brand-primary/20">0</div>
-                    <label className="text-sm font-bold text-gray-800 tracking-wide uppercase">Impresora Asignada</label>
+                    {/* Eliminado el índice 0 */}
+                    <label className="text-sm font-bold text-slate-500 tracking-wide uppercase flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                        Impresora Asignada
+                    </label>
                 </div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    whileHover={{ y: -2 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="relative group cursor-help z-0 hover:z-50"
+                    className="relative group z-0"
                 >
-                    {/* 1. Fondo Visual de la Tarjeta (Separado) */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-2xl shadow-sm group-hover:shadow-[0_20px_40px_-10px_rgba(96,23,177,0.15)] group-hover:border-brand-primary/30 transition-all duration-300">
+                    {/* 1. Fondo Visual de la Tarjeta (Estático Gris - Sin hover de color) */}
+                    <div className="absolute inset-0 bg-slate-100/50 border border-slate-200 rounded-2xl shadow-sm transition-all duration-300 group-hover:shadow-md">
                         <div className="absolute inset-0 overflow-hidden rounded-2xl">
-                            <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-brand-primary/5 rounded-full blur-2xl group-hover:bg-brand-primary/10 transition-colors duration-500 group-hover:scale-150"></div>
+                            {/* Fondo neutro */}
                         </div>
                     </div>
 
@@ -117,7 +118,8 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                             onMouseEnter={() => setIsImageHovered(true)}
                             onMouseLeave={() => setIsImageHovered(false)}
                         >
-                            <div className="absolute inset-0 bg-white rounded-xl border border-slate-100 shadow-inner"></div>
+                            <div className="absolute inset-0 bg-white rounded-xl border border-slate-200 shadow-inner"></div>
+                            {/* IMAGEN ANIMADA RESTAURADA */}
                             <motion.img
                                 src="/bambulab_printer.webp"
                                 alt="BambuLab H2D"
@@ -135,8 +137,9 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                             />
                         </div>
 
+                        {/* TEXTO CON BLUR RESTAURADO */}
                         <motion.div
-                            className="flex-1 min-w-0 pointer-events-none relative z-0"
+                            className="flex-1 min-w-0 relative z-0"
                             animate={{
                                 filter: isImageHovered ? "blur(4px)" : "blur(0px)",
                                 opacity: isImageHovered ? 0.6 : 1
@@ -144,16 +147,16 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                             transition={{ duration: 0.5, ease: "easeInOut" }}
                         >
                             <div className="flex flex-col">
-                                <h4 className="font-black text-brand-dark text-base tracking-tight mb-1 group-hover:text-brand-primary transition-colors">BambuLab H2D <span className="text-brand-primary font-medium opacity-60 text-xs ml-1">Series</span></h4>
+                                <h4 className="font-bold text-slate-700 text-base tracking-tight mb-1">BambuLab H2D <span className="text-slate-400 font-medium opacity-80 text-xs ml-1">Series</span></h4>
                                 <div className="flex flex-wrap gap-2 mb-2">
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-white text-[9px] font-bold shadow-md shadow-slate-900/10 ring-1 ring-white/20 group-hover:bg-brand-primary group-hover:ring-brand-accent/50 transition-all">
-                                        <svg className="w-3 h-3 text-emerald-400 group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-primary text-white text-[9px] font-bold shadow-sm ring-1 ring-white/50">
+                                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                         COMPATIBLE CON MODELO
                                     </span>
                                 </div>
                             </div>
-                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed group-hover:text-slate-600">
-                                Impresión de alta fidelidad con calibración automática de flujo. Perfecto para <span className="text-brand-secondary font-bold">prototipos y producción final</span>.
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                                Impresión de alta fidelidad con calibración automática de flujo. Perfecto para <span className="text-slate-700 font-bold">prototipos y producción final</span>.
                             </p>
                         </motion.div>
                     </div>

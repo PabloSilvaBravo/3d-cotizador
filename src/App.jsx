@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FileUpload from './components/ui/FileUpload';
 import Viewer3D from './components/Viewer3D';
@@ -13,6 +14,7 @@ import { enviarCorreo } from './services/emailService';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
 import { uploadToDrive } from './services/driveService';
+import { addToCartAndRedirect } from './services/cartService';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import FileAvailabilitySelector from './components/FileAvailabilitySelector';
@@ -41,7 +43,37 @@ const App = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isSimpleMode, setIsSimpleMode] = useState(false);
 
+  // Estado para integración Carrito
+  const [isCartProcessing, setIsCartProcessing] = useState(false);
+  const [driveLink, setDriveLink] = useState(null);
+
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
+
+  // --- ROUTING & SYNC ---
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // 1. Protección de rutas: Si no hay archivo y no estamos en /, volver a inicio
+    if (!file && location.pathname !== '/') {
+      navigate('/', { replace: true });
+    }
+    // 2. Auto-navegación: Si cargamos archivo en /, ir a configurador
+    if (file && location.pathname === '/') {
+      navigate('/configurator', { replace: true });
+    }
+    // 3. Sincronización Modal Checkout
+    if (location.pathname === '/checkout') {
+      if (!isModalOpen) setIsModalOpen(true);
+    } else {
+      if (isModalOpen) setIsModalOpen(false);
+    }
+  }, [file, location.pathname, navigate, isModalOpen]);
+
+  // Handlers de Navegación
+  const handleGoToCheckout = () => navigate('/checkout');
+  const handleBackToConfigurator = () => navigate('/configurator');
+  // ----------------------
 
   const handleFileSelect = (selectedFile) => {
     const ext = selectedFile.name.split('.').pop().toLowerCase();
@@ -407,6 +439,71 @@ const App = () => {
     }
   };
 
+  /**
+   * Maneja el flujo de "Agregar al Carrito" (WooCommerce)
+   */
+  const handleWooCommerceCart = async () => {
+    if (!file || !estimateForUI || !config.material) return;
+
+    setIsCartProcessing(true);
+    try {
+      // 1. Subir a Drive (si no tenemos URL aún)
+      let currentDriveLink = driveLink;
+
+      if (!currentDriveLink) {
+        console.log("Subiendo a Drive para carrito...");
+        const result = await uploadToDrive(file);
+        if (result.success) {
+          currentDriveLink = result.url;
+          setDriveLink(currentDriveLink);
+        } else {
+          throw new Error("No se pudo subir el archivo. " + (result.error || ""));
+        }
+      }
+
+      // 2. Preparar payload conforme a documentación
+      // colorData viene del Configurator via onChange
+      const colorName = config.colorData ? config.colorData.name : "Estándar";
+
+      // Tiempo en MINUTOS
+      const timeMinutes = Math.ceil(estimateForUI.timeHours * 60);
+
+      const payload = {
+        // Requeridos
+        fileName: file.name,
+        price: Math.round(estimateForUI.totalPrice), // Entero para WC
+        driveUrl: currentDriveLink,
+
+        // Importantes
+        material: config.material,
+        color: colorName,
+        infill: config.infill, // 15, 20, 100
+        layerHeight: config.quality, // 0.2, 0.16
+        weight: Math.ceil(estimateForUI.weightGrams),
+        printTime: timeMinutes,
+        dimensions: estimateForUI.dimensions
+          ? `${estimateForUI.dimensions.x}x${estimateForUI.dimensions.y}x${estimateForUI.dimensions.z}`
+          : "N/A",
+
+        // Opcionales
+        quantity: config.quantity,
+        notes: "" // Podríamos agregar un campo de notas en el futuro
+      };
+
+      console.log("Enviando a carrito:", payload);
+
+      // 3. Enviar y Redirigir
+      await addToCartAndRedirect(payload);
+
+    } catch (e) {
+      console.error("Error Carrito:", e);
+      alert("Error al agregar al carrito: " + e.message);
+      setIsCartProcessing(false);
+    }
+    // No ponemos setIsCartProcessing(false) si redirigimos, para evitar clicks dobles
+    // Pero si falla, lo apagamos en catch.
+  };
+
   // Combinar datos: Tiempo del backend + Peso del frontend ajustado por relleno
   // Calcular estadísticas (Reales o Estimadas)
   const getEstimatedStats = () => {
@@ -695,7 +792,9 @@ const App = () => {
           <PriceSummary
             estimate={estimateForUI}
             config={config}
-            onAddToCart={handleAddToCart}
+            onAddToCart={handleGoToCheckout} // Usar Routing Handler
+            onWooCommerceCart={handleWooCommerceCart}
+            isCartLoading={isCartProcessing}
             isLoading={isLoading || !quoteData}
           />
 
@@ -707,7 +806,7 @@ const App = () => {
 
       <OrderModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleBackToConfigurator} // Usar Routing Handler
         onSubmit={handleOrderSubmit}
         orderData={{
           fileName: file.name,
