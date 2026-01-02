@@ -1,7 +1,13 @@
 // src/services/driveService.js
 // API de Google Drive via dashboard.mechatronicstore.cl
 
-const API_URL = "https://dashboard.mechatronicstore.cl/api/3d/upload-to-drive.php";
+// Detectar si estamos en desarrollo (localhost)
+const IS_DEV = import.meta.env.DEV;
+
+// En desarrollo usamos el proxy de Vite (/api-dashboard) para evitar CORS
+// En producción usamos la URL directa
+const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
+const API_URL = `${BASE_URL}/api/3d/upload-to-drive.php`;
 
 // ID de la carpeta de Google Drive donde se guardan los archivos
 // Puedes cambiarlo aquí sin tocar el backend

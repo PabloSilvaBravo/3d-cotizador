@@ -7,6 +7,13 @@ export default defineConfig({
     server: {
         host: true, // Exponer en red local
         port: 5173,
-        open: true
+        open: true,
+        proxy: {
+            '/api-dashboard': {
+                target: 'https://dashboard.mechatronicstore.cl',
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api-dashboard/, '')
+            }
+        }
     }
 })
