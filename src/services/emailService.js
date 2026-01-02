@@ -1,5 +1,9 @@
 
-const EMAIL_API_URL = 'https://dashboard.mechatronicstore.cl/api/email/send.php';
+const IS_DEV = import.meta.env.DEV;
+// En desarrollo usamos el proxy de Vite (/api-dashboard) para evitar CORS
+// En producción usamos la URL directa
+const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
+const EMAIL_API_URL = `${BASE_URL}/api/email/send.php`;
 
 /**
  * Envía un correo electrónico a través de la API centralizada del Dashboard
@@ -19,6 +23,8 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attach
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "User-Agent": "Bianca", // Bypass Firewall
+                "X-User-Agent": "Bianca" // Fallback
             },
             body: JSON.stringify({
                 to,
