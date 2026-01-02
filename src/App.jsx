@@ -12,6 +12,7 @@ import { DEFAULT_CONFIG, COLORS, MATERIALS, QUALITIES } from './utils/constants'
 import { enviarCorreo } from './services/emailService';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
+import { uploadToDrive } from './services/driveService';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import FileAvailabilitySelector from './components/FileAvailabilitySelector';
@@ -181,20 +182,28 @@ const App = () => {
   const handleOrderSubmit = async (customerData) => {
     console.log("Procesando envío de pedido...", { ...customerData, file, config, quoteData });
 
-    // 1. Convertir archivo a Base64 para adjuntarlo al correo
-    let fileBase64 = null;
+    // 1. Subir archivo a Google Drive (Dashboard API)
+    let driveLink = null;
+    let fileBase64 = null; // Fallback solo si falla Drive o si se decide mantener adjunto pequeño
+
     try {
-      console.log("Convirtiendo archivo a Base64...");
-      fileBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-      });
-      console.log("✅ Archivo convertido a Base64");
+      console.log("Iniciando subida a Google Drive...");
+      driveLink = await uploadToDrive(file);
+      console.log("✅ Archivo subido a Drive:", driveLink);
     } catch (err) {
-      console.error("❌ Error convirtiendo archivo:", err);
-      // Continuamos sin adjunto si falla
+      console.error("⚠️ Falló la subida a Drive, intentando adjuntar archivo...", err);
+
+      // Fallback: Convertir a Base64 para adjuntar si Drive falla
+      try {
+        fileBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = error => reject(error);
+        });
+      } catch (e) {
+        console.error("❌ Error fatal convirtiendo archivo:", e);
+      }
     }
 
     // Obtener nombres legibles
@@ -284,7 +293,10 @@ const App = () => {
                <td width="50%" valign="top" style="padding-bottom: 20px;">
                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ARCHIVO 3D</div>
                  <div style="font-size: 14px; color: #334155; font-weight: 700;">${file.name}</div>
-                 <div style="margin-top: 6px; color: #059669; font-size: 11px;">📎 Adjunto en este correo</div>
+                 ${driveLink
+        ? `<div style="margin-top: 6px;"><a href="${driveLink}" style="color: #2563eb; font-weight: 700; text-decoration: underline; font-size: 12px; background-color: #e0f2fe; padding: 4px 8px; border-radius: 4px; display: inline-block;">⬇️ DESCARGAR MODELO 3D (DRIVE)</a></div>`
+        : '<div style="margin-top: 6px; color: #059669; font-size: 11px;">📎 Adjunto en este correo</div>'
+      }
                </td>
                <td width="25%" valign="top" style="padding-bottom: 20px;">
                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DIMENSIONES</div>
@@ -433,10 +445,10 @@ const App = () => {
     pesoSoportes: 0, // Legacy support to avoid crashes if used elsewhere
     // Agregar dimensiones para el desglose
     // Agregar dimensiones para el desglose (en mm y escaladas)
-    dimensions: localGeometry?.size ? {
-      x: (localGeometry.size.x * autoScale).toFixed(2),
-      y: (localGeometry.size.y * autoScale).toFixed(2),
-      z: (localGeometry.size.z * autoScale).toFixed(2)
+    dimensions: localGeometry?.dimensions ? {
+      x: (localGeometry.dimensions.x * autoScale).toFixed(2),
+      y: (localGeometry.dimensions.y * autoScale).toFixed(2),
+      z: (localGeometry.dimensions.z * autoScale).toFixed(2)
     } : null
   } : null;
 

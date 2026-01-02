@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Hook simple para animación de número (CountUp)
 const useCountUp = (end, duration = 800) => {
@@ -209,20 +209,6 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                             </p>
                         </div>
 
-                        {/* Alerta de Precio Mínimo */}
-                        {estimate.isMinimumPrice && (
-                            <div className="mt-3 pt-3 border-t border-amber-200 bg-amber-50 rounded-lg p-3 border border-amber-200">
-                                <div className="flex items-start gap-2">
-                                    <span className="text-amber-600 text-lg">⚠️</span>
-                                    <div>
-                                        <p className="text-xs font-bold text-amber-900 mb-1">Precio Mínimo Aplicado</p>
-                                        <p className="text-[10px] text-amber-700 leading-snug">
-                                            Este pedido está bajo nuestro precio mínimo de $3.000. El precio final se confirmará por correo electrónico.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
 
@@ -246,6 +232,39 @@ export const PriceSummary = ({ estimate, config, onAddToCart, isLoading }) => {
                             </div>
                         </div>
                     </div>
+
+                    {/* Alerta de Precio Mínimo (Ubicación: Bajo Total) */}
+                    <AnimatePresence>
+                        {estimate.isMinimumPrice && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                style={{ overflow: 'hidden' }}
+                            >
+                                <div className="pb-4 pt-1 px-1">
+                                    <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border-2 border-amber-200/60 shadow-sm flex items-center gap-3">
+                                        <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                                            <span className="text-amber-600 text-lg">⚠️</span>
+                                        </div>
+
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-xs font-bold text-amber-900 tracking-tight leading-none mb-1">
+                                                Precio Mínimo Aplicado
+                                            </h4>
+                                            <p className="text-[11px] text-amber-800 leading-tight">
+                                                El pedido está bajo el mínimo de <span className="font-bold text-amber-900">$3.000</span>.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-center text-amber-700/60 mt-1.5 italic">
+                                        * El precio final será confirmado vía correo electrónico.
+                                    </p>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     <motion.button
                         whileHover={!isLoading && config.material ? { scale: 1.02 } : {}}
