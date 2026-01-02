@@ -54,21 +54,33 @@ const App = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // 1. Protección de rutas: Si no hay archivo y no estamos en /, volver a inicio
-    if (!file && location.pathname !== '/') {
-      navigate('/', { replace: true });
+    // 1. Configurator / Checkout (Requiere archivo)
+    if (location.pathname === '/configurator' || location.pathname === '/checkout') {
+      if (!file) {
+        navigate('/', { replace: true });
+      }
     }
-    // 2. Auto-navegación: Si cargamos archivo en /, ir a configurador
-    if (file && location.pathname === '/') {
+    // 2. Auto-navegación: Si cargamos archivo en / o /tutorial, ir a configurador
+    if (file && (location.pathname === '/' || location.pathname === '/tutorial')) {
       navigate('/configurator', { replace: true });
     }
+
     // 3. Sincronización Modal Checkout
     if (location.pathname === '/checkout') {
       if (!isModalOpen) setIsModalOpen(true);
-    } else {
-      if (isModalOpen) setIsModalOpen(false);
+    } else if (location.pathname !== '/checkout' && isModalOpen) {
+      setIsModalOpen(false);
     }
-  }, [file, location.pathname, navigate, isModalOpen]);
+
+    // 4. Sincronización Vistas (Landing / Tutorial)
+    if (location.pathname === '/tutorial') {
+      if (userHasFile !== false) setUserHasFile(false);
+    } else if (location.pathname === '/') {
+      // En Home puede ser null (selector) o true (upload step).
+      // Si no tenemos file, forzamos null (selector).
+      if (!file && userHasFile !== null) setUserHasFile(null);
+    }
+  }, [file, location.pathname, navigate, isModalOpen, userHasFile]);
 
   // Handlers de Navegación
   const handleGoToCheckout = () => navigate('/checkout');
@@ -587,7 +599,7 @@ const App = () => {
                 >
                   <FileAvailabilitySelector
                     onFileSelect={handleFileSelect}
-                    onNeedsHelp={() => setUserHasFile(false)}
+                    onNeedsHelp={() => navigate('/tutorial')}
                   />
                 </motion.div>
               )}
@@ -602,7 +614,7 @@ const App = () => {
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     className="text-center mb-6"
                   >
-                    <StepIndicator currentStep={2} />
+                    <StepIndicator currentStep={2} totalSteps={2} />
                   </motion.div>
 
                   <motion.div
@@ -620,8 +632,8 @@ const App = () => {
 
               {userHasFile === false && (
                 <DiscoveryPortal
-                  onClose={() => setUserHasFile(null)}
-                  onUploadClick={() => setUserHasFile(true)}
+                  onClose={() => navigate('/')}
+                  onUploadClick={() => navigate('/')}
                 />
               )}
             </AnimatePresence>
