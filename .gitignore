@@ -29,3 +29,8 @@ logs/
 client_secret*.json
 drive_token.json
 vendor/
+
+# API - Excluir credenciales pero permitir PHP
+api/client_secret*.json
+api/drive_token.json
+!api/*.php

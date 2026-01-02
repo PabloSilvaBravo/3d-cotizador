@@ -2,7 +2,7 @@
 import fs from 'fs';
 import https from 'https';
 
-// Este es el endpoint PHP remoto que YA FUNCIONA y ESTÁ AUTORIZADO (ahora en 3d.mechatronicstore.cl)
+// Servidor PHP con scripts de paquete_drive (ahora en /api/ como en empresas)
 const REMOTE_PHP_URL = 'https://3d.mechatronicstore.cl/api/upload-to-drive.php';
 
 export async function uploadFileToDrive(filePath, originalName, mimeType) {
