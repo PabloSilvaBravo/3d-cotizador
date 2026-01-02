@@ -57,8 +57,8 @@ export const useBackendQuote = () => {
                     // const backendHost = window.location.hostname;
                     // const backendUrl = `http://${backendHost}:3001/api/quote`;
 
-                    // TEMPORAL: Forzar uso de localhost para pruebas con PrusaSlicer local desde producción
-                    const backendUrl = "http://localhost:3001/api/quote";
+                    // TEMPORAL: Forzar uso de 127.0.0.1 (IP Loopback) en lugar de localhost para evitar bloqueos de algunos navegadores/extensiones
+                    const backendUrl = "http://127.0.0.1:3001/api/quote";
 
                     const response = await fetch(backendUrl, {
                         method: 'POST',
