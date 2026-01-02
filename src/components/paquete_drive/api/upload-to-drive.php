@@ -2,7 +2,7 @@
 /**
  * API Upload to Google Drive - REST API Pura (sin Composer)
  * 
- * Endpoint: POST https://empresas.mechatronicstore.cl/api/upload-to-drive.php
+ * Endpoint: POST https://3d.mechatronicstore.cl/api/upload-to-drive.php
  * Body: { fileName, base64, mimeType }
  */
 

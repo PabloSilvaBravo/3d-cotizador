@@ -1,6 +1,6 @@
 # Guía Completa: Envío de Correos desde Empresas
 
-> **Proyecto:** empresas.mechatronicstore.cl
+> **Proyecto:** 3d.mechatronicstore.cl (Cotizador 3D)
 > **Audiencia:** Bianca y futuros desarrolladores
 > **Última actualización:** 2025-12-11
 
@@ -28,7 +28,7 @@ El proyecto **Empresas** utiliza una API centralizada de correos alojada en el D
 - ✅ No necesitar configurar SMTP en cada proyecto
 - ✅ Usar Gmail con OAuth 2.0 (más seguro que contraseñas)
 - ✅ Renovación automática de tokens
-- ✅ CORS ya configurado para empresas.mechatronicstore.cl
+- ✅ CORS ya configurado para 3d.mechatronicstore.cl
 
 **Correo de envío:** `mechatronicstore.cl@gmail.com`
 **Nombre mostrado:** "MechatronicStore Empresas"
@@ -40,7 +40,7 @@ El proyecto **Empresas** utiliza una API centralizada de correos alojada en el D
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    EMPRESAS (React)                         │
-│               empresas.mechatronicstore.cl                  │
+│               3d.mechatronicstore.cl                        │
 └─────────────────────────┬───────────────────────────────────┘
                           │ fetch() POST
                           ▼
@@ -79,7 +79,7 @@ No se requiere configuración adicional. El CORS ya está habilitado para:
 
 ### Para Producción
 
-El dominio `https://empresas.mechatronicstore.cl` ya está autorizado en CORS.
+El dominio `https://3d.mechatronicstore.cl` está autorizado en CORS.
 
 Si necesitas agregar otro dominio, contacta a Pablo para actualizar `/api/email/config.php`.
 
