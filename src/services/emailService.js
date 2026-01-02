@@ -2,8 +2,11 @@
 const IS_DEV = import.meta.env.DEV;
 // En desarrollo usamos el proxy de Vite (/api-dashboard) para evitar CORS
 // En producción usamos la URL directa
-const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
-const EMAIL_API_URL = `${BASE_URL}/api/email/send.php`;
+// const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
+// const EMAIL_API_URL = `${BASE_URL}/api/email/send.php`;
+
+// TEMPORAL: Usar proxy local del backend (server.js) para evitar CORS del Dashboard
+const EMAIL_API_URL = "http://127.0.0.1:3001/api/proxy/email";
 
 /**
  * Envía un correo electrónico a través de la API centralizada del Dashboard

@@ -459,6 +459,25 @@ async function processSlicing(job) {
     });
 }
 
+// NUEVO: Endpoint Proxy para Email (Evitar CORS del Dashboard)
+app.post('/api/proxy/email', async (req, res) => {
+    console.log("📨 Enviando email via proxy...");
+    try {
+        const response = await fetch('https://dashboard.mechatronicstore.cl/api/email/send.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(req.body)
+        });
+
+        const data = await response.json();
+        console.log("✅ Email respuesta:", data);
+        res.status(response.status).json(data);
+    } catch (error) {
+        console.error("❌ Error proxy email:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // === ENDPOINT PRINCIPAL ===
 app.post('/api/quote', upload.single('file'), async (req, res) => {
     const clientIp = req.ip || req.connection.remoteAddress;
