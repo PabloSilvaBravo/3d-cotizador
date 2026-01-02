@@ -41,9 +41,7 @@ export async function uploadToDrive(file, fileName = null, folderId = null) {
         const response = await fetch(API_URL, {
             method: "POST",
             headers: {
-                "Content-Type": "application/json",
-                "User-Agent": "Bianca",      // Mantenido para bypass firewall
-                "X-User-Agent": "Bianca"     // Mantenido para bypass firewall
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
                 fileName: fileName || file.name || "archivo_" + new Date().getTime(),

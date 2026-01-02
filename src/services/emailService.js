@@ -23,8 +23,6 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attach
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                "User-Agent": "Bianca", // Bypass Firewall
-                "X-User-Agent": "Bianca" // Fallback
             },
             body: JSON.stringify({
                 to,
