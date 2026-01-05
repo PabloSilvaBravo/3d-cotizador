@@ -17,9 +17,14 @@ try {
         throw new Exception('No file uploaded');
     }
 
-    $uploadDir = '/tmp/slicer_uploads/';
-    if (!is_dir($uploadDir))
-        mkdir($uploadDir, 0777, true);
+    // Usar directorio relativo para evitar problemas de permisos/Docker con /tmp
+    $uploadDir = __DIR__ . '/uploads/';
+    if (!is_dir($uploadDir)) {
+        if (!mkdir($uploadDir, 0777, true)) {
+            throw new Exception('Failed to create upload directory');
+        }
+        chmod($uploadDir, 0777); // Asegurar permisos
+    }
 
     $originalName = $_FILES['file']['name'];
     $tmpName = $_FILES['file']['tmp_name'];
