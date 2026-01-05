@@ -560,7 +560,7 @@ const App = () => {
       return {
         weightGrams: quoteData.peso,
         timeHours: quoteData.timeHours, // Propiedad correcta devuelta por backend
-        tieneSoportes: quoteData.tieneSoportes || false,
+        tieneSoportes: localGeometry?.needsSupport || quoteData.tieneSoportes || false,
         pesoSoportes: 0 // Deprecated
       };
     }

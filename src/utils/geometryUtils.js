@@ -45,8 +45,12 @@ export const calculateGeometryData = (geometry) => {
     // Convert mm³ to cm³ (divide by 1000)
     const volumeCm3 = Math.abs(volume) / 1000;
 
+    // Detectar necesidad de soportes
+    const needsSupport = checkNeedsSupport(geometry);
+
     return {
         volumeCm3,
+        needsSupport, // Bool
         dimensions: {
             x: size.x,
             y: size.y,
@@ -54,6 +58,37 @@ export const calculateGeometryData = (geometry) => {
         },
         boundingBox: size
     };
+};
+
+/**
+ * Detecta si el modelo necesita soportes analizando normales (Overhangs > 45°)
+ */
+export const checkNeedsSupport = (geometry) => {
+    if (!geometry.attributes.normal) geometry.computeVertexNormals();
+    const normals = geometry.attributes.normal;
+
+    // Asumimos orientación Z-Up por defecto del STL.
+    // Overhang crítico: Normal Z < -0.707 (45 grados hacia abajo)
+
+    let badNormalsCount = 0;
+    const total = normals.count;
+
+    // Muestreo para performance (revisar 1 de cada 5 vértices)
+    const step = 5;
+    let checked = 0;
+
+    for (let i = 0; i < total; i += step) {
+        const nz = normals.getZ(i);
+        // Si apunta hacia abajo con un ángulo agresivo
+        if (nz < -0.707) {
+            badNormalsCount++;
+        }
+        checked++;
+    }
+
+    // Si más del 0.5% de la superficie analizada es overhang crítico -> True
+    const ratio = badNormalsCount / checked;
+    return ratio > 0.005;
 };
 
 function signedVolumeOfTriangle(p1, p2, p3) {
