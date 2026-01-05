@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
-import { Search, Download, Box, ExternalLink, X, Hexagon, Triangle, Circle } from 'lucide-react';
+import { Search, Download, Box, ExternalLink, X, Hexagon, Triangle, Circle, RotateCcw } from 'lucide-react';
 
 const Card = ({ title, description, badge, color, icon, href, isLarge = false, isCompact = false }) => {
     return (
@@ -76,6 +76,9 @@ const Step = ({ number, text, subtext }) => (
 );
 
 const DiscoveryPortal = ({ onClose, onUploadClick }) => {
+    // Estado para reiniciar el GIF (cambiando la key o el src)
+    const [gifKey, setGifKey] = React.useState(Date.now());
+
     // Cerrar con tecla ESC
     React.useEffect(() => {
         const handleKeyDown = (e) => {
@@ -84,6 +87,10 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onClose]);
+
+    const handleRestartGif = () => {
+        setGifKey(Date.now());
+    };
 
     return ReactDOM.createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -270,6 +277,24 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                         />
                     </div>
 
+                    {/* GIF Explicativo de Descarga */}
+                    <div className="mt-6 mb-2 rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white relative group">
+                        <img
+                            key={gifKey}
+                            src={`/assets/tutorial-download.gif?t=${gifKey}`}
+                            alt="Guía visual de cómo descargar un modelo STL"
+                            className="w-full h-auto object-cover"
+                        />
+                        {/* Botón de Reinicio sobre el GIF */}
+                        <button
+                            onClick={handleRestartGif}
+                            className="absolute top-2 right-2 bg-white/90 hover:bg-white text-slate-600 hover:text-brand-primary p-1.5 rounded-lg shadow-sm border border-slate-200 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                            title="Repetir animación"
+                        >
+                            <RotateCcw className="w-4 h-4" />
+                        </button>
+                    </div>
+
                     <div className="mt-8 p-4 rounded-xl bg-white border border-slate-200 shadow-sm flex items-start gap-4">
                         <div className="p-2 bg-slate-100 rounded-full shrink-0">
                             <Download className="w-4 h-4 text-slate-500" />
@@ -281,9 +306,9 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                             </p>
                         </div>
                     </div>
-                </div >
-            </motion.div >
-        </div >,
+                </div>
+            </motion.div>
+        </div>,
         document.body
     );
 };
