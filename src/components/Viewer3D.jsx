@@ -124,6 +124,7 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
     const [position, setPosition] = React.useState([0, 0, 0]);
     const meshRef = React.useRef();
     const geometryRef = React.useRef(null);
+    const controlsRef = React.useRef();
 
     const handleGeometryLoaded = useMemo(() => {
         return (geo) => {
@@ -133,14 +134,24 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Posicionamiento
+    // Posicionamiento y Enfoque de Cámara
     React.useEffect(() => {
         if (!geometryRef.current) return;
         const geometry = geometryRef.current;
         if (!geometry.boundingBox) geometry.computeBoundingBox();
+
+        // 1. Posicionar modelo en el suelo (Y=0)
         const zBottom = geometry.boundingBox.min.z;
+        const zSize = geometry.boundingBox.max.z - geometry.boundingBox.min.z;
         const yOffset = -zBottom * scale;
         setPosition([0, yOffset, 0]);
+
+        // 2. Ajustar mira de la cámara (Target) al centro del modelo
+        if (controlsRef.current) {
+            const midY = (zSize * scale) / 2;
+            controlsRef.current.target.set(0, midY, 0);
+            controlsRef.current.update();
+        }
     }, [rotation, fileUrl, scale]);
 
     return (
@@ -184,14 +195,14 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 </React.Suspense>
 
                 <OrbitControls
+                    ref={controlsRef}
                     makeDefault
                     autoRotate
                     autoRotateSpeed={0.5}
                     minPolarAngle={0}
                     maxPolarAngle={Math.PI / 2.2}
                     enablePan={true}
-                    target={[0, 50, 0]}
-                    object-position={[0, 50, 0]}
+                    target={[0, 0, 0]} /* Inicial seguro, se actualiza en useEffect */
                 />
             </Canvas>
 
