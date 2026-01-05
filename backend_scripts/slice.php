@@ -38,9 +38,26 @@ try {
     }
 
     // Inputs del Frontend
-    $quality = isset($_POST['quality']) ? floatval($_POST['quality']) : 0.2; // Layer Height
-    $infill = isset($_POST['infill']) ? intval($_POST['infill']) : 15;       // Percentage
-    $scale = isset($_POST['scaleFactor']) ? floatval($_POST['scaleFactor']) : 1.0;
+
+    // Quality / Layer Height (ej: 0.2, 0.28, 0.16)
+    $rawQuality = isset($_POST['quality']) ? $_POST['quality'] : 0.2;
+    $quality = number_format(floatval($rawQuality), 2, '.', ''); // Asegurar "0.20" con punto
+    // Validar rango seguro
+    if ($quality < 0.05 || $quality > 1.0)
+        $quality = "0.20";
+
+    // Infill (0-100)
+    $rawInfill = isset($_POST['infill']) ? $_POST['infill'] : 15;
+    $infill = intval($rawInfill);
+    if ($infill < 0)
+        $infill = 0;
+    if ($infill > 100)
+        $infill = 100;
+
+    // Escala
+    $rawScale = isset($_POST['scaleFactor']) ? $_POST['scaleFactor'] : 1.0;
+    $scale = number_format(floatval($rawScale), 4, '.', '');
+
 
     // Paths
     $slicerPath = '/home/mechatro/slicer/prusa-slicer';

@@ -50,15 +50,15 @@ export const COLORS = [
 ];
 
 export const QUALITIES = [
-  { id: 'draft', name: 'Borrador Rápido (0.28mm)', layerHeight: 0.28, priceMultiplier: 0.7, description: 'Capas visibles. Velocidad y economía. Ideal para pruebas de forma.' },
-  { id: 'standard', name: 'Estándar (0.20mm)', layerHeight: 0.2, priceMultiplier: 1.0, description: 'Balance perfecto entre calidad y tiempo. El estándar de la industria.' },
-  { id: 'high', name: 'Alta Calidad (0.16mm)', layerHeight: 0.16, priceMultiplier: 1.5, description: 'Excelente acabado superficial. Capas mucho menos visibles. Ideal para detalles finos.' },
+  { id: 0.28, name: 'Borrador Rápido (0.28mm)', layerHeight: 0.28, priceMultiplier: 0.7, description: 'Capas visibles. Velocidad y economía. Ideal para pruebas de forma.' },
+  { id: 0.20, name: 'Estándar (0.20mm)', layerHeight: 0.2, priceMultiplier: 1.0, description: 'Balance perfecto entre calidad y tiempo. El estándar de la industria.' },
+  { id: 0.16, name: 'Alta Calidad (0.16mm)', layerHeight: 0.16, priceMultiplier: 1.5, description: 'Excelente acabado superficial. Capas mucho menos visibles. Ideal para detalles finos.' },
 ];
 
 export const DEFAULT_CONFIG = {
   material: 'PLA',
   colorId: null,
-  qualityId: 'standard',
+  qualityId: 0.20, // ID Numérico (Estándar)
   infill: 20, // Recomendado para robustez óptima
   quantity: 1,
 };
