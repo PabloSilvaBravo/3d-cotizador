@@ -535,7 +535,7 @@ const App = () => {
     if (quoteData.peso > 0) {
       return {
         weightGrams: quoteData.peso,
-        timeHours: quoteData.tiempoHoras,
+        timeHours: quoteData.timeHours, // Propiedad correcta devuelta por backend
         tieneSoportes: quoteData.tieneSoportes || false,
         pesoSoportes: 0 // Deprecated
       };
