@@ -27,6 +27,7 @@ import UploadPage from './components/UploadPage';
 import { useBackendQuote } from './hooks/useBackendQuote';
 
 const App = () => {
+  const captureRef = useRef(null); // Ref para capturar imagen del Viewer3D
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [localGeometry, setLocalGeometry] = useState(null);
@@ -481,6 +482,27 @@ const App = () => {
         console.log("♻️ Usando enlace Drive existente:", currentDriveLink);
       }
 
+      // 1.5. CAPTURAR MINIATURA (NUEVO)
+      let thumbnailUrl = null;
+      if (captureRef.current) {
+        try {
+          console.log("📸 Capturando miniatura 3D...");
+          const blob = await captureRef.current();
+          if (blob) {
+            // Crear un archivo ficticio para subir
+            const thumbFile = new File([blob], `thumb_${file.name}.png`, { type: "image/png" });
+            console.log("📤 Subiendo miniatura a Drive...");
+            const thumbResult = await uploadToDrive(thumbFile);
+            if (thumbResult && thumbResult.success) {
+              thumbnailUrl = thumbResult.url;
+              console.log("✅ Miniatura subida:", thumbnailUrl);
+            }
+          }
+        } catch (err) {
+          console.warn("⚠️ No se pudo generar la miniatura:", err);
+        }
+      }
+
       // 2. Preparar payload conforme a documentación
       // colorData viene del Configurator via onChange
       const colorName = config.colorData ? config.colorData.name : "Estándar";
@@ -500,6 +522,7 @@ const App = () => {
         infill: config.infill, // 15, 20, 100
         layerHeight: config.qualityId, // 0.2, 0.16 (Corregido: quality -> qualityId)
         weight: Math.ceil(estimateForUI.weightGrams) + 3, // +3g margen seguridad/empaque
+        thumbnailUrl: thumbnailUrl, // IMAGEN DE LA IMPRESIÓN
         printTime: timeMinutes,
         dimensions: estimateForUI.dimensions
           ? `${estimateForUI.dimensions.x}x${estimateForUI.dimensions.y}x${estimateForUI.dimensions.z}`
@@ -701,6 +724,7 @@ const App = () => {
           {fileUrl && (
             <Viewer3D
               fileUrl={fileUrl}
+              captureRef={captureRef}
               colorHex={currentColorHex}
               onGeometryLoaded={handleGeometryLoaded}
               rotation={optimalRotation}

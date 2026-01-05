@@ -66,7 +66,61 @@ const PrintBed = ({ size = 235 }) => {
     );
 };
 
-export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0 }) => {
+// Helper para redimensionar la imagen a 100x100 (centrada)
+const processCapture = (dataUrl) => {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo blanco para que destaque
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 100, 100);
+
+            // Calcular escala 'cover' o 'contain'
+            // Usaremos 'contain' para que se vea la pieza completa
+            const scale = Math.min(100 / img.width, 100 / img.height);
+            const w = img.width * scale;
+            const h = img.height * scale;
+            const x = (100 - w) / 2;
+            const y = (100 - h) / 2;
+
+            ctx.drawImage(img, x, y, w, h);
+
+            canvas.toBlob((blob) => {
+                resolve(blob);
+            }, 'image/png');
+        };
+        img.src = dataUrl;
+    });
+};
+
+import { useThree } from '@react-three/fiber';
+
+// Componente invisible que expone la captura
+const CaptureHandler = ({ captureRef }) => {
+    const { gl, scene, camera } = useThree();
+
+    useEffect(() => {
+        if (captureRef) {
+            captureRef.current = async () => {
+                // Forzar render
+                gl.render(scene, camera);
+                // Obtener data URL (requiere preserveDrawingBuffer: true en Canvas)
+                const dataUrl = gl.domElement.toDataURL('image/png', 0.8);
+                // Procesar resizing
+                return await processCapture(dataUrl);
+            };
+        }
+    }, [gl, scene, camera, captureRef]);
+
+    return null;
+};
+
+export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0, captureRef = null }) => {
     const [position, setPosition] = React.useState([0, 0, 0]);
     const meshRef = React.useRef();
     const geometryRef = React.useRef(null);
@@ -95,7 +149,10 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 shadows
                 camera={{ position: [150, 120, 150], fov: 45 }}
                 dpr={[1, 2]}
+                gl={{ preserveDrawingBuffer: true }} // Necesario para capturas
             >
+                {captureRef && <CaptureHandler captureRef={captureRef} />}
+
                 {/* 1. ILUMINACIÓN AMBIENTAL (HDRI) EQUILIBRADA */}
                 {/* Environment provee reflejos y luz base natural pero suavizada */}
                 <Environment preset="city" blur={1} />
@@ -134,6 +191,7 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                     maxPolarAngle={Math.PI / 2.2}
                     enablePan={true}
                     target={[0, 50, 0]}
+                    object-position={[0, 50, 0]}
                 />
             </Canvas>
 
