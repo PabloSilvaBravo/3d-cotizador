@@ -82,7 +82,7 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp, onFil
             >
                 {/* Header mejorado con subtítulo */}
                 <motion.div variants={cardVariants} className="text-center mb-12">
-                    <StepIndicator currentStep={1} />
+                    <StepIndicator currentStep={1} totalSteps={2} />
 
                     <h2 className="text-3xl md:text-4xl font-bold text-slate-700 mb-3">
                         ¿Tienes el archivo 3D que deseas cotizar?
