@@ -120,7 +120,7 @@ const CaptureHandler = ({ captureRef }) => {
     return null;
 };
 
-export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0, captureRef = null }) => {
+export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0, captureRef = null, isLoading = false }) => {
     const [position, setPosition] = React.useState([0, 0, 0]);
     const meshRef = React.useRef();
     const geometryRef = React.useRef(null);
@@ -206,13 +206,68 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 />
             </Canvas>
 
-            {/* Badge */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none opacity-50">
+            {/* Badge Vista de Impresión */}
+            <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-50'}`}>
                 <div className="flex items-center gap-2 text-slate-600 text-xs tracking-widest uppercase font-bold">
                     <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
                     </svg>
                     Vista de Impresión
+                </div>
+            </div>
+
+            {/* INDICADOR DE CARGA SIMULADA - ESQUINA INFERIOR DERECHA */}
+            <LoadingIndicator isLoading={isLoading} />
+        </div>
+    );
+};
+
+// Subcomponente para manejar estados de carga rotativos
+const LoadingIndicator = ({ isLoading }) => {
+    const [messageIndex, setMessageIndex] = React.useState(0);
+
+    // Lista de mensajes "técnicos" para simular análisis
+    const messages = [
+        "Analizando topología...",
+        "Verificando normales...",
+        "Calculando volumen...",
+        "Simulando capas...",
+        "Optimizando malla...",
+        "Generando vista previa..."
+    ];
+
+    React.useEffect(() => {
+        if (!isLoading) {
+            setMessageIndex(0);
+            return;
+        }
+
+        // Cambiar mensaje cada 1.2s
+        const interval = setInterval(() => {
+            setMessageIndex(prev => (prev + 1) % messages.length);
+        }, 1200);
+
+        return () => clearInterval(interval);
+    }, [isLoading, messages.length]);
+
+    return (
+        <div className={`absolute bottom-6 right-6 pointer-events-none transition-all duration-500 transform ${isLoading ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+            <div className="bg-white/80 backdrop-blur-md border border-white/50 shadow-lg rounded-xl px-4 py-3 flex items-center gap-4">
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                    {/* Spinner Círculo */}
+                    <svg className="animate-spin w-full h-full text-brand-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <div className='flex flex-col w-36'> {/* Ancho fijo para evitar saltos */}
+                    <span className="text-xs font-black text-brand-primary uppercase tracking-wider">Procesando</span>
+                    <span
+                        key={messageIndex} // Key para reiniciar animación
+                        className="text-[10px] text-slate-500 font-medium truncate animate-[fadeIn_0.3s_ease-out]"
+                    >
+                        {messages[messageIndex]}
+                    </span>
                 </div>
             </div>
         </div>

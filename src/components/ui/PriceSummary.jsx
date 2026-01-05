@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import CubeLoader from './CubeLoader';
+
 // Hook simple para animación de número (CountUp)
 const useCountUp = (end, duration = 800) => {
     const [count, setCount] = useState(0);
@@ -42,6 +44,22 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
     // Animación del precio final
     const animatedPrice = useCountUp(estimate ? estimate.totalPrice : 0);
 
+    // Estado de carga inicial (sin datos previos)
+    if (isLoading && !estimate) {
+        return (
+            <div className="mt-6 h-[300px] flex items-center justify-center relative z-10">
+                {/* Contenedor transparente para que solo se vea el loader flotando */}
+                <div className="bg-white p-8 rounded-2xl shadow-2xl shadow-brand-primary/10 border border-white/50 flex flex-col items-center animate-in fade-in zoom-in duration-500">
+                    <div className="mb-4 transform scale-110">
+                        <CubeLoader size="md" />
+                    </div>
+                    <SummaryLoadingText />
+                </div>
+            </div>
+        );
+    }
+
+    // Estado vacío / error (sin datos y sin cargar)
     if (!estimate) return (
         <div className="mt-8 p-6 bg-brand-light/30 rounded-2xl animate-pulse flex flex-col gap-4">
             <div className="h-4 bg-brand-dark/5 rounded w-1/2"></div>
@@ -52,15 +70,8 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
     return (
         <div className="mt-6 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden relative transition-all duration-300">
 
-            {/* Loading Overlay */}
-            {isLoading && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center transition-all duration-300">
-                    <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 border-4 border-brand-primary/30 border-t-brand-primary rounded-full animate-spin mb-2"></div>
-                        <span className="text-xs font-bold text-brand-primary animate-pulse">ACTUALIZANDO...</span>
-                    </div>
-                </div>
-            )}
+            {/* Loading Overlay Nuevo */}
+            {isLoading && <SummaryLoadingOverlay />}
 
             {/* Contenido Principal */}
             <div className={`transition-opacity duration-300 ${isLoading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
@@ -190,10 +201,16 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         <div className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
-                                Tarifa Base
+                                Tarifa Base ({estimate.platesNeeded || 1} {estimate.platesNeeded === 1 ? 'placa' : 'placas'})
                             </span>
                             <span className="font-semibold text-brand-dark">${estimate.startupFee.toLocaleString('es-CL')}</span>
                         </div>
+
+                        {estimate.platesNeeded > 1 && (
+                            <p className="text-[10px] text-amber-600 mt-1 pl-4 leading-relaxed bg-amber-50 rounded p-1 border border-amber-100">
+                                <span className="font-bold">Info:</span> Se requieren {estimate.platesNeeded} camas de impresión debido al volumen de piezas. (+$1.000 por cama extra).
+                            </p>
+                        )}
 
                         {config.quantity > 1 && (
                             <div className="flex justify-between text-brand-primary font-bold pt-3 mt-1 border-t border-brand-secondary/5 text-xs">
@@ -217,10 +234,10 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
 
                     <div className="flex justify-between items-end">
                         <div>
-                            <p className="text-[10px] text-brand-dark/40 font-bold uppercase mb-1.5 tracking-widest">Entrega Estimada</p>
-                            <p className="text-xs font-bold text-brand-secondary flex items-center gap-1.5 bg-brand-light/30 px-3 py-1.5 rounded-lg border border-brand-light/50 inline-block">
+                            <p className="text-[10px] text-brand-dark/40 font-bold uppercase mb-1.5 tracking-widest">Entrega</p>
+                            <p className="text-xs font-bold text-brand-secondary inline-flex items-center gap-1.5 bg-brand-light/30 px-3 py-1.5 rounded-lg border border-brand-light/50">
                                 <svg className="w-4 h-4 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                3-5 días hábiles
+                                Depende de la complejidad técnica
                             </p>
                         </div>
                         <div className="text-right">
@@ -323,6 +340,51 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         )}
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// Subcomponente de Loading para PriceSummary
+// Subcomponente de texto rotativo
+const SummaryLoadingText = () => {
+    const [msgIndex, setMsgIndex] = useState(0);
+    const messages = [
+        "Calculando material...",
+        "Verificando geometría...",
+        "Optimizando nesting...",
+        "Consultando tarifas...",
+        "Finalizando cotización..."
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setMsgIndex(prev => (prev + 1) % messages.length);
+        }, 800);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="flex flex-col items-center w-40">
+            <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest mb-1">
+                Calculando
+            </span>
+            <span key={msgIndex} className="text-xs text-slate-500 font-medium animate-[fadeIn_0.3s_ease-out] text-center whitespace-nowrap">
+                {messages[msgIndex]}
+            </span>
+        </div>
+    );
+};
+
+// Subcomponente de Loading Overlay (Para cuando ya hay contenido)
+const SummaryLoadingOverlay = () => {
+    return (
+        <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center transition-all duration-300">
+            <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl shadow-2xl shadow-brand-primary/10 border border-white flex flex-col items-center transform scale-100 animate-in fade-in zoom-in duration-300">
+                <div className="scale-75 mb-2">
+                    <CubeLoader size="sm" />
+                </div>
+                <SummaryLoadingText />
             </div>
         </div>
     );

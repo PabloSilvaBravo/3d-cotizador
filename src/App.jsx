@@ -14,7 +14,7 @@ import { enviarCorreo } from './services/emailService';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
 import { uploadToDrive } from './services/driveService';
-import { addToCartAndRedirect } from './services/cartService';
+import { addToCartAndRedirect, addToCart } from './services/cartService';
 import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import FileAvailabilitySelector from './components/FileAvailabilitySelector';
@@ -23,6 +23,7 @@ import StepIndicator from './components/ui/StepIndicator';
 import DiscoveryPortal from './components/DiscoveryPortal';
 import SuccessScreen from './components/SuccessScreen';
 import UploadPage from './components/UploadPage';
+import { QuoteCart } from './components/QuoteCart';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -37,6 +38,9 @@ const App = () => {
   const [isConverting, setIsConverting] = useState(false);
   // Estado para la selección inicial (null = no ha elegido, true = tiene archivo, false = necesita ayuda)
   const [userHasFile, setUserHasFile] = useState(null);
+
+  // Estado para Carrito Múltiple
+  const [cartItems, setCartItems] = useState([]);
 
   // Estado para orientación y escala óptimas
   const [optimalRotation, setOptimalRotation] = useState([0, 0, 0]);
@@ -472,6 +476,37 @@ const App = () => {
   /**
    * Maneja el flujo de "Agregar al Carrito" (WooCommerce)
    */
+  const handleCheckoutCart = async () => {
+    if (cartItems.length === 0) return;
+    setIsCartProcessing(true);
+
+    try {
+      console.log(`🚀 Iniciando Checkout de ${cartItems.length} items...`);
+
+      let lastResult = null;
+
+      for (const item of cartItems) {
+        lastResult = await addToCart(item.payload);
+      }
+
+      if (lastResult && lastResult.success && lastResult.cartUrl) {
+        window.location.href = lastResult.cartUrl;
+      } else {
+        throw new Error("No se obtuvo URL de redirección del carrito.");
+      }
+
+    } catch (e) {
+      console.error("❌ Error Finalizando Compra:", e);
+      alert("Error al procesar el pedido. Intente nuevamente.");
+      setIsCartProcessing(false);
+    }
+  };
+
+  const handleRemoveFromCart = (id) => {
+    setCartItems(prev => prev.filter(item => item.id !== id));
+  };
+
+
   const handleWooCommerceCart = async () => {
     if (!file || !estimateForUI || !config.material) return;
 
@@ -530,19 +565,28 @@ const App = () => {
 
       console.log("🛒 Payload para WooCommerce:", payload);
 
-      // 3. Enviar y Redirigir
-      await addToCartAndRedirect(payload);
-      console.log("🚀 Redirigiendo a Carrito...");
-      console.groupEnd(); // Fin grupo carrito
+      // 3. AGREGAR A CARRITO LOCAL (EN LUGAR DE REDIRIGIR)
+      const newItem = {
+        id: Date.now(),
+        payload: payload,
+        fileName: file.name,
+        material: config.material,
+        color: colorName,
+        colorHex: config.colorData?.hex || '#94a3b8',
+        quantity: config.quantity,
+        price: Math.round(estimateForUI.totalPrice)
+      };
+
+      setCartItems(prev => [...prev, newItem]);
+      console.log("✅ Agregado a Carrito Local:", newItem);
+      console.groupEnd();
 
     } catch (e) {
       console.error("❌ Error Carrito:", e);
       alert("Error al agregar al carrito: " + e.message);
+    } finally {
       setIsCartProcessing(false);
-      console.groupEnd(); // Fin grupo carrito (error)
     }
-    // No ponemos setIsCartProcessing(false) si redirigimos, para evitar clicks dobles
-    // Pero si falla, lo apagamos en catch.
   };
 
   // Combinar datos: Tiempo del backend + Peso del frontend ajustado por relleno
@@ -550,13 +594,22 @@ const App = () => {
   const getEstimatedStats = () => {
     if (!quoteData || !localGeometry) return null;
 
+    // Dimensiones escaladas para cálculos de nesting
+    const dims = localGeometry.dimensions || { x: 0, y: 0, z: 0 };
+    const scaledDims = {
+      x: dims.x * autoScale,
+      y: dims.y * autoScale,
+      z: dims.z * autoScale
+    };
+
     // 1. CASO NORMAL: Tenemos datos de Slicer
     if (quoteData.peso > 0) {
       return {
         weightGrams: quoteData.peso,
         timeHours: quoteData.timeHours, // Propiedad correcta devuelta por backend
         tieneSoportes: localGeometry?.needsSupport || quoteData.tieneSoportes || false,
-        pesoSoportes: 0 // Deprecated
+        pesoSoportes: 0, // Deprecated
+        dimensions: scaledDims
       };
     }
 
@@ -572,7 +625,8 @@ const App = () => {
       weightGrams: weight,
       timeHours: time,
       tieneSoportes: false, // En fallback asumimos NO hasta demostrar lo contrario
-      isEstimated: true
+      isEstimated: true,
+      dimensions: scaledDims
     };
   };
 
@@ -708,7 +762,7 @@ const App = () => {
               <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
             <div className="hidden sm:block">
-              <StepIndicator currentStep={3} />
+              <StepIndicator currentStep={2} totalSteps={2} />
             </div>
             <div className="bg-white/30 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full text-slate-600 font-medium text-xs shadow-sm flex items-center gap-2 pointer-events-none select-none max-w-[150px] lg:max-w-[250px]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.4)] shrink-0"></span>
@@ -724,21 +778,8 @@ const App = () => {
               onGeometryLoaded={handleGeometryLoaded}
               rotation={optimalRotation}
               scale={autoScale}
+              isLoading={isLoading}
             />
-          )}
-
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center text-brand-secondary"
-            >
-              <CubeLoader />
-              <p className="font-bold text-lg mt-8 tracking-tight text-brand-primary animate-pulse text-center px-4">
-                {isConverting ? 'Convirtiendo formato...' : 'Optimizando Modelo...'}
-              </p>
-            </motion.div>
           )}
         </div>
       </motion.div>
@@ -864,6 +905,12 @@ const App = () => {
         }}
       />
 
+      <QuoteCart
+        items={cartItems}
+        onRemove={handleRemoveFromCart}
+        onCheckout={handleCheckoutCart}
+        isProcessing={isCartProcessing}
+      />
     </div >
   );
 };
