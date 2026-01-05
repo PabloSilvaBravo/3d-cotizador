@@ -103,20 +103,25 @@ try {
     $weight = 0;
     $timeStr = "";
 
-    // Leer solo el final para optimizar (últimos 4kb)
+    // Leer solo el final para optimizar (Aumentado a 16KB por si hay thumbnails al final)
+    $fileSize = filesize($outputPath);
+    $readSize = min($fileSize, 16384); // 16KB
+
     $fp = fopen($outputPath, 'r');
-    fseek($fp, -4096, SEEK_END);
-    $tail = fread($fp, 4096);
+    if ($fileSize > $readSize) {
+        fseek($fp, -$readSize, SEEK_END);
+    }
+    $tail = fread($fp, $readSize);
     fclose($fp);
 
-    // Regex Prusa
+    // Regex Prusa (Más flexible con espacios)
     // ; filament used [g] = 13.45
-    if (preg_match('/; filament used \[g\] = ([0-9.]+)/', $tail, $m)) {
+    if (preg_match('/; filament used \[g\]\s*=\s*([0-9.]+)/', $tail, $m)) {
         $weight = floatval($m[1]);
     }
 
     // ; estimated printing time = 2h 30m 10s
-    if (preg_match('/; estimated printing time = (.*)/', $tail, $m)) {
+    if (preg_match('/; estimated printing time\s*=\s*(.*)/', $tail, $m)) {
         $timeStr = trim($m[1]);
     }
 
@@ -141,13 +146,14 @@ try {
 
     echo json_encode([
         'success' => true,
-        'peso' => $weight,            // Compatible con frontend anterior
-        'volumen' => $weight / 1.24,  // Estimación PLA
-        'tiempoTexto' => $timeStr,    // Compatible con frontend anterior ("2h 30m")
-        'timeHours' => $totalHours,   // Decimal hours para cálculos
+        'peso' => $weight,
+        'volumen' => $weight / 1.24,
+        'tiempoTexto' => $timeStr,
+        'timeHours' => $totalHours,
         'debug' => [
             'cmd' => $command,
-            'log_tail' => array_slice($output, -3) // Debug minimo
+            'log_tail' => array_slice($output, -5),
+            'gcode_tail_sample' => substr($tail, -2000) // Mostrar últimos chars para debug visual
         ]
     ]);
 
