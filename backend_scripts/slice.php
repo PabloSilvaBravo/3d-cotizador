@@ -60,7 +60,8 @@ try {
 
 
     // Paths
-    $slicerPath = '/home/mechatro/slicer/prusa-slicer';
+    // Ruta ajustada para entorno VPS Docker (Squashfs extract)
+    $slicerPath = '/home/mechatro/slicer/squashfs-root-old/usr/bin/prusa-slicer';
     $configPath = __DIR__ . '/config.ini';
 
     if (!file_exists($slicerPath))
