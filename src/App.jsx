@@ -22,6 +22,7 @@ import CircuitBackground from './components/CircuitBackground';
 import StepIndicator from './components/ui/StepIndicator';
 import DiscoveryPortal from './components/DiscoveryPortal';
 import SuccessScreen from './components/SuccessScreen';
+import UploadPage from './components/UploadPage';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -498,7 +499,7 @@ const App = () => {
         color: colorName,
         infill: config.infill, // 15, 20, 100
         layerHeight: config.qualityId, // 0.2, 0.16 (Corregido: quality -> qualityId)
-        weight: Math.ceil(estimateForUI.weightGrams) + 1, // +1g margen seguridad/empaque
+        weight: Math.ceil(estimateForUI.weightGrams) + 3, // +3g margen seguridad/empaque
         printTime: timeMinutes,
         dimensions: estimateForUI.dimensions
           ? `${estimateForUI.dimensions.x}x${estimateForUI.dimensions.y}x${estimateForUI.dimensions.z}`
@@ -587,6 +588,11 @@ const App = () => {
 
   // --- LANDING VIEW (SELECTOR INICIAL O UPLOAD) ---
   if (!file) {
+    // Ruta dedicada para carga (/upload)
+    if (location.pathname === '/upload') {
+      return <UploadPage onFileSelect={handleFileSelect} />;
+    }
+
     return (
       <div className="min-h-screen flex flex-col bg-brand-light font-sans text-brand-dark overflow-hidden relative">
         <CircuitBackground />
@@ -643,7 +649,7 @@ const App = () => {
               {userHasFile === false && (
                 <DiscoveryPortal
                   onClose={() => navigate('/')}
-                  onUploadClick={() => navigate('/')}
+                  onUploadClick={() => navigate('/upload')}
                 />
               )}
             </AnimatePresence>
