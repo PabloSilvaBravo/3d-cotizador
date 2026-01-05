@@ -267,14 +267,30 @@ const App = () => {
       z: (localGeometry?.dimensions?.z || 0) * autoScale,
     };
     const dimsStr = `${finalDims.x.toFixed(1)} x ${finalDims.y.toFixed(1)} x ${finalDims.z.toFixed(1)} mm`;
-    const volStr = `${(quoteData?.volumen || 0).toFixed(2)} cm³`;
+
+    // Volumen robusto: Priorizar geometría real si existe
+    const volValue = localGeometry?.volumeCm3 || quoteData?.volumen || 0;
+    const volStr = `${volValue.toFixed(2)} cm³`;
+
     const scaleStr = `${(autoScale * 100).toFixed(0)}%`;
 
     const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 
-    // Detectar si se aplicó precio mínimo (necesitamos recalcular o acceder a estimateForUI)
+    // Detectar si se aplicó precio mínimo y calcular tiempo robusto
     const stats = getEstimatedStats();
+
+    // Tiempo robusto: Texto de backend o cálculo local
+    let displayTimeStr = '--';
+    if (quoteData?.tiempoTexto) {
+      displayTimeStr = quoteData.tiempoTexto;
+    } else if (stats?.timeHours) {
+      const totalMin = Math.round(stats.timeHours * 60);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      displayTimeStr = `${h}h ${m}m (Estimado)`;
+    }
+
     const priceData = stats ? calculatePriceFromStats(config, stats) : null;
     const isMinimumPrice = priceData?.isMinimumPrice || false;
 
@@ -379,7 +395,7 @@ const App = () => {
                <tr>
                  <td valign="top">
                     <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TIEMPO EST. IMPRESIÓN</div>
-                    <div style="font-size: 16px; color: #334155; font-weight: 600;">${quoteData?.tiempoTexto || '--'}</div>
+                    <div style="font-size: 16px; color: #334155; font-weight: 600;">${displayTimeStr}</div>
                  </td>
                  <td valign="top">
                     <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">PESO EST. TOTAL</div>
@@ -482,27 +498,6 @@ const App = () => {
         console.log("♻️ Usando enlace Drive existente:", currentDriveLink);
       }
 
-      // 1.5. CAPTURAR MINIATURA (NUEVO)
-      let thumbnailUrl = null;
-      if (captureRef.current) {
-        try {
-          console.log("📸 Capturando miniatura 3D...");
-          const blob = await captureRef.current();
-          if (blob) {
-            // Crear un archivo ficticio para subir
-            const thumbFile = new File([blob], `thumb_${file.name}.png`, { type: "image/png" });
-            console.log("📤 Subiendo miniatura a Drive...");
-            const thumbResult = await uploadToDrive(thumbFile);
-            if (thumbResult && thumbResult.success) {
-              thumbnailUrl = thumbResult.url;
-              console.log("✅ Miniatura subida:", thumbnailUrl);
-            }
-          }
-        } catch (err) {
-          console.warn("⚠️ No se pudo generar la miniatura:", err);
-        }
-      }
-
       // 2. Preparar payload conforme a documentación
       // colorData viene del Configurator via onChange
       const colorName = config.colorData ? config.colorData.name : "Estándar";
@@ -522,7 +517,7 @@ const App = () => {
         infill: config.infill, // 15, 20, 100
         layerHeight: config.qualityId, // 0.2, 0.16 (Corregido: quality -> qualityId)
         weight: Math.ceil(estimateForUI.weightGrams) + 3, // +3g margen seguridad/empaque
-        thumbnailUrl: thumbnailUrl, // IMAGEN DE LA IMPRESIÓN
+        // thumbnailUrl eliminado para usar imagen por defecto
         printTime: timeMinutes,
         dimensions: estimateForUI.dimensions
           ? `${estimateForUI.dimensions.x}x${estimateForUI.dimensions.y}x${estimateForUI.dimensions.z}`
