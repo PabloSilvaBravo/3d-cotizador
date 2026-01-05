@@ -118,11 +118,25 @@ export const useBackendQuote = () => {
                     if (err.name === 'AbortError') {
                         return;
                     }
-                    console.error(err);
-                    lastRequestHash.current = ''; // Reset hash on error
-                    setError(err.message || 'Error desconocido');
+                    console.warn("⚠️ Fallo conexión con Slicer VPS. Usando estimación local geométrico.", err);
+
+                    // FALLBACK ROBUSTO:
+                    // Si falla la API (CORS, 500, Network), devolvemos un objeto que indique
+                    // a la App que debe usar sus propios cálculos geométricos.
+                    const fallbackData = {
+                        oversized: false, // No necesariamente oversized, solo desconectado
+                        isFallback: true,
+                        peso: 0, // App calculará basado en volumen
+                        tiempoTexto: "Estimado..."
+                    };
+
+                    // No seteamos error para no bloquear la UI
+                    setQuoteData(fallbackData);
                     setIsLoading(false);
-                    reject(err);
+                    resolve(fallbackData);
+
+                    // Solo reportar error en consola, no a variable 'error'
+                    // setError(err.message); 
                 }
             }, 500); // 500ms debounce
         });
