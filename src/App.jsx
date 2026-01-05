@@ -498,7 +498,7 @@ const App = () => {
         color: colorName,
         infill: config.infill, // 15, 20, 100
         layerHeight: config.qualityId, // 0.2, 0.16 (Corregido: quality -> qualityId)
-        weight: Math.ceil(estimateForUI.weightGrams),
+        weight: Math.ceil(estimateForUI.weightGrams) + 1, // +1g margen seguridad/empaque
         printTime: timeMinutes,
         dimensions: estimateForUI.dimensions
           ? `${estimateForUI.dimensions.x}x${estimateForUI.dimensions.y}x${estimateForUI.dimensions.z}`
