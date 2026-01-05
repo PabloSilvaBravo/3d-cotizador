@@ -458,19 +458,26 @@ const App = () => {
     if (!file || !estimateForUI || !config.material) return;
 
     setIsCartProcessing(true);
+    console.groupCollapsed("🛒 Proceso Agregar al Carrito");
+
     try {
       // 1. Subir a Drive (si no tenemos URL aún)
       let currentDriveLink = driveLink;
 
       if (!currentDriveLink) {
-        console.log("Subiendo a Drive para carrito...");
+        console.log("📤 Subiendo archivo a Drive para carrito...");
         const result = await uploadToDrive(file);
+        // driveService ahora retorna objeto { success, url, error } o { success:false } si falla el catch interno
         if (result.success) {
           currentDriveLink = result.url;
           setDriveLink(currentDriveLink);
+          console.log("✅ Archivo subido:", currentDriveLink);
         } else {
-          throw new Error("No se pudo subir el archivo. " + (result.error || ""));
+          console.error("❌ Falló subida Drive:", result.error);
+          throw new Error("No se pudo subir el archivo a Drive: " + (result.error || "Error desconocido"));
         }
+      } else {
+        console.log("♻️ Usando enlace Drive existente:", currentDriveLink);
       }
 
       // 2. Preparar payload conforme a documentación
@@ -502,15 +509,18 @@ const App = () => {
         notes: "" // Podríamos agregar un campo de notas en el futuro
       };
 
-      console.log("Enviando a carrito:", payload);
+      console.log("🛒 Payload para WooCommerce:", payload);
 
       // 3. Enviar y Redirigir
       await addToCartAndRedirect(payload);
+      console.log("🚀 Redirigiendo a Carrito...");
+      console.groupEnd(); // Fin grupo carrito
 
     } catch (e) {
-      console.error("Error Carrito:", e);
+      console.error("❌ Error Carrito:", e);
       alert("Error al agregar al carrito: " + e.message);
       setIsCartProcessing(false);
+      console.groupEnd(); // Fin grupo carrito (error)
     }
     // No ponemos setIsCartProcessing(false) si redirigimos, para evitar clicks dobles
     // Pero si falla, lo apagamos en catch.

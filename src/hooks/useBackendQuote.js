@@ -60,6 +60,17 @@ export const useBackendQuote = () => {
                     // Usar Slicer VPS (Prusa CLI)
                     const backendUrl = "https://dashboard.mechatronicstore.cl/api/3d/slice.php";
 
+                    console.groupCollapsed(`🖨️ Solicitud Slicing: ${file.name}`);
+                    console.time("⏱️ Tiempo Slicing");
+                    console.log("📤 Enviando parámetros a VPS:", {
+                        file: file.name,
+                        size: (file.size / 1024 / 1024).toFixed(2) + " MB",
+                        material: materialId,
+                        quality: qualityId,
+                        infill: infill,
+                        scale: scale
+                    });
+
                     const response = await fetch(backendUrl, {
                         method: 'POST',
                         body: formData,
@@ -92,33 +103,35 @@ export const useBackendQuote = () => {
                     }
 
                     const data = await response.json();
+                    console.timeEnd("⏱️ Tiempo Slicing");
+                    console.log("📥 Respuesta VPS (Raw):", data);
 
                     // === LOG DE DEBUGGING AL FRONTEND ===
                     if (data.debug) {
-                        console.groupCollapsed('🛠️ Backend Slicing Debug Info');
-                        console.log('📦 Logs del proceso:', data.debug.logs);
-                        console.log('📜 GCode Tail (últimos 2000 chars):');
-                        console.log(data.debug.gcodeTail); // Imprimir como texto plano
-                        console.log('📊 Datos finales detectados:', {
-                            volumen: data.volumen,
-                            peso: data.peso,
-                            soportes: data.pesoSoportes,
-                            soportesPct: data.porcentajeSoportes,
-                            tiempo: data.tiempoTexto
-                        });
-                        console.groupEnd();
+                        console.log('🛠️ [Debug Backend] CMD:', data.debug.cmd);
+                        console.log('🛠️ [Debug Backend] Log Tail:', data.debug.log_tail);
                     }
-                    // ===================================
+
+                    console.log('📊 Datos recibidos:', {
+                        volumen: data.volumen,
+                        peso: data.peso,
+                        tiempo: data.tiempoTexto,
+                        horas: data.timeHours
+                    });
 
                     setQuoteData(data);
                     setIsLoading(false);
+                    console.log("✅ Datos aplicados al estado:", data);
+                    console.groupEnd(); // Fin grupo slicing
                     resolve(data);
 
                 } catch (err) {
                     if (err.name === 'AbortError') {
+                        console.log("🛑 Petición cancelada (Usuario cambió parámetros rápido)");
+                        console.groupEnd();
                         return;
                     }
-                    console.warn("⚠️ Fallo conexión con Slicer VPS. Usando estimación local geométrico.", err);
+                    console.warn("⚠️ Fallo conexión con Slicer VPS. Activando Fallback.", err.message);
 
                     // FALLBACK ROBUSTO:
                     // Si falla la API (CORS, 500, Network), devolvemos un objeto que indique
@@ -133,6 +146,8 @@ export const useBackendQuote = () => {
                     // No seteamos error para no bloquear la UI
                     setQuoteData(fallbackData);
                     setIsLoading(false);
+                    console.log("✅ Usando Fallback Data:", fallbackData);
+                    console.groupEnd(); // Fin grupo slicing
                     resolve(fallbackData);
 
                     // Solo reportar error en consola, no a variable 'error'
