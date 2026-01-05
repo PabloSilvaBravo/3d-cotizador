@@ -58,10 +58,10 @@ export async function uploadToDrive(file, fileName = null, folderId = null) {
         }
 
         console.log("Archivo subido a Drive:", data.url);
-        return data.url;
+        return data; // Retornar objeto completo { success: true, url: ... } para App.jsx
     } catch (error) {
         console.error("Error subiendo a Drive:", error);
-        throw error;
+        return { success: false, error: error.message }; // Manejo de error consistente
     }
 }
 
