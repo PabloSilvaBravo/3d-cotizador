@@ -21,7 +21,7 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attach
                 ...(cc && { cc }),
                 ...(bcc && { bcc }),
                 ...(replyTo && { replyTo }),
-                ...(attachments && attachments.length > 0 && { attachments }),
+                // Attachments eliminados por limitación de API (ver Guía)
             }),
         });
 
