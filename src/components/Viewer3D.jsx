@@ -246,7 +246,7 @@ const LoadingIndicator = ({ isLoading }) => {
         // Cambiar mensaje cada 1.2s
         const interval = setInterval(() => {
             setMessageIndex(prev => (prev + 1) % messages.length);
-        }, 1200);
+        }, 4000);
 
         return () => clearInterval(interval);
     }, [isLoading, messages.length]);

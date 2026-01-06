@@ -1,0 +1,22 @@
+{
+    "name": "Cotizador 3D - MechatronicStore",
+    "short_name": "Cotizador 3D",
+    "description": "Cotizador automático de impresión 3D con especificaciones técnicas completas",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#e2e8f0",
+    "theme_color": "#6017b1",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "any",
+            "type": "image/x-icon"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "utilities"
+    ],
+    "lang": "es-CL"
+}

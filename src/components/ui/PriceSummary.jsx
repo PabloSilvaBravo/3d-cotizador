@@ -350,7 +350,7 @@ const SummaryLoadingText = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setMsgIndex(prev => (prev + 1) % messages.length);
-        }, 800);
+        }, 4000);
         return () => clearInterval(interval);
     }, []);
 

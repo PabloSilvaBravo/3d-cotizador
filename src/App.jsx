@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FileUpload from './components/ui/FileUpload';
@@ -8,8 +8,7 @@ import CubeLoader from './components/ui/CubeLoader';
 import Configurator from './components/ui/Configurator';
 import PriceSummary from './components/ui/PriceSummary';
 import ScaleControl from './components/ui/ScaleControl';
-import OrderModal from './components/OrderModal';
-import { DEFAULT_CONFIG, COLORS, MATERIALS, QUALITIES } from './utils/constants'; // Actualizar import
+import { DEFAULT_CONFIG, COLORS, MATERIALS, QUALITIES } from './utils/constants';
 import { enviarCorreo } from './services/emailService';
 import { calculatePriceFromStats } from './utils/pricingEngine';
 import { calculateGeometryData, calculateOptimalOrientation, calculateAutoScale } from './utils/geometryUtils';
@@ -20,13 +19,17 @@ import { Footer } from './components/layout/Footer';
 import FileAvailabilitySelector from './components/FileAvailabilitySelector';
 import CircuitBackground from './components/CircuitBackground';
 import StepIndicator from './components/ui/StepIndicator';
-import DiscoveryPortal from './components/DiscoveryPortal';
-import SuccessScreen from './components/SuccessScreen';
-import UploadPage from './components/UploadPage';
 import { QuoteCart } from './components/QuoteCart';
-import ItemAddedModal from './components/ItemAddedModal';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
+
+// Lazy loading de componentes pesados que no se necesitan inmediatamente
+const OrderModal = lazy(() => import('./components/OrderModal'));
+const DiscoveryPortal = lazy(() => import('./components/DiscoveryPortal'));
+const SuccessScreen = lazy(() => import('./components/SuccessScreen'));
+const UploadPage = lazy(() => import('./components/UploadPage'));
+const ItemAddedModal = lazy(() => import('./components/ItemAddedModal'));
+
 
 const App = () => {
   const captureRef = useRef(null); // Ref para capturar imagen del Viewer3D
@@ -296,34 +299,51 @@ const App = () => {
 
     // Generar HTML para cada item con TODAS las especificaciones técnicas
     const itemsHtmlBlocks = itemsToQuote.map((item, index) => {
+      // Determinar si los datos vienen del payload (carrito) o del item directo
+      const isFromCart = !!item.payload;
+
+      // Extraer datos del payload si están disponibles
+      const material = isFromCart ? item.payload.material : item.material;
+      const color = isFromCart ? item.payload.color : (item.colorData?.name || item.color);
+      const layerHeight = isFromCart ? item.payload.layerHeight : item.qualityId;
+      const infill = isFromCart ? item.payload.infill : item.infill;
+      const weight = isFromCart ? item.payload.weight : item.weight;
+      const printTime = isFromCart ? item.payload.printTime : item.time; // printTime viene en MINUTOS
+      const dimensionsRaw = isFromCart ? item.payload.dimensions : item.dimensions;
+
       // Obtener nombres legibles
-      const materialName = MATERIALS[item.material]?.name || item.material;
-      const qualityName = QUALITIES.find(q => q.id === item.qualityId)?.name || item.qualityId;
-      const colorName = item.colorData?.name || COLORS.find(c => c.id === item.colorId)?.name || 'Sin especificar';
+      const materialName = MATERIALS[material]?.name || material;
+      const qualityName = QUALITIES.find(q => q.id === layerHeight)?.name || `${layerHeight}mm`;
+      const colorName = color || 'Sin especificar';
 
-      // Dimensiones
-      const dims = item.dimensions;
-      const scale = item.scale || 1;
-      const dimsStr = dims
-        ? `${(dims.x * scale).toFixed(1)} x ${(dims.y * scale).toFixed(1)} x ${(dims.z * scale).toFixed(1)} mm`
-        : 'N/A';
+      // Dimensiones - parsear si viene como string "XXxYYxZZ"
+      let dimsStr = 'N/A';
+      if (typeof dimensionsRaw === 'string' && dimensionsRaw !== 'N/A') {
+        dimsStr = dimensionsRaw.replace(/x/g, ' x ') + ' mm';
+      } else if (dimensionsRaw && typeof dimensionsRaw === 'object') {
+        const scale = item.scale || 1;
+        dimsStr = `${(dimensionsRaw.x * scale).toFixed(1)} x ${(dimensionsRaw.y * scale).toFixed(1)} x ${(dimensionsRaw.z * scale).toFixed(1)} mm`;
+      }
 
-      // Volumen
-      const volStr = `${(item.volume || 0).toFixed(2)} cm³`;
+      // Volumen - calcular desde peso si no está disponible
+      const volume = item.volume || (weight && material ? (weight / (MATERIALS[material]?.density || 1.24)).toFixed(2) : 0);
+      const volStr = `${parseFloat(volume).toFixed(2)} cm³`;
 
-      // Tiempo de impresión
+      // Tiempo de impresión NETO
       let timeStr = '--';
-      if (typeof item.time === 'string') {
-        timeStr = item.time; // Ya viene formateado del backend
-      } else if (item.time > 0) {
-        const totalMin = Math.round(item.time * 60);
-        const h = Math.floor(totalMin / 60);
-        const m = totalMin % 60;
-        timeStr = `${h}h ${m}m`;
+      if (printTime) {
+        if (typeof printTime === 'number') {
+          // printTime viene en MINUTOS del payload
+          const h = Math.floor(printTime / 60);
+          const m = printTime % 60;
+          timeStr = `${h}h ${m}m`;
+        } else if (typeof printTime === 'string') {
+          timeStr = printTime;
+        }
       }
 
       // Peso
-      const weightStr = `${(item.weight || 0).toFixed(1)}g`;
+      const weightStr = `${parseFloat(weight || 0).toFixed(1)}g`;
 
       // Enlace de descarga
       const driveUrl = item.driveUrl || item.payload?.driveUrl;
@@ -368,7 +388,7 @@ const App = () => {
               </td>
               <td width="15%" valign="top" style="padding-bottom: 12px;">
                 <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">RELLENO</div>
-                <div style="font-size: 12px; color: #334155;">${item.infill}%</div>
+                <div style="font-size: 12px; color: #334155;">${infill}%</div>
               </td>
               <td width="15%" valign="top" style="padding-bottom: 12px;">
                 <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">CANTIDAD</div>
@@ -1004,24 +1024,26 @@ const App = () => {
         </div>
       </motion.div>
 
-      <OrderModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleOrderSubmit}
-        orderData={{
-          fileName: cartItems.length > 0
-            ? (cartItems.length > 1 ? `${cartItems.length} Modelos` : cartItems[0].fileName)
-            : (file?.name || "Sin Archivo"),
-          material: cartItems.length > 0
-            ? (cartItems.every(i => i.material === cartItems[0].material) ? cartItems[0].material : "Varios")
-            : (config.material || 'N/A'),
-          printTime: cartItems.length > 0 ? "Varios" : (quoteData?.tiempoTexto || '---'),
-          price: cartItems.length > 0
-            ? cartItems.reduce((acc, item) => acc + item.price, 0)
-            : (estimateForUI?.totalPrice || 0),
-          weight: quoteData?.peso
-        }}
-      />
+      <Suspense fallback={null}>
+        <OrderModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleOrderSubmit}
+          orderData={{
+            fileName: cartItems.length > 0
+              ? (cartItems.length > 1 ? `${cartItems.length} Modelos` : cartItems[0].fileName)
+              : (file?.name || "Sin Archivo"),
+            material: cartItems.length > 0
+              ? (cartItems.every(i => i.material === cartItems[0].material) ? cartItems[0].material : "Varios")
+              : (config.material || 'N/A'),
+            printTime: cartItems.length > 0 ? "Varios" : (quoteData?.tiempoTexto || '---'),
+            price: cartItems.length > 0
+              ? cartItems.reduce((acc, item) => acc + item.price, 0)
+              : (estimateForUI?.totalPrice || 0),
+            weight: quoteData?.peso
+          }}
+        />
+      </Suspense>
 
 
 
@@ -1033,14 +1055,16 @@ const App = () => {
         isProcessing={isCartProcessing}
       />
 
-      <ItemAddedModal
-        isOpen={isItemAddedModalOpen}
-        onClose={() => setIsItemAddedModalOpen(false)}
-        itemName={lastAddedItemName}
-        onUploadAnother={handleResetForNewFile}
-        onConfigureSame={handleConfigureSame}
-        onGoToCart={() => setIsItemAddedModalOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <ItemAddedModal
+          isOpen={isItemAddedModalOpen}
+          onClose={() => setIsItemAddedModalOpen(false)}
+          itemName={lastAddedItemName}
+          onUploadAnother={handleResetForNewFile}
+          onConfigureSame={handleConfigureSame}
+          onGoToCart={() => setIsItemAddedModalOpen(false)}
+        />
+      </Suspense>
     </div >
   );
 };
