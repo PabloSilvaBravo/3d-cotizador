@@ -342,6 +342,16 @@ const App = () => {
         }
       }
 
+      // Debug: Verificar extracción de datos
+      console.log(`📧 Item ${index + 1}:`, {
+        fileName: item.fileName,
+        printTime,
+        timeStr,
+        weight,
+        price: item.price,
+        isFromCart
+      });
+
       // Peso
       const weightStr = `${parseFloat(weight || 0).toFixed(1)}g`;
 
@@ -350,6 +360,9 @@ const App = () => {
       const downloadLink = driveUrl
         ? `<a href="${driveUrl}" style="color: #2563eb; font-weight: 700; text-decoration: underline; font-size: 12px; background-color: #e0f2fe; padding: 4px 8px; border-radius: 4px; display: inline-block;">⬇️ DESCARGAR MODELO 3D (DRIVE)</a>`
         : '<span style="color: #059669; font-size: 11px;">📎 Adjunto en este correo</span>';
+
+      // Verificar si este item tiene precio mínimo aplicado
+      const itemHasMinimumPrice = (item.price || 0) <= 3000;
 
       return `
         ${index > 0 ? '<div style="border-top: 2px dashed #e2e8f0; margin: 30px 0;"></div>' : ''}
@@ -416,6 +429,17 @@ const App = () => {
               </tr>
             </table>
           </div>
+
+          ${itemHasMinimumPrice ? `
+          <!-- ALERTA PRECIO MÍNIMO PARA ESTE ITEM -->
+          <div style="margin-top: 15px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 12px;">
+            <div style="color: #92400e; font-size: 11px; text-align: center;">
+              <span style="font-size: 14px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
+              <strong>PRECIO MÍNIMO APLICADO:</strong> Este modelo está bajo nuestro precio mínimo de trabajo ($3.000 CLP). 
+              <strong>El precio final será confirmado al cliente por correo electrónico.</strong>
+            </div>
+          </div>
+          ` : ''}
 
         </div>
       `;
@@ -506,19 +530,8 @@ const App = () => {
              </table>
           </div>
 
-          ${hasMinimumPrice ? `
-          <!-- ALERTA PRECIO MÍNIMO -->
-          <div style="margin-top: 30px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 15px;">
-             <div style="color: #92400e; font-size: 13px;">
-               <span style="font-size: 16px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
-               <strong>PRECIO MÍNIMO APLICADO:</strong> Este pedido está bajo nuestro precio mínimo de trabajo ($3.000 CLP). 
-               <strong>El precio final será confirmado al cliente por correo electrónico.</strong>
-             </div>
-          </div>
-          ` : ''}
-
           <!-- ALERTA IMPORTANTE -->
-          <div style="margin-top: ${hasMinimumPrice ? '20px' : '40px'}; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
+          <div style="margin-top: 30px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
              <div style="color: #16653 4; font-size: 13px;">
                <span style="font-size: 16px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
                <strong>IMPORTANTE:</strong> Al responder este correo, escribirás directamente al cliente: 
