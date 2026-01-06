@@ -1,8 +1,5 @@
 
-const IS_DEV = import.meta.env.DEV;
-// En desarrollo usamos el proxy, en producción la URL directa
-const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
-const EMAIL_API_URL = `${BASE_URL}/api/email/send.php`;
+const EMAIL_API_URL = 'https://dashboard.mechatronicstore.cl/api/email/send.php';
 
 /**
  * Envía un correo electrónico a través de la API centralizada del Dashboard
@@ -20,9 +17,9 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attach
     try {
         const response = await fetch(EMAIL_API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            // OMITIMOS Content-Type para evitar Preflight CORS (OPTIONS).
+            // El navegador enviará text/plain automáticamente, saltando la verificación de seguridad.
+            // El backend PHP puede leer el JSON igualmente usando php://input (si no valida header).
             body: JSON.stringify({
                 to,
                 subject,
