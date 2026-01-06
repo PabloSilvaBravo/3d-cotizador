@@ -329,29 +329,6 @@ const App = () => {
       const volume = item.volume || (weight && material ? (weight / (MATERIALS[material]?.density || 1.24)).toFixed(2) : 0);
       const volStr = `${parseFloat(volume).toFixed(2)} cm³`;
 
-      // Tiempo de impresión NETO
-      let timeStr = '--';
-      if (printTime) {
-        if (typeof printTime === 'number') {
-          // printTime viene en MINUTOS del payload
-          const h = Math.floor(printTime / 60);
-          const m = printTime % 60;
-          timeStr = `${h}h ${m}m`;
-        } else if (typeof printTime === 'string') {
-          timeStr = printTime;
-        }
-      }
-
-      // Debug: Verificar extracción de datos
-      console.log(`📧 Item ${index + 1}:`, {
-        fileName: item.fileName,
-        printTime,
-        timeStr,
-        weight,
-        price: item.price,
-        isFromCart
-      });
-
       // Peso
       const weightStr = `${parseFloat(weight || 0).toFixed(1)}g`;
 
@@ -414,15 +391,11 @@ const App = () => {
           <div style="background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e2e8f0;">
             <table width="100%" cellspacing="0" cellpadding="0">
               <tr>
-                <td width="33%" valign="top">
-                  <div style="font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">TIEMPO EST. IMPRESIÓN</div>
-                  <div style="font-size: 14px; color: #334155; font-weight: 600;">${timeStr}</div>
-                </td>
-                <td width="33%" valign="top">
+                <td width="50%" valign="top">
                   <div style="font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">PESO EST. TOTAL</div>
                   <div style="font-size: 14px; color: #334155; font-weight: 600;">${weightStr}</div>
                 </td>
-                <td width="33%" align="right" valign="top">
+                <td width="50%" align="right" valign="top">
                   <div style="font-size: 9px; color: #b45309; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">PRECIO</div>
                   <div style="font-size: 20px; color: #d97706; font-weight: 800;">$${(item.price || 0).toLocaleString('es-CL')}</div>
                 </td>

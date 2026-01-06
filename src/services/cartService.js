@@ -1,4 +1,7 @@
-const API_URL = 'https://dashboard.mechatronicstore.cl/api/3d/agregar-carrito.php';
+// Detectar entorno para usar proxy en dev y evitar CORS
+const IS_DEV = import.meta.env.DEV;
+const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
+const API_URL = `${BASE_URL}/api/3d/agregar-carrito.php`;
 
 /**
  * Llama a la API para agregar los datos de la cotización al sistema (WordPress/WooCommerce)
