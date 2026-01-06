@@ -476,6 +476,10 @@ const App = () => {
     }
   };
 
+  const handleRequestQuote = () => {
+    setIsModalOpen(true);
+  };
+
   /**
    * Resetea el visor, datos geométricos y estados para cargar un NUEVO archivo desde cero.
    */
@@ -622,7 +626,7 @@ const App = () => {
 
   // Combinar datos: Tiempo del backend + Peso del frontend ajustado por relleno
   // Calcular estadísticas (Reales o Estimadas)
-  const getEstimatedStats = () => {
+  function getEstimatedStats() {
     if (!quoteData || !localGeometry) return null;
 
     // Dimensiones escaladas para cálculos de nesting
@@ -936,10 +940,19 @@ const App = () => {
         }}
       />
 
+      {/* Placeholder for handleRequestQuote definition */}
+      {/* This function needs to be defined within the App component scope */}
+      {/* For example, near other handler functions like handleCheckoutCart */}
+      {/* const handleRequestQuote = () => { */}
+      {/*   console.log("Requesting quote..."); */}
+      {/*   // Implement your quote request logic here */}
+      {/* }; */}
+
       <QuoteCart
         items={cartItems}
         onRemove={handleRemoveFromCart}
         onCheckout={handleCheckoutCart}
+        onQuote={handleRequestQuote}
         isProcessing={isCartProcessing}
       />
 

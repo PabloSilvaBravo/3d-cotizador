@@ -222,7 +222,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         {/* Disclaimer de Precio Referencial */}
                         <div className="mt-3 pt-3 border-t border-brand-secondary/5 flex gap-2 justify-center">
                             <p className="text-[10px] text-slate-400 leading-snug text-center italic max-w-[90%]">
-                                * Precio referencial. Sujeto a confirmación tras análisis de viabilidad técnica.
+                                *Existe la posibilidad de cancelación con modelos de alta complejidad.
                             </p>
                         </div>
 
@@ -326,18 +326,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                             )}
                         </motion.button>
 
-                        {/* 2. SOLICITAR COTIZACIÓN FORMAL (Secondary - Email) */}
-                        {!isLoading && !isCartLoading && config.material && (
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={onAddToCart}
-                                className="group w-full py-4 rounded-2xl font-black text-sm md:text-base uppercase tracking-wide text-slate-500 bg-white border-2 border-slate-200 hover:border-brand-primary hover:text-brand-primary hover:shadow-xl hover:shadow-brand-primary/10 transition-all flex items-center justify-center gap-2"
-                            >
-                                <svg className="w-5 h-5 text-slate-400 group-hover:text-brand-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                Solicitar Cotización
-                            </motion.button>
-                        )}
+
                     </div>
                 </div>
             </div>
@@ -350,9 +339,9 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
 const SummaryLoadingText = () => {
     const [msgIndex, setMsgIndex] = useState(0);
     const messages = [
-        "Calculando material...",
-        "Verificando geometría...",
-        "Optimizando nesting...",
+        "Calculando costos...",
+        "Verificando dimensiones...",
+        "Optimizando...",
         "Consultando tarifas...",
         "Finalizando cotización..."
     ];

@@ -54,7 +54,7 @@ const ItemAddedModal = ({ isOpen, onClose, onUploadAnother, onConfigureSame, onG
                         onClick={onGoToCart}
                         className="w-full bg-white border border-slate-200 text-slate-500 py-3 rounded-xl font-bold hover:text-brand-dark hover:border-slate-300 transition-colors text-xs uppercase tracking-wide mt-2"
                     >
-                        Terminar y Pagar
+                        Continuar con el Carrito
                     </button>
                 </div>
             </motion.div>
