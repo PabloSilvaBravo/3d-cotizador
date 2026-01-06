@@ -1,11 +1,8 @@
 
-
 const IS_DEV = import.meta.env.DEV;
 // En producción usamos el proxy local PHP para evitar CORS
 // En desarrollo usamos el proxy de Vite
-const EMAIL_API_URL = IS_DEV
-    ? '/api-dashboard/api/email/send.php'
-    : '/email_proxy.php';
+const EMAIL_API_URL = 'https://dashboard.mechatronicstore.cl/api/email/send.php';
 
 /**
  * Envía un correo electrónico a través de la API centralizada del Dashboard
@@ -16,9 +13,9 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attach
     try {
         const response = await fetch(EMAIL_API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            // OMITIMOS Content-Type para evitar Preflight CORS (OPTIONS).
+            // El navegador enviará text/plain, pero el body sigue siendo JSON válido.
+            // PHP podrá leerlo con file_get_contents('php://input').
             body: JSON.stringify({
                 to,
                 subject,
