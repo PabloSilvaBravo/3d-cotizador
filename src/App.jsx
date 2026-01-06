@@ -690,35 +690,10 @@ const App = () => {
       if (wcResult.cartUrl) {
         setCheckoutUrl(wcResult.cartUrl);
 
-        // OPTIMIZACIÓN: Forzar persistencia de sesión abriendo un popup temporal.
-        // El popup carga la URL de WooCommerce, procesa la acción (estableciendo cookies de sesión)
-        // y se cierra automáticamente después de 3 segundos.
-        try {
-          const popup = window.open(
-            wcResult.cartUrl,
-            'wc-cart-sync',
-            'width=1,height=1,left=10000,top=10000,toolbar=no,location=no,status=no,menubar=no,scrollbars=no'
-          );
-
-          if (popup) {
-            console.log("📡 Popup de sincronización abierto (invisible).");
-
-            // Cerrar popup después de permitir que procese la sesión
-            setTimeout(() => {
-              try {
-                popup.close();
-                console.log("✅ Popup de sincronización cerrado.");
-              } catch (closeError) {
-                console.warn("⚠️ No se pudo cerrar automáticamente el popup.");
-              }
-            }, 3000);
-          } else {
-            console.warn("⚠️ Bloqueador de popups detectado. Sincronización podría fallar.");
-            alert("Por favor permite popups temporales para sincronizar con el carrito de la tienda.");
-          }
-        } catch (syncError) {
-          console.error("❌ Error al abrir popup de sincronización:", syncError);
-        }
+        // Redirigir inmediatamente al carrito de WooCommerce en la misma ventana
+        console.log("🔗 Redirigiendo al carrito de la tienda...");
+        window.location.href = wcResult.cartUrl;
+        return; // Detener ejecución (la página se está descargando)
       }
 
       // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
