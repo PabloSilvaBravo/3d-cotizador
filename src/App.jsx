@@ -580,6 +580,7 @@ const App = () => {
     setThumbnail(null);
     setOptimalRotation([0, 0, 0]);
     setUserHasFile(false); // Vuelve a pantalla "¿Tienes archivo?"
+    setIsSuccess(false); // IMPORTANTE: Resetear estado de éxito para ocultar SuccessScreen
   };
 
   /**
