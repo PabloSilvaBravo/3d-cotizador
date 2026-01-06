@@ -35,8 +35,8 @@ export const calculatePriceFromStats = (config, stats) => {
     const timeCost = Math.ceil(difficultyFactor * PRICE_PER_HOUR * stats.timeHours);
 
     // 4. COSTO CAMAS (Nesting y Camas Extras)
-    const BED_W = 250; // Ancho útil (mm)
-    const BED_D = 250; // Profundidad útil (mm)
+    const BED_W = PRICING_RULES.printBed?.width || 320; // Ancho útil (mm)
+    const BED_D = PRICING_RULES.printBed?.depth || 320; // Profundidad útil (mm)
     const ITEM_MARGIN = 2; // Margen entre piezas (mm)
     const BASE_STARTUP_FEE = 1000; // Costo por cama
 

@@ -209,7 +209,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
 
                         {estimate.platesNeeded > 1 && (
                             <p className="text-[10px] text-amber-600 mt-1 pl-4 leading-relaxed bg-amber-50 rounded p-1 border border-amber-100">
-                                <span className="font-bold">Info:</span> Se requieren {estimate.platesNeeded} camas de impresión debido al volumen de piezas. (+$1.000 por cama extra).
+                                <span className="font-bold">Info:</span> Se requieren {estimate.platesNeeded} camas de impresión debido al volumen de piezas. (Costo incluido en Tarifa Base).
                             </p>
                         )}
 
@@ -331,7 +331,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

@@ -4,6 +4,11 @@ export const PRICING_RULES = {
   hourlyRate: 2500,      // Costo por hora de impresión
   minPrice: 3000,        // Precio mínimo por pedido
   costPerGramBase: 12,   // Costo base por gramo (PLA)
+  printBed: {            // Dimensiones máximas de impresión
+    width: 320,
+    depth: 320,
+    height: 350
+  }
 };
 
 // Materiales con metadatos para la UI pero PRECIOS RELATIVOS a tu base
