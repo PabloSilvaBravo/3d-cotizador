@@ -24,6 +24,7 @@ import DiscoveryPortal from './components/DiscoveryPortal';
 import SuccessScreen from './components/SuccessScreen';
 import UploadPage from './components/UploadPage';
 import { QuoteCart } from './components/QuoteCart';
+import ItemAddedModal from './components/ItemAddedModal';
 
 import { useBackendQuote } from './hooks/useBackendQuote';
 
@@ -41,6 +42,8 @@ const App = () => {
 
   // Estado para Carrito Múltiple
   const [cartItems, setCartItems] = useState([]);
+  const [isItemAddedModalOpen, setIsItemAddedModalOpen] = useState(false);
+  const [lastAddedItemName, setLastAddedItemName] = useState('');
 
   // Estado para orientación y escala óptimas
   const [optimalRotation, setOptimalRotation] = useState([0, 0, 0]);
@@ -474,6 +477,30 @@ const App = () => {
   };
 
   /**
+   * Resetea el visor, datos geométricos y estados para cargar un NUEVO archivo desde cero.
+   */
+  const handleResetForNewFile = () => {
+    setIsItemAddedModalOpen(false);
+    setFile(null);
+    setFileUrl(null);
+    setQuoteData(null);
+    setLocalGeometry(null);
+    setAnalysisResult(null);
+    setDriveLink(null);
+    setThumbnail(null);
+    setOptimalRotation([0, 0, 0]);
+    setUserHasFile(false); // Vuelve a pantalla "¿Tienes archivo?"
+    // window.scrollTo(0, 0); // Opcional
+  };
+
+  /**
+   * Cierra el modal y permite seguir configurando el MISMO archivo (ej. otra variante de color).
+   */
+  const handleConfigureSame = () => {
+    setIsItemAddedModalOpen(false);
+  };
+
+  /**
    * Maneja el flujo de "Agregar al Carrito" (WooCommerce)
    */
   const handleCheckoutCart = async () => {
@@ -580,6 +607,10 @@ const App = () => {
       setCartItems(prev => [...prev, newItem]);
       console.log("✅ Agregado a Carrito Local:", newItem);
       console.groupEnd();
+
+      // EXITO: Abrir Modal de Decisión
+      setLastAddedItemName(file.name);
+      setIsItemAddedModalOpen(true);
 
     } catch (e) {
       console.error("❌ Error Carrito:", e);
@@ -910,6 +941,15 @@ const App = () => {
         onRemove={handleRemoveFromCart}
         onCheckout={handleCheckoutCart}
         isProcessing={isCartProcessing}
+      />
+
+      <ItemAddedModal
+        isOpen={isItemAddedModalOpen}
+        onClose={() => setIsItemAddedModalOpen(false)}
+        itemName={lastAddedItemName}
+        onUploadAnother={handleResetForNewFile}
+        onConfigureSame={handleConfigureSame}
+        onGoToCart={() => setIsItemAddedModalOpen(false)}
       />
     </div >
   );
