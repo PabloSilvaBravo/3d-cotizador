@@ -10,7 +10,7 @@ export async function addToCart(data) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
-            // credentials: 'include', // REQUIERE CONFIGURACIÓN SERVIDOR: header("Access-Control-Allow-Credentials: true") y Origin específico
+            credentials: 'include', // HABILITADO: Usuario confirmó whitelist en servidor. Permite cookies de sesión.
             headers: {
                 'Content-Type': 'application/json',
             },
