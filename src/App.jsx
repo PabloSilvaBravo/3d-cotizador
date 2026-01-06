@@ -678,8 +678,6 @@ const App = () => {
 
       console.log("🛒 Payload para WooCommerce:", payload);
 
-      console.log("🛒 Payload para WooCommerce:", payload);
-
       // 3. SINCRONIZACIÓN INMEDIATA CON WOOCOMMERCE
       console.log("🚀 Enviando a WooCommerce API...");
       const wcResult = await addToCart(payload);
@@ -691,6 +689,26 @@ const App = () => {
       console.log("✅ Sincronizado. URL Carrito:", wcResult.cartUrl);
       if (wcResult.cartUrl) {
         setCheckoutUrl(wcResult.cartUrl);
+
+        // OPTIMIZACIÓN: Forzar persistencia de sesión en el navegador usando un Iframe invisible.
+        // Esto "ejecuta" la acción de agregar al carrito en el contexto del navegador del usuario.
+        try {
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = wcResult.cartUrl;
+          iframe.id = `cart-sync-${Date.now()}`;
+          document.body.appendChild(iframe);
+
+          // Eliminar el iframe después de que haya tenido tiempo de procesar
+          setTimeout(() => {
+            const el = document.getElementById(iframe.id);
+            if (el) document.body.removeChild(el);
+          }, 5000);
+
+          console.log("📡 Sesión de carrito sincronizada en segundo plano.");
+        } catch (syncError) {
+          console.warn("⚠️ Error en sincronización silenciosa:", syncError);
+        }
       }
 
       // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
