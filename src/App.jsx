@@ -690,10 +690,25 @@ const App = () => {
       if (wcResult.cartUrl) {
         setCheckoutUrl(wcResult.cartUrl);
 
-        // Redirigir inmediatamente al carrito de WooCommerce en la misma ventana
-        console.log("🔗 Redirigiendo al carrito de la tienda...");
-        window.location.href = wcResult.cartUrl;
-        return; // Detener ejecución (la página se está descargando)
+        // Abrir el carrito de WooCommerce en una nueva pestaña
+        // La pestaña se cierra automáticamente después de procesar
+        console.log("🔗 Abriendo carrito en nueva pestaña...");
+        const newTab = window.open(wcResult.cartUrl, '_blank');
+
+        if (newTab) {
+          // Cerrar la pestaña después de que haya procesado la acción
+          setTimeout(() => {
+            try {
+              newTab.close();
+              console.log("✅ Pestaña de sincronización cerrada.");
+            } catch (closeError) {
+              console.warn("⚠️ No se pudo cerrar automáticamente la pestaña.");
+            }
+          }, 3000);
+        } else {
+          console.warn("⚠️ Bloqueador de popups activo. Permite ventanas emergentes.");
+          alert("Por favor permite ventanas emergentes para sincronizar con el carrito.");
+        }
       }
 
       // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
