@@ -256,7 +256,7 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
                                                     initial={{ opacity: 1, width: "auto", scale: 1 }}
                                                     exit={{ opacity: 0, width: 0, scale: 0 }}
                                                     transition={{ duration: 0.2 }}
-                                                    className="whitespace-nowrap transition-all duration-500 ease-in-out group-hover:opacity-0 group-hover:translate-x-10 filter drop-shadow-md overflow-hidden"
+                                                    className="whitespace-nowrap uppercase transition-all duration-500 ease-in-out group-hover:opacity-0 group-hover:translate-x-10 filter drop-shadow-md overflow-hidden"
                                                 >
                                                     Enviar Cotización
                                                 </motion.span>

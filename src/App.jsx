@@ -563,8 +563,11 @@ const App = () => {
     setIsModalOpen(true);
   };
 
+
+
   /**
    * Resetea el visor, datos geométricos y estados para cargar un NUEVO archivo desde cero.
+   * Mantiene el carrito para permitir "Subir otro archivo".
    */
   const handleResetForNewFile = () => {
     setIsItemAddedModalOpen(false);
@@ -577,7 +580,14 @@ const App = () => {
     setThumbnail(null);
     setOptimalRotation([0, 0, 0]);
     setUserHasFile(false); // Vuelve a pantalla "¿Tienes archivo?"
-    // window.scrollTo(0, 0); // Opcional
+  };
+
+  /**
+   * Resetea TODO (incluido carrito) al volver al Home desde el Header.
+   */
+  const handleFullReset = () => {
+    setCartItems([]); // Limpiar carrito
+    handleResetForNewFile();
   };
 
   /**
@@ -857,7 +867,11 @@ const App = () => {
       <AnimatePresence>
         {isSuccess && <SuccessScreen onReset={handleReset} />}
       </AnimatePresence>
-      <Header isSimpleMode={isSimpleMode} onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)} />
+      <Header
+        isSimpleMode={isSimpleMode}
+        onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)}
+        onHomeClick={handleFullReset}
+      />
 
       {/* Fondo Decorativo Sutil */}
       <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-multiply hidden lg:block"></div>

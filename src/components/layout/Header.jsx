@@ -2,14 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MechatronicLogo } from '../ui/MechatronicLogo';
 import { Mail, MessageCircle, ChevronDown, Globe, CheckCircle2 } from 'lucide-react';
 
-export const Header = () => {
+export const Header = ({ isSimpleMode, onToggleSimpleMode, onHomeClick }) => {
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const helpRef = useRef(null);
     const [showCopyToast, setShowCopyToast] = useState(false);
 
-    // Navegación nativa simple
-    const handleHomeClick = () => {
-        window.location.href = 'https://www.mechatronicstore.cl/';
+    // Navegación: Reset interno si existe handler, sino ir a la web principal
+    const handleLogoClick = () => {
+        if (onHomeClick) {
+            onHomeClick();
+        } else {
+            window.location.href = 'https://www.mechatronicstore.cl/';
+        }
     };
 
     /**
@@ -53,7 +57,7 @@ export const Header = () => {
                     {/* Logo con Navegación y Efecto de Presión */}
                     <div
                         className="flex items-center gap-3 group cursor-pointer btn-press"
-                        onClick={handleHomeClick}
+                        onClick={handleLogoClick}
                         title="Volver a MechatronicStore.cl"
                     >
                         <MechatronicLogo className="h-9 w-auto transition-all duration-300" />
