@@ -128,8 +128,8 @@ const App = () => {
         // const backendHost = window.location.hostname;
         // const fullUrl = `http://${backendHost}:3001${quoteData.convertedStlUrl}`;
 
-        // TEMPORAL: Forzar 127.0.0.1
-        const fullUrl = `http://127.0.0.1:3001${quoteData.convertedStlUrl}`;
+        // Usar URL de producción del dominio
+        const fullUrl = `https://3d.mechatronicstore.cl${quoteData.convertedStlUrl}`;
 
         // Evitar loop infinito
         if (fileUrl !== fullUrl) {
@@ -234,75 +234,180 @@ const App = () => {
   }
 
   const handleOrderSubmit = async (customerData) => {
-    console.log("Procesando envío de pedido...", { ...customerData, file, config, quoteData });
+    console.log("Procesando envío de pedido...", { ...customerData, file, config, quoteData, cartItems });
 
-    // 1. Subir archivo a Google Drive (Dashboard API)
-    let driveLink = null;
-    let fileBase64 = null; // Fallback solo si falla Drive o si se decide mantener adjunto pequeño
+    // Determinar qué estamos cotizando: Carrito o Archivo Individual
+    const hasCartItems = cartItems.length > 0;
+    const itemsToQuote = hasCartItems ? cartItems : (file ? [{
+      fileName: file.name,
+      material: config.material,
+      colorData: config.colorData,
+      colorId: config.colorId,
+      qualityId: config.qualityId,
+      infill: config.infill,
+      quantity: config.quantity,
+      price: estimateForUI?.totalPrice || 0,
+      driveUrl: null, // Se llenará más abajo
+      dimensions: localGeometry?.dimensions || estimateForUI?.dimensions,
+      volume: localGeometry?.volumeCm3 || quoteData?.volumen || 0,
+      weight: estimateForUI?.weightGrams || 0,
+      time: quoteData?.tiempoTexto || estimateForUI?.timeHours || 0,
+      scale: autoScale
+    }] : []);
 
-    try {
-      console.log("Iniciando subida a Google Drive...");
-      driveLink = await uploadToDrive(file);
-      console.log("✅ Archivo subido a Drive:", driveLink);
-    } catch (err) {
-      console.error("⚠️ Falló la subida a Drive, intentando adjuntar archivo...", err);
-
-      // Fallback: Convertir a Base64 para adjuntar si Drive falla
-      try {
-        fileBase64 = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = error => reject(error);
-        });
-      } catch (e) {
-        console.error("❌ Error fatal convirtiendo archivo:", e);
-      }
+    if (itemsToQuote.length === 0) {
+      alert("No hay ítems para cotizar.");
+      return;
     }
 
-    // Obtener nombres legibles
-    const materialName = MATERIALS[config.material]?.name || config.material;
-    const qualityName = QUALITIES.find(q => q.id === config.qualityId)?.name || config.qualityId;
-    const colorName = config.colorData?.name || COLORS.find(c => c.id === config.colorId)?.name || 'Sin especificar';
+    console.log("📦 Items a cotizar:", itemsToQuote);
 
-    // Calcular dimensiones finales
-    const finalDims = {
-      x: (localGeometry?.dimensions?.x || 0) * autoScale,
-      y: (localGeometry?.dimensions?.y || 0) * autoScale,
-      z: (localGeometry?.dimensions?.z || 0) * autoScale,
-    };
-    const dimsStr = `${finalDims.x.toFixed(1)} x ${finalDims.y.toFixed(1)} x ${finalDims.z.toFixed(1)} mm`;
-
-    // Volumen robusto: Priorizar geometría real si existe
-    const volValue = localGeometry?.volumeCm3 || quoteData?.volumen || 0;
-    const volStr = `${volValue.toFixed(2)} cm³`;
-
-    const scaleStr = `${(autoScale * 100).toFixed(0)}%`;
+    // Si es archivo único y no tiene DriveLink, subirlo ahora
+    let fileBase64 = null;
+    if (!hasCartItems && file) {
+      try {
+        console.log("Subiendo archivo único a Drive...");
+        const result = await uploadToDrive(file);
+        if (result.success) {
+          itemsToQuote[0].driveUrl = result.url;
+          console.log("✅ Archivo subido a Drive:", result.url);
+        }
+      } catch (err) {
+        console.error("⚠️ Falló Drive, intentando base64...", err);
+        try {
+          fileBase64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+          });
+        } catch (e) {
+          console.error("❌ Error fatal base64:", e);
+        }
+      }
+    }
 
     const dateStr = new Date().toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
 
-    // Detectar si se aplicó precio mínimo y calcular tiempo robusto
-    const stats = getEstimatedStats();
+    // Calcular total general
+    const grandTotal = itemsToQuote.reduce((sum, item) => sum + (item.price || 0), 0);
+    const totalQuantity = itemsToQuote.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
-    // Tiempo robusto: Texto de backend o cálculo local
-    let displayTimeStr = '--';
-    if (quoteData?.tiempoTexto) {
-      displayTimeStr = quoteData.tiempoTexto;
-    } else if (stats?.timeHours) {
-      const totalMin = Math.round(stats.timeHours * 60);
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      displayTimeStr = `${h}h ${m}m (Estimado)`;
-    }
+    // Generar HTML para cada item con TODAS las especificaciones técnicas
+    const itemsHtmlBlocks = itemsToQuote.map((item, index) => {
+      // Obtener nombres legibles
+      const materialName = MATERIALS[item.material]?.name || item.material;
+      const qualityName = QUALITIES.find(q => q.id === item.qualityId)?.name || item.qualityId;
+      const colorName = item.colorData?.name || COLORS.find(c => c.id === item.colorId)?.name || 'Sin especificar';
 
-    const priceData = stats ? calculatePriceFromStats(config, stats) : null;
-    const isMinimumPrice = priceData?.isMinimumPrice || false;
+      // Dimensiones
+      const dims = item.dimensions;
+      const scale = item.scale || 1;
+      const dimsStr = dims
+        ? `${(dims.x * scale).toFixed(1)} x ${(dims.y * scale).toFixed(1)} x ${(dims.z * scale).toFixed(1)} mm`
+        : 'N/A';
+
+      // Volumen
+      const volStr = `${(item.volume || 0).toFixed(2)} cm³`;
+
+      // Tiempo de impresión
+      let timeStr = '--';
+      if (typeof item.time === 'string') {
+        timeStr = item.time; // Ya viene formateado del backend
+      } else if (item.time > 0) {
+        const totalMin = Math.round(item.time * 60);
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
+        timeStr = `${h}h ${m}m`;
+      }
+
+      // Peso
+      const weightStr = `${(item.weight || 0).toFixed(1)}g`;
+
+      // Enlace de descarga
+      const driveUrl = item.driveUrl || item.payload?.driveUrl;
+      const downloadLink = driveUrl
+        ? `<a href="${driveUrl}" style="color: #2563eb; font-weight: 700; text-decoration: underline; font-size: 12px; background-color: #e0f2fe; padding: 4px 8px; border-radius: 4px; display: inline-block;">⬇️ DESCARGAR MODELO 3D (DRIVE)</a>`
+        : '<span style="color: #059669; font-size: 11px;">📎 Adjunto en este correo</span>';
+
+      return `
+        ${index > 0 ? '<div style="border-top: 2px dashed #e2e8f0; margin: 30px 0;"></div>' : ''}
+        
+        <!-- ITEM ${index + 1}: ${item.fileName} -->
+        <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+          
+          <div style="border-left: 4px solid #6017b1; padding-left: 12px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #5b21b6; font-size: 12px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">
+              ${hasCartItems ? `Modelo ${index + 1} de ${itemsToQuote.length}` : 'Especificaciones Técnicas'}
+            </h3>
+          </div>
+
+          <!-- Grid de 3 Columnas -->
+          <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 15px;">
+            <tr>
+              <td width="40%" valign="top" style="padding-bottom: 12px;">
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">ARCHIVO 3D</div>
+                <div style="font-size: 13px; color: #334155; font-weight: 700; margin-bottom: 4px;">${item.fileName}</div>
+                ${downloadLink}
+              </td>
+              <td width="30%" valign="top" style="padding-bottom: 12px;">
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">DIMENSIONES</div>
+                <div style="font-size: 12px; color: #334155; font-family: monospace;">${dimsStr}</div>
+              </td>
+              <td width="30%" valign="top" style="padding-bottom: 12px;">
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">VOLUMEN</div>
+                <div style="font-size: 12px; color: #334155; font-weight: 700;">${volStr}</div>
+              </td>
+            </tr>
+            <tr>
+              <td width="40%" valign="top" style="padding-bottom: 12px;">
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">MATERIAL, COLOR Y CALIDAD</div>
+                <div style="font-size: 13px; color: #334155;">${materialName} - ${colorName}</div>
+                <div style="font-size: 11px; color: #475569; margin-top: 2px;">Calidad: <strong>${qualityName}</strong></div>
+              </td>
+              <td width="15%" valign="top" style="padding-bottom: 12px;">
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">RELLENO</div>
+                <div style="font-size: 12px; color: #334155;">${item.infill}%</div>
+              </td>
+              <td width="15%" valign="top" style="padding-bottom: 12px;">
+                <div style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">CANTIDAD</div>
+                <div style="font-size: 12px; color: #334155;"><strong>${item.quantity}</strong> un.</div>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Información de Producción -->
+          <div style="background-color: #ffffff; border-radius: 8px; padding: 12px; border: 1px solid #e2e8f0;">
+            <table width="100%" cellspacing="0" cellpadding="0">
+              <tr>
+                <td width="33%" valign="top">
+                  <div style="font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">TIEMPO EST. IMPRESIÓN</div>
+                  <div style="font-size: 14px; color: #334155; font-weight: 600;">${timeStr}</div>
+                </td>
+                <td width="33%" valign="top">
+                  <div style="font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">PESO EST. TOTAL</div>
+                  <div style="font-size: 14px; color: #334155; font-weight: 600;">${weightStr}</div>
+                </td>
+                <td width="33%" align="right" valign="top">
+                  <div style="font-size: 9px; color: #b45309; font-weight: 700; text-transform: uppercase; margin-bottom: 4px;">PRECIO</div>
+                  <div style="font-size: 20px; color: #d97706; font-weight: 800;">$${(item.price || 0).toLocaleString('es-CL')}</div>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+        </div>
+      `;
+    }).join('');
+
+    // Detectar si hay precios mínimos (simplificado)
+    const hasMinimumPrice = itemsToQuote.some(item => (item.price || 0) <= 3000);
 
     const htmlBody = `
-      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+      <div style="font-family: 'Montserrat', system-ui, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
         
-        <!-- HEADER ESTILO REFERENCIA -->
+        <!-- HEADER ESTILO ORIGINAL -->
         <div style="background-color: #6017b1; padding: 25px 30px; color: white;">
           <table width="100%" cellpadding="0" cellspacing="0">
             <tr>
@@ -352,64 +457,28 @@ const App = () => {
           </table>
 
           <div style="height: 20px;"></div>
-
           <!-- SECCION: ESPECIFICACIONES -->
           <div style="background-color: #faf5ff; border-left: 5px solid #7c3aed; padding: 12px 15px; margin-bottom: 25px;">
-             <h3 style="margin: 0; color: #5b21b6; font-size: 13px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Especificaciones Técnicas</h3>
+             <h3 style="margin: 0; color: #5b21b6; font-size: 13px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">
+               ${hasCartItems ? `Modelos a Cotizar (${itemsToQuote.length})` : 'Especificaciones Técnicas'}
+             </h3>
           </div>
           
-          <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
-             <tr>
-               <td width="50%" valign="top" style="padding-bottom: 20px;">
-                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ARCHIVO 3D</div>
-                 <div style="font-size: 14px; color: #334155; font-weight: 700;">${file.name}</div>
-                 ${driveLink
-        ? `<div style="margin-top: 6px;"><a href="${driveLink}" style="color: #2563eb; font-weight: 700; text-decoration: underline; font-size: 12px; background-color: #e0f2fe; padding: 4px 8px; border-radius: 4px; display: inline-block;">⬇️ DESCARGAR MODELO 3D (DRIVE)</a></div>`
-        : '<div style="margin-top: 6px; color: #059669; font-size: 11px;">📎 Adjunto en este correo</div>'
-      }
-               </td>
-               <td width="25%" valign="top" style="padding-bottom: 20px;">
-                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">DIMENSIONES</div>
-                 <div style="font-size: 14px; color: #334155; font-family: monospace;">${dimsStr}</div>
-               </td>
-               <td width="25%" valign="top" style="padding-bottom: 20px;">
-                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">VOLUMEN</div>
-                 <div style="font-size: 14px; color: #334155; font-weight: 700;">${volStr}</div>
-               </td>
-             </tr>
-             <tr>
-                <td width="50%" valign="top" style="padding-bottom: 15px;">
-                  <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">MATERIAL, COLOR Y CALIDAD</div>
-                  <div style="font-size: 14px; color: #334155;">${materialName} - ${colorName}</div>
-                  <div style="font-size: 12px; color: #475569; margin-top: 2px;">Calidad: <strong>${qualityName}</strong></div>
-                </td>
-               <td width="25%" valign="top" style="padding-bottom: 15px;">
-                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">RELLENO</div>
-                 <div style="font-size: 14px; color: #334155;">${config.infill}%</div>
-               </td>
-               <td width="25%" valign="top" style="padding-bottom: 15px;">
-                 <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">CANTIDAD</div>
-                 <div style="font-size: 14px; color: #334155;"><strong>${config.quantity}</strong> un.</div>
-               </td>
-             </tr>
-          </table>
+          <!-- ITEMS DEL CARRITO (cada uno con todas sus especificaciones) -->
+          ${itemsHtmlBlocks}
 
-          <!-- COTIZACIÓN RESUMEN -->
-          <div style="border-top: 2px dashed #e2e8f0; margin-top: 10px; padding-top: 25px;">
+          <!-- RESUMEN FINAL -->
+          <div style="border-top: 3px solid #6017b1; margin-top: 30px; padding-top: 25px; background-color: #f8fafc; padding: 20px; border-radius: 12px;">
              <table width="100%" cellspacing="0" cellpadding="0">
                <tr>
-                 <td valign="top">
-                    <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">TIEMPO EST. IMPRESIÓN</div>
-                    <div style="font-size: 16px; color: #334155; font-weight: 600;">${displayTimeStr}</div>
+                 <td valign="top" width="50%">
+                    <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">ITEMS TOTALES</div>
+                    <div style="font-size: 18px; color: #334155; font-weight: 700;">${totalQuantity} unidad${totalQuantity > 1 ? 'es' : ''}</div>
                  </td>
-                 <td valign="top">
-                    <div style="font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">PESO EST. TOTAL</div>
-                    <div style="font-size: 16px; color: #334155; font-weight: 600;">${estimateForUI?.weightGrams?.toFixed(1) || 0}g</div>
-                 </td>
-                 <td align="right" valign="top">
-                    <div style="background-color: #fffbeb; border: 1px solid #fcd34d; padding: 15px 25px; border-radius: 8px; display: inline-block; text-align: right;">
+                 <td align="right" valign="top" width="50%">
+                    <div style="background-color: #fffbeb; border: 2px solid #fcd34d; padding: 18px 30px; border-radius: 12px; display: inline-block; text-align: right; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                        <div style="font-size: 11px; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL REFERENCIAL</div>
-                       <div style="font-size: 28px; color: #d97706; font-weight: 800; line-height: 1.2;">$${estimateForUI?.totalPrice?.toLocaleString('es-CL') || 0}</div>
+                       <div style="font-size: 32px; color: #d97706; font-weight: 800; line-height: 1.2;">$${grandTotal.toLocaleString('es-CL')}</div>
                        <div style="font-size: 10px; color: #b45309; opacity: 0.8; margin-top: 2px;">+ IVA INCLUIDO EN ESTIMACIÓN</div>
                     </div>
                  </td>
@@ -417,7 +486,7 @@ const App = () => {
              </table>
           </div>
 
-          ${isMinimumPrice ? `
+          ${hasMinimumPrice ? `
           <!-- ALERTA PRECIO MÍNIMO -->
           <div style="margin-top: 30px; background-color: #fef3c7; border: 1px solid #fbbf24; border-radius: 6px; padding: 15px;">
              <div style="color: #92400e; font-size: 13px;">
@@ -428,9 +497,9 @@ const App = () => {
           </div>
           ` : ''}
 
-          <!-- ALERTA IMPORTANTE (ESTILO IMAGEN) -->
-          <div style="margin-top: ${isMinimumPrice ? '20px' : '40px'}; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
-             <div style="color: #166534; font-size: 13px;">
+          <!-- ALERTA IMPORTANTE -->
+          <div style="margin-top: ${hasMinimumPrice ? '20px' : '40px'}; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 15px; text-align: center;">
+             <div style="color: #16653 4; font-size: 13px;">
                <span style="font-size: 16px; vertical-align: middle; margin-right: 5px;">⚠️</span> 
                <strong>IMPORTANTE:</strong> Al responder este correo, escribirás directamente al cliente: 
                <a href="mailto:${customerData.email}" style="color: #2563eb; font-weight: 700; text-decoration: underline;">${customerData.email}</a>
@@ -439,7 +508,7 @@ const App = () => {
 
         </div>
 
-        <!-- FOOTER SIMPLE -->
+        <!-- FOOTER -->
         <div style="background-color: #f8fafc; padding: 15px; border-top: 2px solid #6017b1; text-align: center;">
            <p style="margin: 0; font-size: 12px; color: #475569; font-weight: 700;">MechatronicStore Cotizaciones 3D</p>
            <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">Generado el ${dateStr} a las ${timeStr}</p>
@@ -448,17 +517,27 @@ const App = () => {
       </div>
     `;
 
+    // Preparar subject según tipo de pedido
+    const emailSubject = hasCartItems
+      ? `[Cotizador 3D] Pedido de ${customerData.name} - ${itemsToQuote.length} modelos`
+      : `[Cotizador 3D] Pedido de ${customerData.name} - ${itemsToQuote[0].fileName}`;
+
+    // Adjuntos: Solo si es archivo único SIN DriveLink (fallback base64)
+    const attachments = (!hasCartItems && fileBase64) ? [{
+      fileName: file.name,
+      base64: fileBase64,
+      mimeType: file.type || 'application/octet-stream'
+    }] : [];
+
+    console.log("📧 Enviando correo con:", { emailSubject, hasAttachments: attachments.length > 0 });
+
     try {
       const result = await enviarCorreo({
         to: 'ventas@mechatronicstore.cl',
         replyTo: customerData.email,
-        subject: `[Cotizador 3D] Pedido de ${customerData.name} - ${file.name}`,
+        subject: emailSubject,
         body: htmlBody,
-        attachments: fileBase64 ? [{
-          fileName: file.name,
-          base64: fileBase64,
-          mimeType: file.type || 'application/octet-stream'
-        }] : []
+        attachments
       });
 
       if (result.success) {
@@ -930,21 +1009,21 @@ const App = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleOrderSubmit}
         orderData={{
-          fileName: file.name,
-          material: config.material,
-          printTime: quoteData?.tiempoTexto || '---',
-          price: estimateForUI?.totalPrice || 0,
+          fileName: cartItems.length > 0
+            ? (cartItems.length > 1 ? `${cartItems.length} Modelos` : cartItems[0].fileName)
+            : (file?.name || "Sin Archivo"),
+          material: cartItems.length > 0
+            ? (cartItems.every(i => i.material === cartItems[0].material) ? cartItems[0].material : "Varios")
+            : (config.material || 'N/A'),
+          printTime: cartItems.length > 0 ? "Varios" : (quoteData?.tiempoTexto || '---'),
+          price: cartItems.length > 0
+            ? cartItems.reduce((acc, item) => acc + item.price, 0)
+            : (estimateForUI?.totalPrice || 0),
           weight: quoteData?.peso
         }}
       />
 
-      {/* Placeholder for handleRequestQuote definition */}
-      {/* This function needs to be defined within the App component scope */}
-      {/* For example, near other handler functions like handleCheckoutCart */}
-      {/* const handleRequestQuote = () => { */}
-      {/*   console.log("Requesting quote..."); */}
-      {/*   // Implement your quote request logic here */}
-      {/* }; */}
+
 
       <QuoteCart
         items={cartItems}

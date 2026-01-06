@@ -158,11 +158,12 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                 </span>
                             </div>
 
+
                             {estimate.gcodeUrl && (
                                 <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
                                     <span className="text-slate-500 font-medium">Archivo G-Code</span>
                                     <a
-                                        href={`http://${window.location.hostname}:3001${estimate.gcodeUrl}`}
+                                        href={`https://dashboard.mechatronicstore.cl${estimate.gcodeUrl}`}
                                         download
                                         target="_blank"
                                         rel="noopener noreferrer"

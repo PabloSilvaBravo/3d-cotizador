@@ -232,8 +232,9 @@ const LoadingIndicator = ({ isLoading }) => {
         "Verificando normales...",
         "Calculando volumen...",
         "Simulando capas...",
+        "Generando polígonos...",
         "Optimizando malla...",
-        "Generando vista previa..."
+        "Interpretando para costos..."
     ];
 
     React.useEffect(() => {
