@@ -58,6 +58,7 @@ const App = () => {
   // Estado para integración Carrito
   const [isCartProcessing, setIsCartProcessing] = useState(false);
   const [driveLink, setDriveLink] = useState(null);
+  const [checkoutUrl, setCheckoutUrl] = useState(null); // URL para redirección final
 
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
@@ -601,29 +602,16 @@ const App = () => {
   /**
    * Maneja el flujo de "Agregar al Carrito" (WooCommerce)
    */
-  const handleCheckoutCart = async () => {
-    if (cartItems.length === 0) return;
-    setIsCartProcessing(true);
-
-    try {
-      console.log(`🚀 Iniciando Checkout de ${cartItems.length} items...`);
-
-      let lastResult = null;
-
-      for (const item of cartItems) {
-        lastResult = await addToCart(item.payload);
-      }
-
-      if (lastResult && lastResult.success && lastResult.cartUrl) {
-        window.location.href = lastResult.cartUrl;
-      } else {
-        throw new Error("No se obtuvo URL de redirección del carrito.");
-      }
-
-    } catch (e) {
-      console.error("❌ Error Finalizando Compra:", e);
-      alert("Error al procesar el pedido. Intente nuevamente.");
-      setIsCartProcessing(false);
+  /**
+   * Maneja el flujo de "Confirmar Pedido" (Solo redirección ahora)
+   */
+  const handleCheckoutCart = () => {
+    if (checkoutUrl) {
+      console.log("🔗 Redirigiendo a WooCommerce:", checkoutUrl);
+      window.location.href = checkoutUrl;
+    } else {
+      console.warn("⚠️ No hay URL de checkout disponible.");
+      alert("No se ha generado un enlace de pago válido. Intente agregar el producto nuevamente.");
     }
   };
 
@@ -690,20 +678,59 @@ const App = () => {
 
       console.log("🛒 Payload para WooCommerce:", payload);
 
-      // 3. AGREGAR A CARRITO LOCAL (EN LUGAR DE REDIRIGIR)
-      const newItem = {
-        id: Date.now(),
-        payload: payload,
-        fileName: file.name,
-        material: config.material,
-        color: colorName,
-        colorHex: config.colorData?.hex || '#94a3b8',
-        quantity: config.quantity,
-        price: Math.round(estimateForUI.totalPrice)
-      };
+      console.log("🛒 Payload para WooCommerce:", payload);
 
-      setCartItems(prev => [...prev, newItem]);
-      console.log("✅ Agregado a Carrito Local:", newItem);
+      // 3. SINCRONIZACIÓN INMEDIATA CON WOOCOMMERCE
+      console.log("🚀 Enviando a WooCommerce API...");
+      const wcResult = await addToCart(payload);
+
+      if (!wcResult.success) {
+        throw new Error(wcResult.error || "Error al sincronizar con la tienda.");
+      }
+
+      console.log("✅ Sincronizado. URL Carrito:", wcResult.cartUrl);
+      if (wcResult.cartUrl) {
+        setCheckoutUrl(wcResult.cartUrl);
+      }
+
+      // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
+      setCartItems(prev => {
+        // Identificar items idénticos (mismo archivo y configuración)
+        const existingIndex = prev.findIndex(item =>
+          item.fileName === file.name &&
+          item.material === config.material &&
+          item.color === colorName &&
+          item.payload.infill === config.infill &&
+          item.payload.layerHeight === config.qualityId
+        );
+
+        if (existingIndex >= 0) {
+          console.log("🔄 Actualizando cantidad de item existente en carrito local");
+          const newCart = [...prev];
+          const existing = newCart[existingIndex];
+
+          newCart[existingIndex] = {
+            ...existing,
+            quantity: existing.quantity + config.quantity,
+            price: existing.price + Math.round(estimateForUI.totalPrice)
+          };
+          return newCart;
+        } else {
+          // Si es nuevo, agregamos
+          const newItem = {
+            id: Date.now(),
+            payload: payload,
+            fileName: file.name,
+            material: config.material,
+            color: colorName,
+            colorHex: config.colorData?.hex || '#94a3b8',
+            quantity: config.quantity,
+            price: Math.round(estimateForUI.totalPrice)
+          };
+          return [...prev, newItem];
+        }
+      });
+      console.log("✅ Carrito Local Actualizado");
       console.groupEnd();
 
       // EXITO: Abrir Modal de Decisión
