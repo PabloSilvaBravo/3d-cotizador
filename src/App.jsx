@@ -865,7 +865,7 @@ const App = () => {
   return (
     <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-16">
       <AnimatePresence>
-        {isSuccess && <SuccessScreen onReset={handleReset} />}
+        {isSuccess && <SuccessScreen onReset={handleFullReset} />}
       </AnimatePresence>
       <Header
         isSimpleMode={isSimpleMode}
@@ -887,7 +887,7 @@ const App = () => {
         <div className="flex-1 bg-white rounded-3xl shadow-2xl overflow-hidden relative ring-1 ring-slate-200/50 group h-full">
           <div className="absolute top-4 left-4 lg:top-6 lg:left-6 z-20 flex items-center gap-2 lg:gap-3">
             <button
-              onClick={handleReset}
+              onClick={handleFullReset}
               className="w-8 h-8 lg:w-10 lg:h-10 bg-white/90 backdrop-blur border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 shadow-sm hover:scale-105 hover:bg-white active:scale-95 transition-all group/btn"
               title="Volver al inicio"
             >

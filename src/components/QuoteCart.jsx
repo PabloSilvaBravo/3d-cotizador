@@ -1,8 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const cartRef = useRef(null);
+    const buttonRef = useRef(null);
+
+    // Cerrar carrito al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            // Si está abierto y el clic NO es en el carrito NI en el botón flotante
+            if (isOpen &&
+                cartRef.current && !cartRef.current.contains(event.target) &&
+                buttonRef.current && !buttonRef.current.contains(event.target)
+            ) {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isOpen]);
 
     if (!items || items.length === 0) return null;
 
@@ -14,6 +34,7 @@ export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
+                        ref={cartRef}
                         initial={{ opacity: 0, scale: 0.9, y: 20, x: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: 20, x: 20 }}
@@ -31,12 +52,7 @@ export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }
                                     {items.length} {items.length === 1 ? 'modelo configurado' : 'modelos configurados'}
                                 </p>
                             </div>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="p-2 -mr-2 text-brand-primary/40 hover:text-brand-primary hover:bg-brand-primary/5 rounded-full transition-colors cursor-pointer"
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
+
                         </div>
 
                         {/* Lista de Items */}
@@ -160,6 +176,7 @@ export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }
 
             {/* BOTÓN FLOTANTE (FAB) REDISEÑADO CON COLORES DE MARCA */}
             <motion.button
+                ref={buttonRef}
                 layout
                 initial={{ scale: 0, rotate: 180 }}
                 animate={{ scale: 1, rotate: 0 }}
