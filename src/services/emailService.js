@@ -1,6 +1,11 @@
 
 
-const EMAIL_API_URL = 'https://dashboard.mechatronicstore.cl/api/email/send.php';
+const IS_DEV = import.meta.env.DEV;
+// En producción usamos el proxy local PHP para evitar CORS
+// En desarrollo usamos el proxy de Vite
+const EMAIL_API_URL = IS_DEV
+    ? '/api-dashboard/api/email/send.php'
+    : '/email_proxy.php';
 
 /**
  * Envía un correo electrónico a través de la API centralizada del Dashboard
