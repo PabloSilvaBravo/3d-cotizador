@@ -1,6 +1,7 @@
 import { X, Send, Loader2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', comments: '' });
@@ -62,10 +63,11 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
         setSending(false);
     };
 
-    return (
+    // USAR PORTAL PARA RENDERIZAR EN BODY Y EVITAR PROBLEMAS DE Z-INDEX/OVERFLOW
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center perspective-1000 overflow-y-auto overflow-x-hidden p-4">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center perspective-1000 overflow-y-auto overflow-x-hidden p-4">
 
                     {/* Backdrop */}
                     <motion.div
@@ -299,6 +301,7 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }

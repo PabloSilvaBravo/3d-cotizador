@@ -77,8 +77,6 @@ const App = () => {
     // 3. Sincronización Modal Checkout
     if (location.pathname === '/checkout') {
       if (!isModalOpen) setIsModalOpen(true);
-    } else if (location.pathname !== '/checkout' && isModalOpen) {
-      setIsModalOpen(false);
     }
 
     // 4. Sincronización Vistas (Landing / Tutorial)
@@ -929,7 +927,7 @@ const App = () => {
 
       <OrderModal
         isOpen={isModalOpen}
-        onClose={handleBackToConfigurator} // Usar Routing Handler
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleOrderSubmit}
         orderData={{
           fileName: file.name,

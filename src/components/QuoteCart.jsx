@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const QuoteCart = ({ items, onRemove, onCheckout, isProcessing }) => {
+export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     if (!items || items.length === 0) return null;
@@ -31,12 +31,12 @@ export const QuoteCart = ({ items, onRemove, onCheckout, isProcessing }) => {
                                     {items.length} {items.length === 1 ? 'modelo configurado' : 'modelos configurados'}
                                 </p>
                             </div>
-                            <buttom
+                            <button
                                 onClick={() => setIsOpen(false)}
                                 className="p-2 -mr-2 text-brand-primary/40 hover:text-brand-primary hover:bg-brand-primary/5 rounded-full transition-colors cursor-pointer"
                             >
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </buttom>
+                            </button>
                         </div>
 
                         {/* Lista de Items */}
@@ -137,7 +137,7 @@ export const QuoteCart = ({ items, onRemove, onCheckout, isProcessing }) => {
 
                             {/* Botón Solicitar Cotización (Restaurado Función Original) */}
                             <button
-                                onClick={() => { setIsOpen(false); if (onQuote) onQuote(); }}
+                                onClick={(e) => { e.stopPropagation(); setIsOpen(false); if (onQuote) onQuote(); }}
                                 className="mt-3 group w-full py-4 rounded-2xl font-black text-sm md:text-base uppercase tracking-wide text-slate-500 bg-white border-2 border-slate-200 hover:border-brand-primary hover:text-brand-primary hover:shadow-xl hover:shadow-brand-primary/10 transition-all flex items-center justify-center gap-2"
                             >
                                 <svg className="w-5 h-5 text-slate-400 group-hover:text-brand-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
