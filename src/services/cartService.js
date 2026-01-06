@@ -10,6 +10,7 @@ export async function addToCart(data) {
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
+            credentials: 'include', // IMPORTANTE: Para mantener la sesión de PHP/WooCommerce
             headers: {
                 'Content-Type': 'application/json',
             },
