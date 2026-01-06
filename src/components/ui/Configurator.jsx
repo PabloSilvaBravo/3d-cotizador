@@ -431,6 +431,23 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                 </div>
             </div>
 
+            {/* SUGERENCIA DE COTIZACIÓN AVANZADA (SOLO INFORMATIVO) */}
+            <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-brand-secondary/[0.03] to-brand-primary/[0.04] border border-brand-primary/10 relative overflow-hidden">
+                <div className="flex gap-3 items-start">
+                    <div className="shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-brand-primary/10 shadow-sm flex items-center justify-center text-brand-primary">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                        </div>
+                    </div>
+                    <div className="relative z-10 flex-1">
+                        <h4 className="text-xs font-bold text-brand-secondary uppercase tracking-tight mb-1">¿Requieres algo más complejo?</h4>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                            Para impresiones multicolor, materiales técnicos o post-procesado especial, te recomendamos contactarnos directamente para una evaluación manual personalizada.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
         </div >
     );
 };
