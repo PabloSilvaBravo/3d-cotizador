@@ -573,9 +573,9 @@ const App = () => {
     setIsItemAddedModalOpen(false);
     setFile(null);
     setFileUrl(null);
-    setQuoteData(null);
+    resetQuote(); // Usar reset del hook en lugar de setQuoteData directo
     setLocalGeometry(null);
-    setAnalysisResult(null);
+    // analysisResult eliminado del estado
     setDriveLink(null);
     setThumbnail(null);
     setOptimalRotation([0, 0, 0]);
