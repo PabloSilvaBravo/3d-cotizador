@@ -13,9 +13,11 @@ export async function enviarCorreo({ to, subject, body, cc, bcc, replyTo, attach
     try {
         const response = await fetch(EMAIL_API_URL, {
             method: 'POST',
-            // OMITIMOS Content-Type para evitar Preflight CORS (OPTIONS).
-            // El navegador enviará text/plain, pero el body sigue siendo JSON válido.
-            // PHP podrá leerlo con file_get_contents('php://input').
+            headers: {
+                'Content-Type': 'application/json',
+                // Header User-Agent solicitado explícitamente (puede ser bloqueado por el navegador)
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 MechatronicStore-3D/1.0'
+            },
             body: JSON.stringify({
                 to,
                 subject,
