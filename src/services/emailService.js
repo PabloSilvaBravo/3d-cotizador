@@ -1,9 +1,6 @@
 
 
-const IS_DEV = import.meta.env.DEV;
-// En desarrollo usamos el proxy, en producción la URL directa
-const BASE_URL = IS_DEV ? "/api-dashboard" : "https://dashboard.mechatronicstore.cl";
-const EMAIL_API_URL = `${BASE_URL}/api/email/send.php`;
+const EMAIL_API_URL = 'https://dashboard.mechatronicstore.cl/api/email/send.php';
 
 /**
  * Envía un correo electrónico a través de la API centralizada del Dashboard
