@@ -690,12 +690,14 @@ const App = () => {
       if (wcResult.cartUrl) {
         setCheckoutUrl(wcResult.cartUrl);
 
-        // Abrir el carrito de WooCommerce en una nueva pestaña
-        // La pestaña se cierra automáticamente después de procesar
-        console.log("🔗 Abriendo carrito en nueva pestaña...");
+        // Abrir el carrito de WooCommerce en una nueva pestaña en segundo plano
+        console.log("🔗 Abriendo carrito en nueva pestaña (segundo plano)...");
         const newTab = window.open(wcResult.cartUrl, '_blank');
 
         if (newTab) {
+          // Devolver el foco al cotizador inmediatamente
+          window.focus();
+
           // Cerrar la pestaña después de que haya procesado la acción
           setTimeout(() => {
             try {
