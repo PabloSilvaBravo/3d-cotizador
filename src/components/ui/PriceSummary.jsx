@@ -308,7 +308,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                 <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
                             )}
 
-                            <span className="relative z-20 uppercase tracking-wide text-sm md:text-base flex items-center gap-2">
+                            <span className="relative z-20 tracking-wide text-sm md:text-base flex items-center gap-2">
                                 {isCartLoading ? (
                                     <>
                                         <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

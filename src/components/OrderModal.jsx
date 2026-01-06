@@ -214,7 +214,7 @@ export default function OrderModal({ isOpen, onClose, orderData, onSubmit }) {
                                     transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }} // Curva Bezier suave
                                     className={`
                                         bg-gradient-to-r from-brand-secondary to-brand-primary text-white
-                                        group relative mt-2 py-4 font-black text-lg uppercase tracking-widest shadow-lg
+                                        group relative mt-2 py-4 font-black text-lg tracking-widest shadow-lg
                                         flex items-center justify-center overflow-hidden mx-auto
                                         transition-colors duration-300
                                         ${sending ? 'cursor-wait' : 'hover:shadow-brand-primary/40'}
