@@ -23,7 +23,7 @@ export const Header = () => {
                     color: #ffffff;
                     font-family: 'Montserrat', sans-serif;
                     font-size: 12px;
-                    font-weight: 500; 
+                    font-weight: 400; 
                     width: 100%;
                     border-bottom: 1px solid rgba(255,255,255,0.05);
                     box-sizing: border-box;
