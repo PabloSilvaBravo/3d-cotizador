@@ -169,6 +169,14 @@ export const Header = () => {
                     fill: #6017b1;
                 }
 
+                .flex-col-left {
+                    padding-left: 100px;
+                }
+
+                .flex-col-right {
+                    padding-right: 100px;
+                }
+
                 @media (max-width: 850px) {
                     .top-bar-purple {
                         display: none;
