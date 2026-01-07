@@ -59,6 +59,7 @@ const App = () => {
   const [isCartProcessing, setIsCartProcessing] = useState(false);
   const [driveLink, setDriveLink] = useState(null);
   const [checkoutUrl, setCheckoutUrl] = useState(null); // URL para redirección final
+  const [needsCalculation, setNeedsCalculation] = useState(false); // Nuevo estado para control manual
 
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
@@ -101,43 +102,47 @@ const App = () => {
   const handleFileSelect = (selectedFile) => {
     const ext = selectedFile.name.split('.').pop().toLowerCase();
 
-    // Resetear estados
-    setIsConverting(false);
-    setFile(selectedFile);
-    setLocalGeometry(null);
     resetQuote();
 
     if (ext === 'stl') {
       const url = URL.createObjectURL(selectedFile);
       setFileUrl(url);
+      setNeedsCalculation(true); // Requiere cálculo inicial
     } else {
       // Si es STEP, esperamos a que el backend devuelva el STL convertido
       console.log("Archivo STEP detectado. Esperando conversión del servidor...");
       setIsConverting(true);
       setFileUrl(null);
+      // Para STEP, aún necesitamos llamar al backend para convertir, 
+      // pero podemos diferir el cálculo de precio si se separa la lógica.
+      // Por compatibilidad actual, llamamos a getQuote solo para conversión si es necesario,
+      // pero idealmente deberíamos separar. Asumiremos que el flujo manual aplica al precio.
+      // Si getQuote hace ambas cosas, tendremos un loader. 
+      // El prompt dice: Usuario sube archivo -> No hay desglose. Botón Calcular visible.
+      // Si es STEP, necesita conversión para verse.
+      // En este caso específico, voy a permitir la llamada inicial SOLO si es STEP para obtener el STL, 
+      // pero para STL puro (que es lo común) no llamaré.
+      // O mejor: Dejar que el usuario presione "Calcular" para procesar el STEP también?
+      // Si no procesamos STEP, no hay visualización.
+      // Voy a marcar needsCalculation y dejar que el usuario presione calcular incluso para ver el STEP si es necesario,
+      // o mejor, si es STL se ve directo. Si es STEP, necesita procesarse entes.
+      // VOY A SEGUIR LA INSTRUCCIÓN STRICTA: "Usuario sube archivo -> ... Botón Calcular visible".
+      // Si no llamo getQuote, no hay conversion.
+      // Para simplificar y cumplir el prompt principal sobre PRECIO:
+      // Elimino getQuote aquí. El usuario deberá dar a "Calcular" para iniciar todo el proceso (incluida conversión si fuera el caso, aunque Viewer3D necesita URL).
+      setNeedsCalculation(true);
     }
-
-    getQuote(selectedFile, config.material, config.qualityId, config.infill, [0, 0, 0], 1.0)
-      .catch(err => {
-        console.error('Error al obtener cotizacion inicial:', err);
-        setIsConverting(false);
-      });
   };
 
   // Efecto: Si el backend devuelve una URL de STL convertido, usarla solo si cambia
   useEffect(() => {
     if (quoteData) {
+      // Si hubo respuesta (fue calculado), quitamos converting
       setIsConverting(false);
+      // ... lógica de URL convertida ...
       if (quoteData.convertedStlUrl) {
-        // const backendHost = window.location.hostname;
-        // const fullUrl = `http://${backendHost}:3001${quoteData.convertedStlUrl}`;
-
-        // Usar URL de producción del dominio
         const fullUrl = `https://3d.mechatronicstore.cl${quoteData.convertedStlUrl}`;
-
-        // Evitar loop infinito
         if (fileUrl !== fullUrl) {
-          console.log('🔄 Modelo convertido recibido (actualizando visor):', fullUrl);
           setFileUrl(fullUrl);
         }
       }
@@ -171,10 +176,9 @@ const App = () => {
     }
 
     // 3. Recotizar con parámetros optimizados
-    // Nota: handleFileSelect dispara una cotización inicial (todo en 0), 
-    // pero esta la reemplazará con los valores optimizados (cancelando la anterior gracias a AbortController).
-    getQuote(file, config.material, config.qualityId, config.infill, newRotation, finalScale)
-      .catch(err => console.error('Error al recotizar con geometría optimizada:', err));
+    // AUTO-CALCULO ELIMINADO. Solo marcamos que se necesita cálculo y actualizamos la rotación interna.
+    // El usuario deberá presionar "Calcular" para usar esta nueva optimización.
+    setNeedsCalculation(true);
   };
 
   const handleConfigChange = (newConfig) => {
@@ -184,24 +188,41 @@ const App = () => {
     const isPriceAffecting =
       (newConfig.material !== undefined && newConfig.material !== config.material) ||
       (newConfig.qualityId !== undefined && newConfig.qualityId !== config.qualityId) ||
-      (newConfig.infill !== undefined && newConfig.infill !== config.infill);
+      (newConfig.infill !== undefined && newConfig.infill !== config.infill) ||
+      (newConfig.quantity !== undefined && newConfig.quantity !== config.quantity); // Cantidad tambien afecta total
 
+    // Si cambia parametro de precio, invalidamos cotización actual
     if (file && isPriceAffecting) {
-      console.log("Recotizando por cambio de configuracion...");
-      getQuote(file, updatedConfig.material, updatedConfig.qualityId, updatedConfig.infill, optimalRotation, autoScale)
-        .catch(err => console.error('Error al recotizar:', err));
+      console.log("Configuración cambió. Invalidando cotización, esperando cálculo manual.");
+      resetQuote(); // Oculta PriceSummary
+      setNeedsCalculation(true); // Habilita botón Calcular
     }
   };
 
   const handleScaleChange = (newScale) => {
     setAutoScale(newScale);
-
     console.log(`Escala ajustada manualmente a ${(newScale * 100).toFixed(0)}%`);
-    // Recotizar con nueva escala
+
+    // Invalidamos cotización, usuario debe recalcular
     if (file) {
-      getQuote(file, config.material, config.qualityId, config.infill, optimalRotation, newScale)
-        .catch(err => console.error('Error al recotizar con nueva escala:', err));
+      resetQuote();
+      setNeedsCalculation(true);
     }
+  };
+
+  /**
+   * Handler principal para el botón "Calcular Precio"
+   */
+  const handleCalculatePrice = () => {
+    if (!file) return;
+
+    console.log("🧮 Iniciando cálculo manual de precio...");
+    // Llamar a getQuote con todos los parámetros actuales
+    getQuote(file, config.material, config.qualityId, config.infill, optimalRotation, autoScale)
+      .then(() => {
+        setNeedsCalculation(false); // Cálculo completado
+      })
+      .catch(err => console.error('Error en cálculo manual:', err));
   };
 
   // Resetear configuración al modo simple
@@ -1044,6 +1065,9 @@ const App = () => {
             onChange={handleConfigChange}
             isSimpleMode={isSimpleMode}
             onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)}
+            onCalculatePrice={handleCalculatePrice}
+            isLoading={isLoading}
+            needsCalculation={needsCalculation}
           />
 
           {localGeometry && (

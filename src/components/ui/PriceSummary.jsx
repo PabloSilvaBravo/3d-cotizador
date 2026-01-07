@@ -60,12 +60,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
     }
 
     // Estado vacío / error (sin datos y sin cargar)
-    if (!estimate) return (
-        <div className="mt-8 p-6 bg-brand-light/30 rounded-2xl animate-pulse flex flex-col gap-4">
-            <div className="h-4 bg-brand-dark/5 rounded w-1/2"></div>
-            <div className="h-8 bg-brand-dark/10 rounded w-full"></div>
-        </div>
-    );
+    if (!estimate) return null;
 
     return (
         <div className="mt-6 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/10 overflow-hidden relative transition-all duration-300">
