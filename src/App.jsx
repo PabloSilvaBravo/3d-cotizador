@@ -812,12 +812,21 @@ const App = () => {
     }
 
     // 2. CASO GIGANTE / FALLBACK: Usamos geometría pura
-    // Peso = Volumen * Densidad(1.24) * Factor_Consolidado(Relleno + Paredes + Soportes)
-    const densityFactor = 0.45 + (config.infill / 200);
+    // Peso: Aumentado factor base a 0.60 (antes 0.45) para compensar paredes/top/bottom
+    const densityFactor = 0.60 + (config.infill / 200);
     const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale;
 
-    // Tiempo: Regla de 3 simple conservadora (ej. 40g/hora)
-    const time = weight / 40;
+    // Tiempo: Cálculo dinámico basado en altura de capa
+    // Base: 50g/hora para 0.20mm (Estándar)
+    // 0.28mm -> Más rápido (~70g/h)
+    // 0.16mm -> Más lento (~40g/h)
+    const baseSpeed = 50;
+    const layerHeightRatio = config.quality / 0.20;
+    // Factor de corrección no lineal (la velocidad no escala perfectamente lineal con altura)
+    // Usamos potencia 0.8 para suavizar el impacto
+    const speedFactor = baseSpeed * Math.pow(layerHeightRatio, 0.8);
+
+    const time = weight / speedFactor;
 
     return {
       weightGrams: weight,
