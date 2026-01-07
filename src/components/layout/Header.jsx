@@ -7,13 +7,9 @@ export const Header = ({ isSimpleMode, onToggleSimpleMode, onHomeClick }) => {
     const helpRef = useRef(null);
     const [showCopyToast, setShowCopyToast] = useState(false);
 
-    // Navegación: Reset interno si existe handler, sino ir a la web principal
+    // Navegación: Siempre redirige a la web principal
     const handleLogoClick = () => {
-        if (onHomeClick) {
-            onHomeClick();
-        } else {
-            window.location.href = 'https://www.mechatronicstore.cl/';
-        }
+        window.location.href = 'https://www.mechatronicstore.cl/';
     };
 
     /**
