@@ -60,6 +60,7 @@ const App = () => {
   const [driveLink, setDriveLink] = useState(null);
   const [checkoutUrl, setCheckoutUrl] = useState(null); // URL para redirección final
   const [needsCalculation, setNeedsCalculation] = useState(false); // Nuevo estado para control manual
+  const [hasCalculated, setHasCalculated] = useState(false); // Nuevo estado para control de texto boton
 
   const { getQuote, quoteData, isLoading, error, resetQuote } = useBackendQuote();
 
@@ -102,35 +103,34 @@ const App = () => {
   const handleFileSelect = (selectedFile) => {
     const ext = selectedFile.name.split('.').pop().toLowerCase();
 
+    // Resetear estados (Restaurado)
+    setIsConverting(false);
+    setFile(selectedFile);
+    setLocalGeometry(null);
+    setHasCalculated(false); // Reiniciar estado de cálculo
+    setIsSuccess(false); // Asegurar que no se muestre success screen antigua
     resetQuote();
 
     if (ext === 'stl') {
       const url = URL.createObjectURL(selectedFile);
       setFileUrl(url);
-      setNeedsCalculation(true); // Requiere cálculo inicial
+      setNeedsCalculation(true); // Requiere cálculo inicial de precio
     } else {
-      // Si es STEP, esperamos a que el backend devuelva el STL convertido
-      console.log("Archivo STEP detectado. Esperando conversión del servidor...");
+      // Si es STEP, esperamos a que el backend devuelva el STL convertido.
+      // Para esto, NECESITAMOS llamar a getQuote inmediatamente, de lo contrario no hay visualización.
+      console.log("Archivo STEP detectado. Iniciando conversión automática...");
       setIsConverting(true);
       setFileUrl(null);
-      // Para STEP, aún necesitamos llamar al backend para convertir, 
-      // pero podemos diferir el cálculo de precio si se separa la lógica.
-      // Por compatibilidad actual, llamamos a getQuote solo para conversión si es necesario,
-      // pero idealmente deberíamos separar. Asumiremos que el flujo manual aplica al precio.
-      // Si getQuote hace ambas cosas, tendremos un loader. 
-      // El prompt dice: Usuario sube archivo -> No hay desglose. Botón Calcular visible.
-      // Si es STEP, necesita conversión para verse.
-      // En este caso específico, voy a permitir la llamada inicial SOLO si es STEP para obtener el STL, 
-      // pero para STL puro (que es lo común) no llamaré.
-      // O mejor: Dejar que el usuario presione "Calcular" para procesar el STEP también?
-      // Si no procesamos STEP, no hay visualización.
-      // Voy a marcar needsCalculation y dejar que el usuario presione calcular incluso para ver el STEP si es necesario,
-      // o mejor, si es STL se ve directo. Si es STEP, necesita procesarse entes.
-      // VOY A SEGUIR LA INSTRUCCIÓN STRICTA: "Usuario sube archivo -> ... Botón Calcular visible".
-      // Si no llamo getQuote, no hay conversion.
-      // Para simplificar y cumplir el prompt principal sobre PRECIO:
-      // Elimino getQuote aquí. El usuario deberá dar a "Calcular" para iniciar todo el proceso (incluida conversión si fuera el caso, aunque Viewer3D necesita URL).
-      setNeedsCalculation(true);
+
+      // STEP Exception: Llamar auto-cálculo solo para obtener la conversión y visualizar
+      getQuote(selectedFile, config.material, config.qualityId, config.infill, [0, 0, 0], 1.0)
+        .catch(err => {
+          console.error('Error en conversión inicial STEP:', err);
+          setIsConverting(false);
+        });
+
+      // No seteamos needsCalculation a true porque getQuote ya lo calculará y nos dará el precio inicial también.
+      // O podemos setearlo a false en el .then, pero getQuote actualiza el estado quoteData.
     }
   };
 
@@ -221,6 +221,7 @@ const App = () => {
     getQuote(file, config.material, config.qualityId, config.infill, optimalRotation, autoScale)
       .then(() => {
         setNeedsCalculation(false); // Cálculo completado
+        setHasCalculated(true); // Marcar que ya se ha calculado al menos una vez
       })
       .catch(err => console.error('Error en cálculo manual:', err));
   };
@@ -1081,13 +1082,51 @@ const App = () => {
             </div>
           )}
 
+
+          {/* BOTÓN CALCULAR PRECIO (Solo visible cuando se requiere acción) */}
+          {!isLoading && (!quoteData || needsCalculation) && (
+            <div className="pt-6 pb-2">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(99, 102, 241, 0.4)" }}
+                  onClick={handleCalculatePrice}
+                  className={`
+                    w-full py-4 rounded-xl font-bold text-sm tracking-wide shadow-md transition-all duration-300 flex items-center justify-center gap-3 relative overflow-hidden group
+                    ${!hasCalculated
+                      ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-brand-primary/30' // Primer cálculo: Sólido Prominente
+                      : 'bg-white border-2 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white' // Recálculo: Outline
+                    }
+                    ${needsCalculation ? 'animate-pulse-slow' : ''}
+                  `}
+                >
+                  <div className={`absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300`}></div>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span>{hasCalculated ? 'RECALCULAR PRECIO' : 'CALCULAR PRECIO'}</span>
+                  {needsCalculation && hasCalculated && (
+                    <span className="absolute right-4 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-yellow-400"></span>
+                    </span>
+                  )}
+                </motion.button>
+              </motion.div>
+            </div>
+          )}
+
           <PriceSummary
             estimate={estimateForUI}
             config={config}
             onAddToCart={handleGoToCheckout} // Usar Routing Handler
             onWooCommerceCart={handleWooCommerceCart}
             isCartLoading={isCartProcessing}
-            isLoading={isLoading || !quoteData}
+            isLoading={isLoading}
           />
 
           <div className="mt-4 -mx-8 -mb-8">
