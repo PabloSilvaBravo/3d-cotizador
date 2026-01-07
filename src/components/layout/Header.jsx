@@ -22,7 +22,7 @@ export const Header = () => {
                     background-color: #6017b1; 
                     color: #ffffff;
                     font-family: 'Montserrat', sans-serif;
-                    font-size: 12px;
+                    font-size: 13px;
                     font-weight: 400; 
                     width: 100%;
                     border-bottom: 1px solid rgba(255,255,255,0.05);
@@ -114,9 +114,9 @@ export const Header = () => {
                     height: 30px;
                     padding: 0 12px;
                     border: 1px solid #ffffff;
-                    border-radius: 15px;
-                    font-size: 11px;
-                    font-weight: 700;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: 550;
                     background: transparent;
                     white-space: nowrap;
                 }
@@ -127,15 +127,15 @@ export const Header = () => {
 
                 .badge-new {
                     position: absolute;
-                    top: -9px;
+                    top: -7px;
                     right: -5px;
-                    background-color: #ffef37;
+                    background-color: #ffd701;
                     color: #000000;
                     font-size: 9px;
                     font-weight: 800;
                     line-height: 1;
-                    padding: 3px 6px;
-                    border-radius: 4px;
+                    padding: 2px 4px;
+                    border-radius: 12px;
                     box-shadow: 0 1px 2px rgba(0,0,0,0.15);
                     pointer-events: none;
                 }
@@ -203,8 +203,8 @@ export const Header = () => {
                                     <svg className="icon-svg" viewBox="0 0 1024 1024" fill="#ffffff">
                                         <path transform="translate(0, 960) scale(1, -1)" d="M546.24 866.24c-124.992 124.992-327.488 124.992-452.512 0-124.992-124.928-124.992-327.616 0-452.48 0.032 0 226.272-221.76 226.272-477.76 0 256 226.24 477.76 226.24 477.76 125.024 124.864 125.024 327.552 0 452.48zM320 512c-70.752 0-128 57.248-128 128s57.248 128 128 128 128-57.248 128-128-57.248-128-128-128z" />
                                     </svg>
-                                    <span>TIENDA</span>
                                 </a>
+                                <span>TIENDA</span>
                             </li>
 
                             <li className="nav-item-border">
