@@ -937,11 +937,7 @@ const App = () => {
       <AnimatePresence>
         {isSuccess && <SuccessScreen onReset={handleFullReset} />}
       </AnimatePresence>
-      <Header
-        isSimpleMode={isSimpleMode}
-        onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)}
-        onHomeClick={handleFullReset}
-      />
+      <Header />
 
       {/* Fondo Decorativo Sutil */}
       <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none mix-blend-multiply hidden lg:block"></div>
