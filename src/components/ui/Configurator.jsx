@@ -5,7 +5,7 @@ import { InfillSelector } from './InfillSelector';
 import { QualitySelector } from './QualitySelector';
 import { useAvailableColors } from '../../hooks/useAvailableColors';
 
-export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggleSimpleMode, onCalculatePrice, isLoading, needsCalculation }) => {
+export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggleSimpleMode }) => {
     // Estado hover imagen
     const [isImageHovered, setIsImageHovered] = useState(false);
 

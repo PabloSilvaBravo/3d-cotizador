@@ -1062,9 +1062,6 @@ const App = () => {
             onChange={handleConfigChange}
             isSimpleMode={isSimpleMode}
             onToggleSimpleMode={() => setIsSimpleMode(!isSimpleMode)}
-            onCalculatePrice={handleCalculatePrice}
-            isLoading={isLoading}
-            needsCalculation={needsCalculation}
           />
 
           {localGeometry && (
