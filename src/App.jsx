@@ -868,7 +868,7 @@ const App = () => {
         <CircuitBackground />
         <Header />
 
-        <div className="flex-1 flex flex-col justify-center items-center px-4 relative z-10 pt-24 pb-12">
+        <div className="flex-1 flex flex-col justify-center items-center px-[10px] relative z-10 pt-[120px] pb-[10px]">
           <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 

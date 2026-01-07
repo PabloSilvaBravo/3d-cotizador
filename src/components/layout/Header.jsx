@@ -182,6 +182,19 @@ export const Header = () => {
                         display: none;
                     }
                 }
+
+                .header-inner-content {
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 12px 16px; 
+                }
+
+                @media (min-width: 850px) {
+                    .header-inner-content {
+                        padding-left: 20px; 
+                        padding-right: 20px;
+                    }
+                }
             `}</style>
 
             {/* 1. Banner Envio Gratis */}
@@ -268,14 +281,14 @@ export const Header = () => {
 
             {/* 3. Original Header Content (Logo + Ir Tienda) */}
             <div className="w-full transition-all duration-300 backdrop-blur-xl bg-brand-primary border-b border-white/10 shadow-lg shadow-brand-primary/20">
-                <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-0 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto flex items-center justify-between header-inner-content">
                     {/* Logo con Navegación */}
                     <div
                         className="flex items-center gap-3 group cursor-pointer btn-press"
                         onClick={handleLogoClick}
                         title="Volver a MechatronicStore.cl"
                     >
-                        <MechatronicLogo className="h-9 w-auto transition-all duration-300" />
+                        <MechatronicLogo className="h-10 w-auto transition-all duration-300" />
                     </div>
 
                     <div className="flex items-center space-x-2 md:space-x-3">
