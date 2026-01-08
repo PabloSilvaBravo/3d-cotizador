@@ -33,6 +33,7 @@ const ItemAddedModal = lazy(() => import('./components/ItemAddedModal'));
 
 const App = () => {
   const captureRef = useRef(null); // Ref para capturar imagen del Viewer3D
+  const cartRef = useRef(null); // Ref para controlar el carrito
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState(null);
   const [localGeometry, setLocalGeometry] = useState(null);
@@ -812,9 +813,9 @@ const App = () => {
     }
 
     // 2. CASO GIGANTE / FALLBACK: Usamos geometría pura
-    // Peso: Recalibrado con datos reales del usuario (160g con 15% infill, 0.28mm)
-    // Factor base reducido a 0.25 + mayor contribución del infill (/100 en vez de /200)
-    const densityFactor = 0.25 + (config.infill / 100);
+    // Peso: Recalibrado para alcanzar ~160g con 15% infill (usuario confirmó peso real)
+    // Factor base aumentado a 0.40 + mayor contribución del infill (/80 en vez de /100)
+    const densityFactor = 0.40 + (config.infill / 80);
     const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale;
 
     // Tiempo: Recalibrado para coincidir con slicers reales (Bambu Studio, PrusaSlicer)
@@ -854,7 +855,9 @@ const App = () => {
       x: (localGeometry.dimensions.x * autoScale).toFixed(2),
       y: (localGeometry.dimensions.y * autoScale).toFixed(2),
       z: (localGeometry.dimensions.z * autoScale).toFixed(2)
-    } : null
+    } : null,
+    // Tiempo de impresión del backend (si está disponible)
+    printTime: quoteData?.tiempoTexto || null
   } : null;
 
   // === DEBUG DE PRECIOS (Solo Consola) ===
@@ -1163,6 +1166,7 @@ const App = () => {
 
 
       <QuoteCart
+        ref={cartRef}
         items={cartItems}
         onRemove={handleRemoveFromCart}
         onCheckout={handleCheckoutCart}
@@ -1177,7 +1181,13 @@ const App = () => {
           itemName={lastAddedItemName}
           onUploadAnother={handleResetForNewFile}
           onConfigureSame={handleConfigureSame}
-          onGoToCart={() => setIsItemAddedModalOpen(false)}
+          onGoToCart={() => {
+            setIsItemAddedModalOpen(false);
+            // Trigger cart open via ref
+            if (cartRef.current?.openCart) {
+              cartRef.current.openCart();
+            }
+          }}
         />
       </Suspense>
     </div >

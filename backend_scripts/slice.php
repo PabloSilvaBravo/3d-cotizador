@@ -83,24 +83,29 @@ try {
     $args[] = "--fill-density " . escapeshellarg($infill . "%");
     $args[] = "--scale " . escapeshellarg($scale);
 
-    // VELOCIDADES CRÍTICAS (Bambu Studio "My Settings" profile)
-    $args[] = "--perimeter-speed 60";
-    $args[] = "--external-perimeter-speed 60";
-    $args[] = "--infill-speed 100";
-    $args[] = "--solid-infill-speed 100";
-    $args[] = "--top-solid-infill-speed 100";
-    $args[] = "--support-material-speed 80";
-    $args[] = "--bridge-speed 25";
-    $args[] = "--gap-fill-speed 30";
-    $args[] = "--travel-speed 120";
-    $args[] = "--first-layer-speed 30";
+    // VELOCIDADES MÁXIMAS (último ajuste para coincidir con Bambu Studio 4h20m)
+    $args[] = "--perimeter-speed 130";
+    $args[] = "--external-perimeter-speed 100";
+    $args[] = "--infill-speed 200";
+    $args[] = "--solid-infill-speed 180";
+    $args[] = "--top-solid-infill-speed 150";
+    $args[] = "--support-material-speed 120";
+    $args[] = "--bridge-speed 50";
+    $args[] = "--gap-fill-speed 60";
+    $args[] = "--travel-speed 300";
+    $args[] = "--first-layer-speed 40";
 
-    // ACELERACIONES
-    $args[] = "--default-acceleration 500";
-    $args[] = "--perimeter-acceleration 500";
-    $args[] = "--infill-acceleration 500";
-    $args[] = "--bridge-acceleration 500";
-    $args[] = "--first-layer-acceleration 300";
+    // ACELERACIONES AL MÁXIMO (aprovechando capacidad real H2D)
+    $args[] = "--default-acceleration 18000";
+    $args[] = "--perimeter-acceleration 12000";
+    $args[] = "--infill-acceleration 20000";
+    $args[] = "--bridge-acceleration 5000";
+    $args[] = "--first-layer-acceleration 2000";
+    $args[] = "--travel-acceleration 20000";
+
+    // JERK (motion smoothness optimization)
+    $args[] = "--max-print-speed 300";
+    $args[] = "--max-volumetric-speed 15";
 
     // Nota: Rotación 3D compleja no está soportada fiablemente via CLI en esta versión sin manipular el STL antes.
     // Ignoramos rotationX/Y/Z del frontend por ahora y confiamos en 'support_material_auto' del config.ini

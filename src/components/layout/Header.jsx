@@ -13,7 +13,7 @@ export const Header = () => {
                 /* --- ESTILOS BARRA SUPERIOR (Usuario) --- */
                 .banner-container-fixed {
                     font-family: 'Montserrat', sans-serif;
-                    background: linear-gradient(180deg, #140021 0%, #3b0055 100%);
+                    background: linear-gradient(180deg, #121212 -50%, #6017b1 200%, #000000 250%);
                     padding: 8px 12px;
                     font-size: 15px;
                 }
@@ -127,17 +127,19 @@ export const Header = () => {
 
                 .badge-new {
                     position: absolute;
-                    top: -7px;
-                    right: -5px;
-                    background-color: #ffd701;
-                    color: #000000;
+                    top: -3px;
+                    right: 0;
+                    background-color: #FFD700;
+                    color: #1a1a1a;
                     font-size: 9px;
-                    font-weight: 800;
+                    font-weight: 600;
                     line-height: 1;
-                    padding: 2px 4px;
-                    border-radius: 12px;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+                    padding: 2px 6px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                     pointer-events: none;
+                    white-space: nowrap;
+                    z-index: 1;
                 }
 
                 .nav-item-social {
@@ -199,7 +201,7 @@ export const Header = () => {
 
             {/* 1. Banner Envio Gratis */}
             <div className="banner-container-fixed">
-                <p style={{ margin: 0, lineHeight: 1.4, color: '#fff', fontWeight: 500, textAlign: 'center' }}>
+                <p style={{ margin: 0, lineHeight: 1.4, color: '#fff', fontWeight: 400, textAlign: 'center' }}>
                     ¡<span style={{ color: '#ffef37' }}>Envío gratis</span> a todo Chile en compras sobre <span style={{ color: '#ffef37' }}>$19.990</span> (solo web)!
                 </p>
             </div>
@@ -246,7 +248,7 @@ export const Header = () => {
 
                             <li className="nav-item-quote">
                                 <div className="quote-wrapper">
-                                    <a href="https://empresas.mechatronicstore.cl/" class="quote-btn">
+                                    <a href="https://empresas.mechatronicstore.cl/" className="quote-btn">
                                         SOLICITAR COTIZACIÓN
                                     </a>
                                     <span className="badge-new">NUEVO</span>
@@ -288,7 +290,7 @@ export const Header = () => {
                         onClick={handleLogoClick}
                         title="Volver a MechatronicStore.cl"
                     >
-                        <MechatronicLogo className="h-10 w-auto transition-all duration-300" />
+                        <MechatronicLogo className="-inset-y-full h-14 w-auto transition-all duration-300" />
                     </div>
 
                     <div className="flex items-center space-x-2 md:space-x-3">

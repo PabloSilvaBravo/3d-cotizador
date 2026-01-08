@@ -75,7 +75,7 @@ export const Configurator = ({ config, geometry, onChange, isSimpleMode, onToggl
                         <motion.p
                             key={isSimpleMode ? "simple" : "expert"}
                             initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
+                            a-ajusnimate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 5 }}
                             transition={{ duration: 0.2 }}
                             className={`text-[11px] font-medium leading-relaxed max-w-[90%] ${isSimpleMode ? 'text-slate-500' : 'text-brand-primary/80'}`}

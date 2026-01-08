@@ -56,9 +56,10 @@ export const ScaleControl = ({ scale, onChange, scaleInfo, dimensions }) => {
 
             {/* Auto-scale warning - compacto */}
             {scaleInfo?.needsScaling && (
-                <div className="bg-amber-50/50 rounded-lg px-3 py-2 text-xs text-amber-700 border-l-2 border-amber-400">
-                    <span className="font-semibold">⚡ Auto-ajustado a {Math.round(scaleInfo.scaleFactor * 100)}%</span>
-                    <span className="text-amber-600/80 ml-1">• {scaleInfo.reason}</span>
+                <div className="bg-orange-100/100 rounded-lg px-3 py-2 text-xs text-orange-600 border-orange-600">
+                    <span className="text-orange-600/80 ml-1">⚠️ Auto-ajustado a {Math.round(scaleInfo.scaleFactor * 100)}%, ya que su modelo supera los límites de la cama de impresión.</span>
+                    <span className="text-orange-600/80 ml-1">• {scaleInfo.reason}</span>
+                    <span className="font-semibold ml-1"> Si requiere un tamaño mayor, seleccione que dice "Solicitar cotización" para que uno de nuestros ingenieros verifique la viabilidad de su modelo.</span>
                 </div>
             )}
 
@@ -207,6 +208,7 @@ const DimensionInput = ({ label, value, originalValue, maxScale, onChange }) => 
         if (!isNaN(numValue) && numValue > 0 && originalValue > 0) {
             const newScale = numValue / originalValue;
             const clampedScale = Math.max(0.1, Math.min(newScale, maxScale));
+            console.log(`DimensionInput ${label}: Aplicando nuevo scale ${clampedScale.toFixed(2)}`);
             onChange(clampedScale);
         } else {
             setLocalValue(value);
@@ -220,7 +222,7 @@ const DimensionInput = ({ label, value, originalValue, maxScale, onChange }) => 
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 type="number"
                 step="0.1"
-                className="w-full bg-brand-light/30 border border-brand-light rounded-lg px-2 py-2 pr-7 text-sm font-mono font-bold text-brand-dark placeholder:text-brand-dark/30 focus:ring-1 focus:ring-brand-primary focus:border-brand-primary outline-none transition-colors"
+                className="w-full bg-brand-light/30 border border-brand-light rounded-lg px-2 py-2 pr-12 text-sm font-mono font-bold text-brand-dark placeholder:text-brand-dark/30 focus:ring-1 focus:ring-brand-primary focus:border-brand-primary outline-none transition-colors"
                 value={localValue}
                 onChange={handleChange}
                 onBlur={handleBlur}

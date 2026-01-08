@@ -183,14 +183,14 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         <div className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40"></span>
-                                Material ({estimate.weightGrams ? Math.ceil(estimate.weightGrams) : 0}g)
+                                Material (~{estimate.weightGrams ? Math.ceil(estimate.weightGrams) : 0}g)
                             </span>
                             <span className="font-semibold text-brand-dark">${estimate.materialCost.toLocaleString('es-CL')}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary/40"></span>
-                                Tiempo (~{Math.ceil(estimate.estimatedTimeHours)}h)
+                                Tiempo {estimate.printTime ? `(${estimate.printTime})` : `(~${Math.ceil(estimate.estimatedTimeHours)}h)`}
                             </span>
                             <span className="font-semibold text-brand-dark">${estimate.timeCost.toLocaleString('es-CL')}</span>
                         </div>

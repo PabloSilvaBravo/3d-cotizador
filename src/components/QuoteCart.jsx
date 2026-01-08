@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }) => {
+export const QuoteCart = forwardRef(({ items, onRemove, onCheckout, onQuote, isProcessing }, ref) => {
     const [isOpen, setIsOpen] = useState(false);
     const cartRef = useRef(null);
     const buttonRef = useRef(null);
+
+    // Exponer método para abrir el carrito desde el padre
+    useImperativeHandle(ref, () => ({
+        openCart: () => setIsOpen(true)
+    }));
 
     // Cerrar carrito al hacer clic fuera
     useEffect(() => {
@@ -214,4 +219,4 @@ export const QuoteCart = ({ items, onRemove, onCheckout, onQuote, isProcessing }
             </motion.button>
         </>
     );
-};
+});

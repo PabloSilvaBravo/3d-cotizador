@@ -114,37 +114,47 @@ export const calculateOptimalOrientation = (geometry) => {
 /**
  * Calcula factor de auto-escalado si el modelo excede dimensiones de cama
  * @param {Object} dimensions - {x, y, z} en mm
- * @param {Number} maxBedSize - Tamaño máximo de cama (default: 240mm con margen)
+ * @param {Number} maxBedSize - Tamaño máximo de cama (default: 320mm para XY)
  * @returns {Object} { needsScaling, scaleFactor, reason }
  */
 export const calculateAutoScale = (dimensions, maxBedSize = 320) => {
     const { x, y, z } = dimensions;
 
-    // Encontrar la dimensión más grande en XY (Z puede ser mayor)
-    const maxXY = Math.max(x, y);
-    const maxZ = z;
-
-    // Verificar si excede límites (320x320x350)
-    // Verificar si excede límites (325x320x325 mm)
-    const LIMIT_XY = 325; // Usamos el mayor, confiando en rotación, o 320 para seguridad absoluta?
-    // User dijo: 325 x 320 x 325.
-    // Usaremos 320 como límite seguro de base para evitar choques en Y.
-    // Aunque con rotación 45grados cabría más... mantengamos seguridad.
     const SAFETY_XY = 320;
     const SAFETY_Z = 325;
 
-    if (maxXY > SAFETY_XY || maxZ > SAFETY_Z) {
-        // Calcular factor necesario para caber (con margen de seguridad 5%)
-        const scaleXY = SAFETY_XY / maxXY;
-        const scaleZ = SAFETY_Z / maxZ;
-        const scaleFactor = Math.min(scaleXY, scaleZ) * 0.95; // 95% para margen
+    // Verificar si excede
+    if (x > SAFETY_XY || y > SAFETY_XY || z > SAFETY_Z) {
+
+        // Calcular ratios
+        const ratioX = x / SAFETY_XY;
+        const ratioY = y / SAFETY_XY;
+        const ratioZ = z / SAFETY_Z;
+
+        // Detectar cuál es el peor eje
+        const maxRatio = Math.max(ratioX, ratioY, ratioZ);
+
+        // Calcular factor (con 5% margen)
+        const scaleFactor = (1 / maxRatio) * 0.95;
+
+        // --- AQUÍ ESTÁ EL CAMBIO CLAVE EN EL MENSAJE ---
+        let reason = '';
+
+        if (maxRatio === ratioX) {
+            // Caso Eje X
+            reason = `El Ancho (X) mide ${x.toFixed(0)}mm, superando el máximo de ${SAFETY_XY}mm.`;
+        } else if (maxRatio === ratioY) {
+            // Caso Eje Y
+            reason = `El Largo (Y) mide ${y.toFixed(0)}mm, superando el máximo de ${SAFETY_XY}mm.`;
+        } else {
+            // Caso Eje Z
+            reason = `El Alto (Z) mide ${z.toFixed(0)}mm, superando el máximo de ${SAFETY_Z}mm.`;
+        }
 
         return {
             needsScaling: true,
-            scaleFactor: Math.round(scaleFactor * 100) / 100, // Redondear a 2 decimales
-            reason: maxXY > maxBedSize
-                ? `Modelo muy ancho (${maxXY.toFixed(0)}mm excede ${SAFETY_XY}mm)`
-                : `Modelo muy alto (${maxZ.toFixed(0)}mm excede ${SAFETY_Z}mm)`,
+            scaleFactor: Math.round(scaleFactor * 100) / 100,
+            reason: reason,
             originalSize: { x, y, z },
             scaledSize: {
                 x: Math.round(x * scaleFactor),
@@ -157,7 +167,7 @@ export const calculateAutoScale = (dimensions, maxBedSize = 320) => {
     return {
         needsScaling: false,
         scaleFactor: 1.0,
-        reason: 'Modelo dentro de dimensiones permitidas',
+        reason: 'Dimensiones correctas',
         originalSize: { x, y, z }
     };
 };
