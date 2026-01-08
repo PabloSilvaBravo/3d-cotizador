@@ -5,7 +5,7 @@ export const MechatronicLogo = ({ className = '' }) => {
         <img
             src="/logo.webp"
             alt="MechatronicStore"
-            className={`${className}`}
+            className={`h-14 w-auto ${className}`}
         />
     );
 };

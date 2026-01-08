@@ -290,7 +290,7 @@ export const Header = () => {
                         onClick={handleLogoClick}
                         title="Volver a MechatronicStore.cl"
                     >
-                        <MechatronicLogo className="h-13 w-auto transition-all duration-300" />
+                        <MechatronicLogo />
                     </div>
 
                     <div className="flex items-center space-x-2 md:space-x-3">
