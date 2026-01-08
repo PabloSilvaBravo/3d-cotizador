@@ -64,6 +64,6 @@ export const DEFAULT_CONFIG = {
   material: 'PLA',
   colorId: null,
   qualityId: 0.20, // ID Numérico (Estándar)
-  infill: 20, // Recomendado para robustez óptima
+  infill: 15, // Actualizado a 15% (El más común)
   quantity: 1,
 };

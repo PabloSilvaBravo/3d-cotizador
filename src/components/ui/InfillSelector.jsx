@@ -73,7 +73,8 @@ const InfillPattern = ({ percentage }) => {
 const INFILL_OPTIONS = [
     { value: 0, label: '0%', desc: 'Solo cáscaras', strength: 'Mínima' },
     { value: 10, label: '10%', desc: 'Decorativo', strength: 'Baja' },
-    { value: 20, label: '20%', desc: 'Estándar', strength: 'Media', recommended: true },
+    { value: 15, label: '15%', desc: 'Más común', strength: 'Normal', recommended: true },
+    { value: 20, label: '20%', desc: 'Estándar', strength: 'Media' },
     { value: 30, label: '30%', desc: 'Resistente', strength: 'Alta' },
     { value: 50, label: '50%', desc: 'Muy fuerte', strength: 'Muy Alta' },
     { value: 70, label: '70%', desc: 'Extra fuerte', strength: 'Extrema' },
@@ -82,12 +83,12 @@ const INFILL_OPTIONS = [
 
 export const InfillSelector = ({ value, onChange }) => {
     const [hoveredOption, setHoveredOption] = useState(null);
-    const selectedOption = INFILL_OPTIONS.find(opt => opt.value === value) || INFILL_OPTIONS[2];
+    const selectedOption = INFILL_OPTIONS.find(opt => opt.value === value) || INFILL_OPTIONS[2]; // Default fallback safe
 
     return (
         <div className="space-y-4">
-            {/* Grid de opciones COMPACTO */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-3">
+            {/* Grid de opciones COMPACTO - Ajustado para 8 opciones */}
+            <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
                 {INFILL_OPTIONS.map((option, index) => {
                     const isSelected = option.value === value;
                     const isHovered = hoveredOption === option.value;

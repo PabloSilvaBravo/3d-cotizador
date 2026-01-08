@@ -812,18 +812,20 @@ const App = () => {
     }
 
     // 2. CASO GIGANTE / FALLBACK: Usamos geometría pura
-    // Peso: Aumentado factor base a 0.60 (antes 0.45) para compensar paredes/top/bottom
-    const densityFactor = 0.60 + (config.infill / 200);
+    // Peso: Recalibrado con datos reales del usuario (160g con 15% infill, 0.28mm)
+    // Factor base reducido a 0.25 + mayor contribución del infill (/100 en vez de /200)
+    const densityFactor = 0.25 + (config.infill / 100);
     const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale;
 
-    // Tiempo: Cálculo dinámico basado en altura de capa
-    // Base: 50g/hora para 0.20mm (Estándar)
-    // 0.28mm -> Más rápido (~70g/h)
-    // 0.16mm -> Más lento (~40g/h)
-    const baseSpeed = 50;
-    const layerHeightRatio = config.quality / 0.20;
-    // Factor de corrección no lineal (la velocidad no escala perfectamente lineal con altura)
-    // Usamos potencia 0.8 para suavizar el impacto
+    // Tiempo: Recalibrado para coincidir con slicers reales (Bambu Studio, PrusaSlicer)
+    // Base: 37g/hora para 0.20mm - Con 15% infill, 0.28mm -> ~4.33h para ~160g
+    // 0.28mm -> ~48g/h (más rápido)
+    // 0.16mm -> ~31g/h (más lento)
+    const baseSpeed = 37;
+    const currentLayerHeight = config.qualityId || 0.20;
+    const layerHeightRatio = currentLayerHeight / 0.20;
+
+    // Factor de corrección no lineal
     const speedFactor = baseSpeed * Math.pow(layerHeightRatio, 0.8);
 
     const time = weight / speedFactor;
