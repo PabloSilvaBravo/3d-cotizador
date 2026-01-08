@@ -1,7 +1,6 @@
 <?php
-// slice.php v2
-// Slicing via PrusaSlicer CLI con parámetros dinámicos
-// Requiere: install_prusa.sh y config.ini
+// slice.php v3 - FINAL
+// PrusaSlicer CLI con corrección de PESO y CAMA (325x320)
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -13,17 +12,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
+    // 1. VALIDACIÓN DE ARCHIVO
     if (!isset($_FILES['file'])) {
         throw new Exception('No file uploaded');
     }
 
-    // Usar directorio relativo para evitar problemas de permisos/Docker con /tmp
     $uploadDir = __DIR__ . '/uploads/';
     if (!is_dir($uploadDir)) {
         if (!mkdir($uploadDir, 0777, true)) {
             throw new Exception('Failed to create upload directory');
         }
-        chmod($uploadDir, 0777); // Asegurar permisos
+        chmod($uploadDir, 0777);
     }
 
     $originalName = $_FILES['file']['name'];
@@ -42,16 +41,15 @@ try {
         throw new Exception('Failed to move uploaded file');
     }
 
-    // Inputs del Frontend
+    // 2. INPUTS DEL FRONTEND
 
-    // Quality / Layer Height (ej: 0.2, 0.28, 0.16)
+    // Calidad (Altura de capa)
     $rawQuality = isset($_POST['quality']) ? $_POST['quality'] : 0.2;
-    $quality = number_format(floatval($rawQuality), 2, '.', ''); // Asegurar "0.20" con punto
-    // Validar rango seguro
+    $quality = number_format(floatval($rawQuality), 2, '.', '');
     if ($quality < 0.05 || $quality > 1.0)
         $quality = "0.20";
 
-    // Infill (0-100)
+    // Relleno (Infill)
     $rawInfill = isset($_POST['infill']) ? $_POST['infill'] : 15;
     $infill = intval($rawInfill);
     if ($infill < 0)
@@ -63,9 +61,7 @@ try {
     $rawScale = isset($_POST['scaleFactor']) ? $_POST['scaleFactor'] : 1.0;
     $scale = number_format(floatval($rawScale), 4, '.', '');
 
-
-    // Paths
-    // Ruta ajustada para entorno VPS Docker (Squashfs extract)
+    // Rutas del sistema (Ajustar según tu VPS)
     $slicerPath = '/home/mechatro/slicer/squashfs-root-old/usr/bin/prusa-slicer';
     $configPath = __DIR__ . '/config.ini';
 
@@ -74,62 +70,77 @@ try {
     if (!file_exists($configPath))
         throw new Exception('Config ini not found');
 
-    // Construir Argumentos CLI
-    // Sobreescribimos la config base con los params específicos
+    // 3. CONSTRUCCIÓN DE ARGUMENTOS (LA PARTE CRÍTICA)
     $args = [];
     $args[] = "--export-gcode";
-    $args[] = "--load " . escapeshellarg($configPath);
+    $args[] = "--load " . escapeshellarg($configPath); // Carga base
+
+    // --- OPCIÓN 3: FORZAR GEOMETRÍA DE LA IMPRESORA ---
+    // Área de impresión: 0x0 a 325x320
+    $args[] = "--bed-shape 0x0,325x0,325x320,0x320";
+    // Altura Z máxima (Asumimos 350mm o 400mm para este tamaño de cama)
+    $args[] = "--max-print-height 400";
+    // Centrar el objeto automáticamente en la cama nueva
+    $args[] = "--center 162.5,160";
+
+    // --- CORRECCIÓN DE PESO (DENSIDAD) ---
+    // Forzamos PLA estándar para que el cálculo matemático coincida con escritorio
+    $args[] = "--filament-density 1.24";
+    $args[] = "--filament-diameter 1.75";
+    $args[] = "--filament-cost 20000";
+
+    // --- PARAMETROS DE IMPRESIÓN ---
     $args[] = "--layer-height " . escapeshellarg($quality);
     $args[] = "--fill-density " . escapeshellarg($infill . "%");
     $args[] = "--scale " . escapeshellarg($scale);
 
-    // VELOCIDADES MÁXIMAS (último ajuste para coincidir con Bambu Studio 4h20m)
-    $args[] = "--perimeter-speed 130";
-    $args[] = "--external-perimeter-speed 100";
-    $args[] = "--infill-speed 200";
-    $args[] = "--solid-infill-speed 180";
-    $args[] = "--top-solid-infill-speed 150";
-    $args[] = "--support-material-speed 120";
-    $args[] = "--bridge-speed 50";
-    $args[] = "--gap-fill-speed 60";
-    $args[] = "--travel-speed 300";
-    $args[] = "--first-layer-speed 40";
+    // Forzar patrón de relleno igual a escritorio (Gyroid es el estándar moderno)
+    // Si usas Grid en escritorio, cambia esto a 'grid'
+    $args[] = "--fill-pattern gyroid";
 
-    // ACELERACIONES AL MÁXIMO (aprovechando capacidad real H2D)
-    $args[] = "--default-acceleration 18000";
-    $args[] = "--perimeter-acceleration 12000";
+    // --- VELOCIDADES (Bambu Lab H2D Perfil) ---
+    $args[] = "--perimeter-speed 185";
+    $args[] = "--external-perimeter-speed 145";
+    $args[] = "--infill-speed 290";
+    $args[] = "--solid-infill-speed 260";
+    $args[] = "--top-solid-infill-speed 215";
+    $args[] = "--support-material-speed 175";
+    $args[] = "--bridge-speed 75";
+    $args[] = "--gap-fill-speed 90";
+    $args[] = "--travel-speed 420";
+    $args[] = "--first-layer-speed 50";
+
+    // --- ACELERACIONES ---
+    $args[] = "--default-acceleration 20000";
+    $args[] = "--perimeter-acceleration 15000";
     $args[] = "--infill-acceleration 20000";
-    $args[] = "--bridge-acceleration 5000";
-    $args[] = "--first-layer-acceleration 2000";
+    $args[] = "--bridge-acceleration 8000";
+    $args[] = "--first-layer-acceleration 3000";
     $args[] = "--travel-acceleration 20000";
 
-    // JERK (motion smoothness optimization)
-    $args[] = "--max-print-speed 300";
-    $args[] = "--max-volumetric-speed 15";
+    // --- LIMITES ---
+    $args[] = "--max-print-speed 420";
+    $args[] = "--max-volumetric-speed 22";
 
-    // Nota: Rotación 3D compleja no está soportada fiablemente via CLI en esta versión sin manipular el STL antes.
-    // Ignoramos rotationX/Y/Z del frontend por ahora y confiamos en 'support_material_auto' del config.ini
-
+    // 4. EJECUCIÓN
     $cmdArgs = implode(" ", $args);
+    // xvfb-run es necesario para servidores sin monitor
     $command = "xvfb-run -a $slicerPath $cmdArgs --output $outputPath $inputPath 2>&1";
 
-    // Ejecutar
     $output = [];
     $returnCode = 0;
     exec($command, $output, $returnCode);
 
     if ($returnCode !== 0 || !file_exists($outputPath)) {
-        // Enviar log de error para debug
-        throw new Exception('Slicing failed. Log tail: ' . implode("\n", array_slice($output, -10)));
+        throw new Exception('Slicing failed. Log: ' . implode("\n", array_slice($output, -10)));
     }
 
-    // Analizar GCODE
+    // 5. ANÁLISIS DE RESULTADOS (REGEX CORREGIDA)
     $weight = 0;
     $timeStr = "";
 
-    // Leer solo el final para optimizar (Aumentado a 16KB por si hay thumbnails al final)
     $fileSize = filesize($outputPath);
-    $readSize = min($fileSize, 16384); // 16KB
+    $readSize = min($fileSize, 20000); // Leemos los últimos 20KB
 
     $fp = fopen($outputPath, 'r');
     if ($fileSize > $readSize) {
@@ -138,19 +149,18 @@ try {
     $tail = fread($fp, $readSize);
     fclose($fp);
 
-    // Regex Prusa (Más flexible con espacios)
-    // ; filament used [g] = 13.45
-    if (preg_match('/; filament used \[g\]\s*=\s*([0-9.]+)/', $tail, $m)) {
-        $weight = floatval($m[1]);
+    // REGEX ACTUALIZADA PARA PESO (Soporta "total filament used" y "filament used")
+    if (preg_match('/;\s*(total\s+)?filament\s+used\s+\[g\]\s*=\s*([0-9.]+)/i', $tail, $m)) {
+        // end($m) obtiene el último grupo capturado, que siempre será el número
+        $weight = floatval(end($m));
     }
 
-    // ; estimated printing time = 2h 30m 10s
-    if (preg_match('/; estimated printing time\s*=\s*(.*)/', $tail, $m)) {
+    // REGEX TIEMPO
+    if (preg_match('/; estimated printing time\s*=\s*(.*)/i', $tail, $m)) {
         $timeStr = trim($m[1]);
     }
 
-    // Convertir tiempo a objeto detallado
-    // Formato Prusa: "1d 2h 30m 10s"
+    // Convertir tiempo a horas decimales
     $d = 0;
     $h = 0;
     $mMin = 0;
@@ -164,20 +174,20 @@ try {
     $totalMinutes = ($d * 24 * 60) + ($h * 60) + $mMin;
     $totalHours = $totalMinutes / 60;
 
-    // Cleanup
+    // Limpieza
     @unlink($inputPath);
     @unlink($outputPath);
 
     echo json_encode([
         'success' => true,
-        'peso' => $weight,
-        'volumen' => $weight / 1.24,
+        'peso' => $weight, // Ahora debería coincidir con escritorio
+        'volumen' => ($weight > 0) ? $weight / 1.24 : 0,
         'tiempoTexto' => $timeStr,
         'timeHours' => $totalHours,
         'debug' => [
-            'cmd' => $command,
-            'log_tail' => array_slice($output, -5),
-            'gcode_tail_sample' => substr($tail, -2000) // Mostrar últimos chars para debug visual
+            'bed_size' => '325x320',
+            'density_used' => '1.24 (Forced)',
+            'log_tail' => array_slice($output, -3)
         ]
     ]);
 

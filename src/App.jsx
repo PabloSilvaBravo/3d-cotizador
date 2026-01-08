@@ -813,9 +813,9 @@ const App = () => {
     }
 
     // 2. CASO GIGANTE / FALLBACK: Usamos geometría pura
-    // Peso: Recalibrado para alcanzar ~160g con 15% infill (usuario confirmó peso real)
-    // Factor base aumentado a 0.40 + mayor contribución del infill (/80 en vez de /100)
-    const densityFactor = 0.40 + (config.infill / 80);
+    // Peso: Ajustado para target ~133g (usuario confirmó peso real de slicer)
+    // Factor base 0.25 + contribución del infill (/80)
+    const densityFactor = 0.25 + (config.infill / 80);
     const weight = localGeometry.volumeCm3 * 1.24 * densityFactor * autoScale * autoScale * autoScale;
 
     // Tiempo: Recalibrado para coincidir con slicers reales (Bambu Studio, PrusaSlicer)
@@ -857,8 +857,19 @@ const App = () => {
       z: (localGeometry.dimensions.z * autoScale).toFixed(2)
     } : null,
     // Tiempo de impresión del backend (si está disponible)
-    printTime: quoteData?.tiempoTexto || null
+    printTime: quoteData?.tiempoTexto || null,
+    // Peso real del backend (del slicer, si está disponible)
+    realWeight: quoteData?.peso || null
   } : null;
+
+  // Debug: Ver qué datos del backend están disponibles
+  if (quoteData) {
+    console.log('🔍 Datos del backend en estimateForUI:', {
+      realWeight: quoteData?.peso,
+      printTime: quoteData?.tiempoTexto,
+      estimatedWeight: stats?.weightGrams
+    });
+  }
 
   // === DEBUG DE PRECIOS (Solo Consola) ===
   useEffect(() => {
