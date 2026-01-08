@@ -192,9 +192,9 @@ export const Header = () => {
                 }
 
                 @media (min-width: 850px) {
-                    .header-inner-content {
-                        padding-left: 20px; 
-                        padding-right: 20px;
+                    .header-layout-alignment {
+                        padding-left: 320px !important;
+                        padding-right: 300px !important;
                     }
                 }
             `}</style>
@@ -283,14 +283,14 @@ export const Header = () => {
 
             {/* 3. Original Header Content (Logo + Ir Tienda) */}
             <div className="w-full transition-all duration-300 backdrop-blur-xl bg-brand-primary border-b border-white/10 shadow-lg shadow-brand-primary/20">
-                <div className="max-w-7xl mx-auto flex items-center justify-between header-inner-content">
+                <div className="w-full px-6 py-3 header-layout-alignment flex items-center justify-between">
                     {/* Logo con Navegación */}
                     <div
                         className="flex items-center gap-3 group cursor-pointer btn-press"
                         onClick={handleLogoClick}
                         title="Volver a MechatronicStore.cl"
                     >
-                        <MechatronicLogo className="-inset-y-full h-14 w-auto transition-all duration-300" />
+                        <MechatronicLogo className="h-11 w-auto transition-all duration-300" />
                     </div>
 
                     <div className="flex items-center space-x-2 md:space-x-3">

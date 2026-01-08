@@ -94,7 +94,7 @@ export default function CircuitBackground() {
             />
 
             {/* Overlay muy sutil */}
-            <div className="absolute inset-0 bg-white/20" />
+            <div className="absolute inset-0 bg-white/10" />
         </div>
     );
 }
