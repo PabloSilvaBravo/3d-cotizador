@@ -141,8 +141,9 @@ const App = () => {
       // Si hubo respuesta (fue calculado), quitamos converting
       setIsConverting(false);
       // ... lógica de URL convertida ...
-      if (quoteData.convertedStlUrl) {
-        const fullUrl = `https://3d.mechatronicstore.cl${quoteData.convertedStlUrl}`;
+      if (quoteData.url_model) {
+        // El backend v29 ya devuelve la URL completa en url_model
+        const fullUrl = quoteData.url_model;
         if (fileUrl !== fullUrl) {
           setFileUrl(fullUrl);
         }
@@ -844,17 +845,17 @@ const App = () => {
 
   const estimateForUI = stats ? {
     ...calculatePriceFromStats(config, stats),
-    // Agregar volumen real del STL para transparencia
-    volumeStlCm3: localGeometry.volumeCm3,
-    // Propiedad directa para UI de soportes
-    tieneSoportes: stats.tieneSoportes,
-    pesoSoportes: 0, // Legacy support to avoid crashes if used elsewhere
-    // Agregar dimensiones para el desglose
+    // Agregar volumen real del STL para transparencia (Fallback backend si es STEP)
+    volumeStlCm3: localGeometry?.volumeCm3 || quoteData?.volumen || 0,
+    // Propiedad directa para UI de soportes (Prioridad Backend)
+    tieneSoportes: (quoteData?.supports_needed !== undefined) ? quoteData.supports_needed : stats.tieneSoportes,
+    pesoSoportes: 0,
     // Agregar dimensiones para el desglose (en mm y escaladas)
-    dimensions: localGeometry?.dimensions ? {
-      x: (localGeometry.dimensions.x * autoScale).toFixed(2),
-      y: (localGeometry.dimensions.y * autoScale).toFixed(2),
-      z: (localGeometry.dimensions.z * autoScale).toFixed(2)
+    // Fallback a dimensiones del backend para STEP
+    dimensions: (localGeometry?.dimensions || quoteData?.dimensions) ? {
+      x: ((localGeometry?.dimensions?.x || quoteData?.dimensions?.x || 0) * autoScale).toFixed(2),
+      y: ((localGeometry?.dimensions?.y || quoteData?.dimensions?.y || 0) * autoScale).toFixed(2),
+      z: ((localGeometry?.dimensions?.z || quoteData?.dimensions?.z || 0) * autoScale).toFixed(2)
     } : null,
     // Tiempo de impresión del backend (si está disponible)
     printTime: quoteData?.tiempoTexto || null,
@@ -862,12 +863,12 @@ const App = () => {
     realWeight: quoteData?.peso || null
   } : null;
 
-  // Debug: Ver qué datos del backend están disponibles
   if (quoteData) {
     console.log('🔍 Datos del backend en estimateForUI:', {
       realWeight: quoteData?.peso,
       printTime: quoteData?.tiempoTexto,
-      estimatedWeight: stats?.weightGrams
+      estimatedWeight: stats?.weightGrams,
+      supportsNeeded: quoteData?.supports_needed
     });
   }
 
@@ -992,6 +993,16 @@ const App = () => {
               <span className="truncate opacity-90">{file.name}</span>
             </div>
           </div>
+
+          {isConverting && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-30">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+              <p className="text-slate-500 font-medium mt-4 tracking-wide animate-pulse">Generando vista 3D...</p>
+            </div>
+          )}
 
           {fileUrl && (
             <Viewer3D
