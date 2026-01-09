@@ -141,9 +141,8 @@ const App = () => {
       // Si hubo respuesta (fue calculado), quitamos converting
       setIsConverting(false);
       // ... lógica de URL convertida ...
-      if (quoteData.url_model) {
-        // El backend v29 ya devuelve la URL completa en url_model
-        const fullUrl = quoteData.url_model;
+      if (quoteData.convertedStlUrl) {
+        const fullUrl = `https://3d.mechatronicstore.cl${quoteData.convertedStlUrl}`;
         if (fileUrl !== fullUrl) {
           setFileUrl(fullUrl);
         }
@@ -993,16 +992,6 @@ const App = () => {
               <span className="truncate opacity-90">{file.name}</span>
             </div>
           </div>
-
-          {isConverting && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 z-30">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-              <p className="text-slate-500 font-medium mt-4 tracking-wide animate-pulse">Generando vista 3D...</p>
-            </div>
-          )}
 
           {fileUrl && (
             <Viewer3D
