@@ -142,7 +142,10 @@ const App = () => {
       setIsConverting(false);
       // ... lógica de URL convertida ...
       if (quoteData.convertedStlUrl) {
-        const fullUrl = `https://3d.mechatronicstore.cl${quoteData.convertedStlUrl}`;
+        const urlPart = quoteData.convertedStlUrl;
+        const fullUrl = urlPart.startsWith('http')
+          ? urlPart
+          : `https://dashboard.mechatronicstore.cl/api/3d${urlPart}`;
         if (fileUrl !== fullUrl) {
           setFileUrl(fullUrl);
         }
@@ -601,7 +604,6 @@ const App = () => {
     setLocalGeometry(null);
     // analysisResult eliminado del estado
     setDriveLink(null);
-    setThumbnail(null);
     setOptimalRotation([0, 0, 0]);
     setUserHasFile(false); // Vuelve a pantalla "¿Tienes archivo?"
     setIsSuccess(false); // IMPORTANTE: Resetear estado de éxito para ocultar SuccessScreen
