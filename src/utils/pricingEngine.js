@@ -9,25 +9,29 @@ export const calculatePriceFromStats = (config, stats) => {
 
     // 2. FACTOR DIFICULTAD (Basado en % de soportes del G-Code real)
     const pesoSoportes = stats.pesoSoportes || 0;
-    const pesoTotal = stats.weightGrams || 1; // Evitar div/0
-    const porcentajeSoportes = (pesoSoportes / pesoTotal) * 100;
+    const pesoTotal = stats.weightGrams || 1;
+    const pesoModelo = pesoTotal - pesoSoportes;
 
-    // Umbrales actualizados según especificación
+    // Ratio: Soportes vs Modelo (Mejor indicador de complejidad)
+    const porcentajeSoportes = pesoModelo > 0 ? (pesoSoportes / pesoModelo) * 100 : 0;
+
+    // Umbrales Requeridos:
+    // Normal: x 1.0 (<= 10%)
+    // Media: x 1.2 (10% - 40%)
+    // Alta: x 1.5 (> 40%)
+
     let difficultyFactor = 1.0;
-    let difficultyLabel = "Sin soportes";
+    let difficultyLabel = "Normal";
 
-    if (porcentajeSoportes > 30) {
-        difficultyFactor = 1.30; // +30% recargo
-        difficultyLabel = "Muy Alta (>30% soportes)";
-    } else if (porcentajeSoportes > 15) {
-        difficultyFactor = 1.20; // +20% recargo
-        difficultyLabel = "Alta (15-30% soportes)";
-    } else if (porcentajeSoportes > 5) {
-        difficultyFactor = 1.10; // +10% recargo
-        difficultyLabel = "Media (5-15% soportes)";
-    } else if (porcentajeSoportes > 0) {
-        difficultyFactor = 1.0; // Sin recargo
-        difficultyLabel = "Baja (<5% soportes)";
+    if (porcentajeSoportes > 40) {
+        difficultyFactor = 1.50;
+        difficultyLabel = "Alta (>40% soportes)";
+    } else if (porcentajeSoportes > 10) {
+        difficultyFactor = 1.20;
+        difficultyLabel = "Media (10-40% soportes)";
+    } else {
+        difficultyFactor = 1.0;
+        difficultyLabel = "Normal";
     }
 
     // 3. COSTO TIEMPO
