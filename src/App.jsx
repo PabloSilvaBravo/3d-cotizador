@@ -843,12 +843,19 @@ const App = () => {
   const stats = getEstimatedStats();
 
   const estimateForUI = stats ? {
-    ...calculatePriceFromStats(config, stats),
+    ...calculatePriceFromStats(config, {
+      ...stats,
+      // Inyectar DATOS REALES del backend para el cálculo de precio
+      weightGrams: quoteData?.peso || (stats.tieneSoportes ? stats.weightGrams * 1.2 : stats.weightGrams),
+      timeHours: quoteData?.timeHours || stats.timeHours,
+      pesoSoportes: quoteData?.peso_soportes || 0
+    }),
     // Agregar volumen real del STL para transparencia (Fallback backend si es STEP)
     volumeStlCm3: localGeometry?.volumeCm3 || quoteData?.volumen || 0,
     // Propiedad directa para UI de soportes (Prioridad Backend)
     tieneSoportes: (quoteData?.supports_needed !== undefined) ? quoteData.supports_needed : stats.tieneSoportes,
-    pesoSoportes: 0,
+    // Peso exacto de soportes para UI
+    pesoSoportes: quoteData?.peso_soportes || 0,
     // Agregar dimensiones para el desglose (en mm y escaladas)
     // Fallback a dimensiones del backend para STEP
     dimensions: (localGeometry?.dimensions || quoteData?.dimensions) ? {

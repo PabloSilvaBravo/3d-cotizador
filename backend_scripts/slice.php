@@ -1,22 +1,23 @@
 <?php
-// slice.php v29 - VERIFIED FOR CLI 2.9.1
-// 1. COTIZACIÓN: Lógica v15 (Sin soportes, optimizada).
-// 2. DETECCIÓN: Lógica Sentinel con buildplate-only (v28).
-// 3. CÁLCULO PESO SOPORTES: Slicing adicional cuando supports_needed=true (v29).
-// 4. COMPATIBILIDAD: Validado con PrusaSlicer 2.9.1 CLI.
+// slice.php v31 - SMART DIFFERENCE LOGIC
+// 1. ELIMINADO "SENTINEL" (Doble ejecución innecesaria).
+// 2. LOGICA INTELIGENTE: Slice TOTAL primero. Si hay soportes, Slice MODELO para restar.
+//    - Caso sin soportes: 1 ejecución (Rápido).
+//    - Caso con soportes: 2 ejecuciones (Preciso y Robusto).
+// 3. OPTIMIZACIONES: Grid, No-Thumbnails.
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
-header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+    http_response_code(200);
+    exit;
 }
 
 try {
     // --- 0. CONFIGURACIÓN ---
-    $baseUrl = "https://dashboard.mechatronicstore.cl/api/3d";
+    $baseUrl = "https://dashboard.mechatronicstore.cl/api/3d/";
 
     // --- 1. GESTIÓN DE ARCHIVOS ---
     if (!isset($_FILES['file'])) {
@@ -40,27 +41,25 @@ try {
     $uniqueId = uniqid();
     $inputPath = $uploadDir . $uniqueId . '.' . $ext;
 
-    // Archivos de salida
-    $outputPath = $uploadDir . $uniqueId . '.gcode';
-    $sentinelPath = $uploadDir . $uniqueId . '_sentinel.gcode';
+    // Archivos temporales
+    $outputPathTotal = $uploadDir . $uniqueId . '_total.gcode';
+    $outputPathModel = $uploadDir . $uniqueId . '_model.gcode';
 
     if (!move_uploaded_file($tmpName, $inputPath)) {
         throw new Exception('Failed to move uploaded file');
     }
 
-    // CORREGIDO: Path a PrusaSlicer 2.9.1
-    $slicerPath = '/home/mechatro/slicer/squashfs-root-2.9.1/bin/prusa-slicer';
+    $slicerPath = '/home/mechatro/slicer/squashfs-root-old/usr/bin/prusa-slicer';
     $configPath = __DIR__ . '/config.ini';
 
-    if (!file_exists($slicerPath))
-        throw new Exception('Slicer binary not found');
-
-    // CONVERSIÓN STEP
+    // CONVERSIÓN STEP → STL
     $slicingInput = $inputPath;
     if ($ext === 'step' || $ext === 'stp') {
         $stlPath = $uploadDir . $uniqueId . '_converted.stl';
         $convertCmd = "xvfb-run -a $slicerPath --export-stl --output " . escapeshellarg($stlPath) . " " . escapeshellarg($inputPath) . " 2>&1";
+
         exec($convertCmd, $out, $ret);
+
         if ($ret === 0 && file_exists($stlPath)) {
             $slicingInput = $stlPath;
         } else {
@@ -69,220 +68,150 @@ try {
         }
     }
 
-    // --- 2. INPUTS ---
+    // --- 2. PARÁMETROS BASE ---
     $rawQuality = isset($_POST['quality']) ? $_POST['quality'] : 0.2;
     $quality = number_format(floatval($rawQuality), 2, '.', '');
-    if ($quality < 0.05)
-        $quality = "0.20";
-    if ($quality > 0.32)
-        $quality = "0.32";
 
     $rawInfill = isset($_POST['infill']) ? $_POST['infill'] : 15;
     $infill = intval($rawInfill);
-    if ($infill < 0)
-        $infill = 0;
-    if ($infill > 100)
-        $infill = 100;
 
     $rawScale = isset($_POST['scaleFactor']) ? $_POST['scaleFactor'] : 1.0;
     $scale = number_format(floatval($rawScale), 4, '.', '');
 
-
-    // ==========================================
-    // FASE 1: SLICING REAL (Lógica v15)
-    // ==========================================
-
+    // Optimización de Velocidad
     $speedMult = 1.0;
-    $combineInfill = 1;
     $topLayers = 4;
     $bottomLayers = 3;
     $infillWidth = "0.45";
-    $solidInfillWidth = "0.45";
 
     if ($quality <= 0.16) {
-        $topLayers = 4;
+        $topLayers = 5;
         $bottomLayers = 4;
-        $speedMult = 2.1;
-        $combineInfill = 1;
-        $infillWidth = "0.68";
-        $solidInfillWidth = "0.60";
-    } elseif ($quality <= 0.22) {
-        $topLayers = 4;
-        $bottomLayers = 3;
-        $speedMult = 1.0;
-        $combineInfill = 1;
-        $infillWidth = "0.45";
-    } else {
-        $topLayers = 4;
-        $bottomLayers = 3;
-        $speedMult = 1.5;
-        $combineInfill = 0;
-        $infillWidth = "0.70";
-        $solidInfillWidth = "0.65";
+        $infillWidth = "0.50";
+    } elseif ($quality >= 0.24) {
+        $infillWidth = "0.60";
     }
 
-    $basePerim = 350;
-    $baseOuter = 260;
-    $baseInfill = 480;
-    $baseSolid = 420;
-    $baseTop = 320;
-    $vPerim = intval($basePerim * $speedMult);
-    $vOuter = intval($baseOuter * $speedMult);
-    $vInfill = intval($baseInfill * $speedMult);
-    $vSolid = intval($baseSolid * $speedMult);
-    $vTop = intval($baseTop * $speedMult);
+    // Argumentos Comunes (Sin definir soportes aún)
+    $baseArgs = [];
+    $baseArgs[] = "--export-gcode";
+    $baseArgs[] = "--load " . escapeshellarg($configPath);
+    $baseArgs[] = "--gcode-thumbnails 0";
+    $baseArgs[] = "--resolution 0.01";
+    $baseArgs[] = "--bed-shape 0x0,325x0,325x320,0x320";
+    $baseArgs[] = "--center 162.5,160";
+    $baseArgs[] = "--filament-density 1.24";
+    $baseArgs[] = "--filament-diameter 1.75";
+    $baseArgs[] = "--filament-cost 20000";
+    $baseArgs[] = "--layer-height " . escapeshellarg($quality);
+    $baseArgs[] = "--top-solid-layers " . $topLayers;
+    $baseArgs[] = "--bottom-solid-layers " . $bottomLayers;
+    $baseArgs[] = "--perimeters 2";
+    $baseArgs[] = "--perimeter-generator arachne";
+    $baseArgs[] = "--infill-extrusion-width " . $infillWidth;
+    $baseArgs[] = "--max-volumetric-speed 100";
+    $baseArgs[] = "--max-print-speed 600";
+    $baseArgs[] = "--fill-density " . escapeshellarg($infill . "%");
+    $baseArgs[] = "--fill-pattern rectilinear";
+    $baseArgs[] = "--scale " . escapeshellarg($scale);
+    $baseArgs[] = "--dont-support-bridges"; // Siempre activo para ahorrar soporte innecesario
 
-    $args = [];
-    $args[] = "--export-gcode";
-    $args[] = "--load " . escapeshellarg($configPath);
-    $args[] = "--bed-shape 0x0,325x0,325x320,0x320";
-    $args[] = "--center 162.5,160";
-    $args[] = "--filament-density 1.24";
-    $args[] = "--filament-diameter 1.75";
-    $args[] = "--filament-cost 20000";
-    $args[] = "--top-solid-layers " . $topLayers;
-    $args[] = "--bottom-solid-layers " . $bottomLayers;
-    $args[] = "--perimeters 2";
-    $args[] = "--layer-height " . escapeshellarg($quality);
-    $args[] = "--perimeter-generator arachne";
-    $args[] = "--ensure-vertical-shell-thickness enabled";
-    $args[] = "--infill-extrusion-width " . escapeshellarg($infillWidth);
-    $args[] = "--solid-infill-extrusion-width " . escapeshellarg($solidInfillWidth);
-    $args[] = "--external-perimeter-extrusion-width " . escapeshellarg("0.45");
-    if ($combineInfill === 1)
-        $args[] = "--infill-every-layers 2";
-    else
-        $args[] = "--infill-every-layers 1";
-    $args[] = "--max-volumetric-speed 100";
-    $args[] = "--max-print-speed 800";
-    $args[] = "--perimeter-speed " . $vPerim;
-    $args[] = "--external-perimeter-speed " . $vOuter;
-    $args[] = "--infill-speed " . $vInfill;
-    $args[] = "--solid-infill-speed " . $vSolid;
-    $args[] = "--top-solid-infill-speed " . $vTop;
-    $args[] = "--support-material-speed 400";
-    $args[] = "--bridge-speed 250";
-    $args[] = "--gap-fill-speed 250";
-    $args[] = "--travel-speed 800";
-    $args[] = "--default-acceleration 20000";
-    $args[] = "--perimeter-acceleration 12000";
-    $args[] = "--infill-acceleration 20000";
-    $args[] = "--travel-acceleration 20000";
-    $args[] = "--fill-density " . escapeshellarg($infill . "%");
-    $args[] = "--fill-pattern rectilinear";
-    $args[] = "--slowdown-below-layer-time 0";
-    $args[] = "--fan-always-on";
-    $args[] = "--scale " . escapeshellarg($scale);
+    // =========================================================
+    // PASO 1: SLICE TOTAL (MODELO + SOPORTES AUTOMÁTICOS GRID)
+    // =========================================================
+    // TRUCO: Asemejar peso Grid a Organic
+    // 1. Spacing 4mm: Hace la rejilla mucho menos densa.
+    // 2. Factor matemático final.
+    $argsTotal = $baseArgs;
+    $argsTotal[] = "--support-material";
+    $argsTotal[] = "--support-material-auto";
+    $argsTotal[] = "--support-material-threshold 45";
+    $argsTotal[] = "--support-material-style grid";
+    $argsTotal[] = "--support-material-spacing 4"; // Menos denso
 
-    // Ejecución PRINCIPAL
-    $cmdArgs = implode(" ", $args);
-    $command = "xvfb-run -a $slicerPath $cmdArgs --output " . escapeshellarg($outputPath) . " " . escapeshellarg($slicingInput) . " 2>&1";
-    exec($command, $output, $returnCode);
+    $cmdTotal = "xvfb-run -a $slicerPath " . implode(" ", $argsTotal) . " --output $outputPathTotal " . escapeshellarg($slicingInput) . " 2>&1";
 
-    if ($returnCode !== 0 || !file_exists($outputPath)) {
-        throw new Exception('Main Slicing failed: ' . implode("\n", $output));
+    $outTotal = [];
+    $retTotal = 0;
+    exec($cmdTotal, $outTotal, $retTotal);
+
+    if ($retTotal !== 0 || !file_exists($outputPathTotal)) {
+        throw new Exception('Slicing Failure (Total): ' . implode("\n", array_slice($outTotal, -5)));
     }
 
-    // LECTURA DATOS PRINCIPALES
-    $weight = 0;
+    // Leer Resultados Totales
+    $weightTotal = 0;
     $timeStr = "";
-    $fileSize = filesize($outputPath);
+    $supportsDetected = false;
+
+    // Leer footer rápido
+    $fileSize = filesize($outputPathTotal);
     $readSize = min($fileSize, 131072);
-    $fp = fopen($outputPath, 'r');
+    $fp = fopen($outputPathTotal, 'r');
     if ($fileSize > $readSize)
         fseek($fp, -$readSize, SEEK_END);
-    $tail = fread($fp, $readSize);
+    $tailTotal = fread($fp, $readSize);
     fclose($fp);
 
-    if (preg_match('/;\s*(total\s+)?filament\s+used\s+\[g\]\s*=\s*([0-9.]+)/i', $tail, $m))
-        $weight = floatval(end($m));
-    if (preg_match('/; estimated printing time.*=\s*(.*)/i', $tail, $m))
+    if (preg_match('/;\s*(total\s+)?filament\s+used\s+\[g\]\s*=\s*([0-9.]+)/i', $tailTotal, $m)) {
+        $weightTotal = floatval(end($m));
+    }
+    if (preg_match('/; estimated printing time.*=\s*(.*)/i', $tailTotal, $m)) {
         $timeStr = trim($m[1]);
-
-
-    // ==========================================
-    // FASE 2: THE SENTINEL (DETECTOR)
-    // ==========================================
-
-    $sentinelArgs = [];
-    $sentinelArgs[] = "--export-gcode";
-    $sentinelArgs[] = "--load " . escapeshellarg($configPath);
-    $sentinelArgs[] = "--center 162.5,160";
-    $sentinelArgs[] = "--scale " . escapeshellarg($scale);
-    $sentinelArgs[] = "--layer-height 0.25";
-    $sentinelArgs[] = "--perimeters 2";
-    $sentinelArgs[] = "--fill-density " . escapeshellarg("0%");
-    $sentinelArgs[] = "--top-solid-layers 1";
-    $sentinelArgs[] = "--bottom-solid-layers 1";
-    $sentinelArgs[] = "--support-material";
-    $sentinelArgs[] = "--support-material-auto";
-    $sentinelArgs[] = "--support-material-threshold 45";
-    $sentinelArgs[] = "--support-material-style organic";
-    $sentinelArgs[] = "--dont-support-bridges";
-    $sentinelArgs[] = "--support-material-buildplate-only";
-
-    $sentCmdArgs = implode(" ", $sentinelArgs);
-    $sentinelCommand = "xvfb-run -a $slicerPath $sentCmdArgs --output " . escapeshellarg($sentinelPath) . " " . escapeshellarg($slicingInput) . " 2>&1";
-
-    exec($sentinelCommand, $sentOutput, $sentReturn);
-
-    $supportsNeeded = false;
-
-    if ($sentReturn === 0 && file_exists($sentinelPath)) {
-        $grepCmd = "grep -q -m 1 ';TYPE:Support material' " . escapeshellarg($sentinelPath);
-        $grepRet = 0;
-        system($grepCmd, $grepRet);
-        $supportsNeeded = ($grepRet === 0);
     }
 
+    // Detección Robusta (Grep)
+    $grepCmd = "grep -q -m 1 ';TYPE:Support material' " . escapeshellarg($outputPathTotal);
+    $grepRet = 0;
+    system($grepCmd, $grepRet);
+    if ($grepRet === 0) {
+        $supportsDetected = true;
+    }
 
-    // ==========================================
-    // FASE 3: CÁLCULO DE PESO DE SOPORTES (v29)
-    // Solo se ejecuta si supports_needed = true
-    // ==========================================
+    // Variables finales por defecto
+    $weightModel = $weightTotal;
+    $supportWeight = 0;
 
-    $pesoSoportes = 0;
+    // =========================================================
+    // PASO 2: SLICE DIFERENCIAL (SOLO SI SE DETECTARON SOPORTES)
+    // =========================================================
+    if ($supportsDetected) {
+        $argsModel = $baseArgs;
+        // Explícitamente APAGAR soportes
+        $argsModel[] = "--support-material 0";
 
-    if ($supportsNeeded) {
-        $supportOutputPath = $uploadDir . $uniqueId . '_support.gcode';
+        $cmdModel = "xvfb-run -a $slicerPath " . implode(" ", $argsModel) . " --output $outputPathModel " . escapeshellarg($slicingInput) . " 2>&1";
+        exec($cmdModel, $outModel, $retModel);
 
-        // Usar mismos args del principal pero agregar soportes
-        $supportArgs = $args; // Copiar args principales
-        $supportArgs[] = "--support-material";
-        $supportArgs[] = "--support-material-auto";
-        $supportArgs[] = "--support-material-threshold 45";
-        $supportArgs[] = "--support-material-buildplate-only";
+        if ($retModel === 0 && file_exists($outputPathModel)) {
+            // Leer peso modelo limpio
+            $fileSizeM = filesize($outputPathModel);
+            $readSizeM = min($fileSizeM, 131072);
+            $fpM = fopen($outputPathModel, 'r');
+            if ($fileSizeM > $readSizeM)
+                fseek($fpM, -$readSizeM, SEEK_END);
+            $tailModel = fread($fpM, $readSizeM);
+            fclose($fpM);
 
-        $supportCmdArgs = implode(" ", $supportArgs);
-        $supportCommand = "xvfb-run -a $slicerPath $supportCmdArgs --output " . escapeshellarg($supportOutputPath) . " " . escapeshellarg($slicingInput) . " 2>&1";
+            if (preg_match('/;\s*(total\s+)?filament\s+used\s+\[g\]\s*=\s*([0-9.]+)/i', $tailModel, $mM)) {
+                $weightModel = floatval(end($mM));
+            }
 
-        exec($supportCommand, $supportOutput, $supportReturn);
+            // CÁLCULO DIFERENCIAL EXACTO (GRID RAW)
+            $gridSupportWeight = max(0, round($weightTotal - $weightModel, 2));
 
-        if ($supportReturn === 0 && file_exists($supportOutputPath)) {
-            // Leer peso con soportes
-            $supportFileSize = filesize($supportOutputPath);
-            $supportReadSize = min($supportFileSize, 131072);
-            $sfp = fopen($supportOutputPath, 'r');
-            if ($supportFileSize > $supportReadSize)
-                fseek($sfp, -$supportReadSize, SEEK_END);
-            $supportTail = fread($sfp, $supportReadSize);
-            fclose($sfp);
+            // CORRECCIÓN ORGANIC
+            // Aplicamos factor x0.70 para simular el ahorro de los soportes de árbol
+            $supportWeight = round($gridSupportWeight * 0.70, 2);
 
-            $weightWithSupports = 0;
-            if (preg_match('/;\s*(total\s+)?filament\s+used\s+\[g\]\s*=\s*([0-9.]+)/i', $supportTail, $sm))
-                $weightWithSupports = floatval(end($sm));
+            // Recalculamos el total reportado para ser consistentes
+            $weightTotal = $weightModel + $supportWeight;
 
-            // Calcular diferencia
-            $pesoSoportes = round($weightWithSupports - $weight, 2);
-            if ($pesoSoportes < 0)
-                $pesoSoportes = 0; // Seguridad
-
-            @unlink($supportOutputPath);
+            @unlink($outputPathModel);
         }
     }
 
-
-    // Calculo Horas Real
+    // Parsing Tiempo
     $totalHours = 0;
     if (!empty($timeStr)) {
         $d = 0;
@@ -297,13 +226,13 @@ try {
         $totalHours = ($d * 24 + $h + $mMin / 60);
     }
 
-    // --- 6. DIMENSIONES Y URLS ---
+    // --- 6. DIMENSIONES & CLEANUP ---
     $dimensions = null;
-    $modelUrl = $baseUrl . '/uploads/' . basename($slicingInput);
+    $convertedStlUrl = null;
 
     if ($slicingInput !== $inputPath) {
-        $infoCmd = "xvfb-run -a $slicerPath --info " . escapeshellarg($slicingInput) . " 2>&1";
-        $infoOut = [];
+        $convertedStlUrl = '/backend_scripts/uploads/' . basename($slicingInput);
+        $infoCmd = "xvfb-run -a $slicerPath --info " . escapeshellarg($slicingInput);
         exec($infoCmd, $infoOut);
         foreach ($infoOut as $line) {
             if (preg_match('/Size:\s+x=([0-9.]+)\s+y=([0-9.]+)\s+z=([0-9.]+)/i', $line, $dimMatch)) {
@@ -311,27 +240,28 @@ try {
                 break;
             }
         }
-    } else {
-        $modelUrl = $baseUrl . '/uploads/' . basename($inputPath);
     }
 
-    // LIMPIEZA
-    @unlink($outputPath);
-    @unlink($sentinelPath);
+    @unlink($outputPathTotal);
+    @unlink($inputPath);
+    // Preservar STL convertido
 
     echo json_encode([
         'success' => true,
-        'peso' => $weight,
-        'volumen' => ($weight > 0) ? $weight / 1.24 : 0,
+        // Mantener estructura que espera el frontend
+        'peso' => $weightTotal,          // Peso TOTAL (para cobro material base)
+        'peso_soportes' => $supportWeight, // Peso SOLO soportes
+        'peso_modelo' => $weightModel,   // Peso SOLO modelo
+        'volumen' => ($weightTotal > 0) ? $weightTotal / 1.24 : 0,
         'tiempoTexto' => $timeStr,
         'timeHours' => round($totalHours, 2),
-        'supports_needed' => $supportsNeeded,
-        'peso_soportes' => $pesoSoportes,
+        'supports_needed' => ($supportWeight > 0.1), // Threshold mínimo para UI
         'dimensions' => $dimensions,
-        'url_model' => $modelUrl,
+        'convertedStlUrl' => $convertedStlUrl,
         'debug' => [
-            'mode' => 'Sentinel Detector v29 (PrusaSlicer 2.9.1)',
-            'detection_method' => 'Grep TYPE:Support + Weight Calculation'
+            'mode' => 'Smart Differential v31',
+            'support_detected' => $supportsDetected,
+            'calc_method' => $supportsDetected ? 'Total - Model' : 'Total Only'
         ]
     ]);
 

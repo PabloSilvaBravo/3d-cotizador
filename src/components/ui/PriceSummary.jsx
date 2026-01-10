@@ -153,6 +153,15 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                 </span>
                             </div>
 
+                            {(estimate.tieneSoportes || estimate.pesoSoportes > 0) && (
+                                <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
+                                    <span className="text-slate-500 font-medium">Peso Soportes</span>
+                                    <span className="font-mono font-bold text-slate-700">
+                                        {estimate.pesoSoportes > 0 ? `${estimate.pesoSoportes}g` : '< 1g'}
+                                    </span>
+                                </div>
+                            )}
+
 
                             {estimate.gcodeUrl && (
                                 <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
@@ -185,7 +194,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40"></span>
                                 Material {estimate.realWeight
                                     ? `(${Math.ceil(estimate.realWeight)}g)`
-                                    : `(~${estimate.weightGrams ? Math.ceil(estimate.weightGrams) : 0}g)`
+                                    : `(~${Math.ceil(estimate.weightGrams)}g)`
                                 }
                             </span>
                             <span className="font-semibold text-brand-dark">${estimate.materialCost.toLocaleString('es-CL')}</span>
@@ -194,6 +203,11 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                             <span className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-brand-secondary/40"></span>
                                 Tiempo {estimate.printTime ? `(${estimate.printTime})` : `(~${Math.ceil(estimate.estimatedTimeHours)}h)`}
+                                {estimate.debug?.difficultyFactor > 1.0 && (
+                                    <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded ml-1 font-bold uppercase">
+                                        {estimate.debug.difficultyLabel.split(' ')[0]}
+                                    </span>
+                                )}
                             </span>
                             <span className="font-semibold text-brand-dark">${estimate.timeCost.toLocaleString('es-CL')}</span>
                         </div>
