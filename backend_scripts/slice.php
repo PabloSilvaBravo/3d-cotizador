@@ -231,7 +231,9 @@ try {
     $convertedStlUrl = null;
 
     if ($slicingInput !== $inputPath) {
-        $convertedStlUrl = '/backend_scripts/uploads/' . basename($slicingInput);
+        // USAR PROXY PARA EVITAR CORS EN ARCHIVOS ESTÁTICOS
+        $convertedStlUrl = '/backend_scripts/get_file.php?file=' . basename($slicingInput);
+
         $infoCmd = "xvfb-run -a $slicerPath --info " . escapeshellarg($slicingInput);
         exec($infoCmd, $infoOut);
         foreach ($infoOut as $line) {
