@@ -713,27 +713,18 @@ const App = () => {
       if (wcResult.cartUrl) {
         setCheckoutUrl(wcResult.cartUrl);
 
-        // Abrir el carrito de WooCommerce en una nueva pestaña en segundo plano
-        console.log("🔗 Abriendo carrito en nueva pestaña (segundo plano)...");
-        const newTab = window.open(wcResult.cartUrl, '_blank');
+        // USAR IFRAME OCULTO en lugar de nueva pestaña para mantener al usuario en el cotizador
+        console.log("🔗 Sincronizando carrito vía iframe oculto...");
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = wcResult.cartUrl;
+        document.body.appendChild(iframe);
 
-        if (newTab) {
-          // Devolver el foco al cotizador inmediatamente
-          window.focus();
-
-          // Cerrar la pestaña después de que haya procesado la acción
-          setTimeout(() => {
-            try {
-              newTab.close();
-              console.log("✅ Pestaña de sincronización cerrada.");
-            } catch (closeError) {
-              console.warn("⚠️ No se pudo cerrar automáticamente la pestaña.");
-            }
-          }, 3000);
-        } else {
-          console.warn("⚠️ Bloqueador de popups activo. Permite ventanas emergentes.");
-          alert("Por favor permite ventanas emergentes para sincronizar con el carrito.");
-        }
+        // Eliminar el iframe después de un tiempo prudente (5s) para asegurar que la sesión se guarde
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+          console.log("✅ Iframe de sincronización eliminado.");
+        }, 5000);
       }
 
       // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
@@ -1044,7 +1035,9 @@ const App = () => {
             const displayUrl = isStep ? quoteData?.url_model : fileUrl;
 
             // Mostrar carga si es STEP y aún no tenemos la URL convertida
-            const showLoading = isStep && !displayUrl || isLoading;
+            // Mostrar carga SOLO si es STEP y aún no tenemos la URL convertida.
+            // NO mostrar overlay si solo estamos recalculando precios (isLoading).
+            const showLoading = isStep && !displayUrl;
 
             return (
               <>
