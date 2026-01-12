@@ -122,6 +122,7 @@ const CaptureHandler = ({ captureRef }) => {
 
 export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0, 0], scale = 1.0, captureRef = null, isLoading = false }) => {
     const [position, setPosition] = React.useState([0, 0, 0]);
+    const [autoRotate, setAutoRotate] = React.useState(true);
     const meshRef = React.useRef();
     const geometryRef = React.useRef(null);
     const controlsRef = React.useRef();
@@ -197,22 +198,63 @@ export const Viewer3D = ({ fileUrl, colorHex, onGeometryLoaded, rotation = [0, 0
                 <OrbitControls
                     ref={controlsRef}
                     makeDefault
-                    autoRotate
+                    autoRotate={autoRotate}
                     autoRotateSpeed={0.5}
                     minPolarAngle={0}
                     maxPolarAngle={Math.PI / 2.2}
                     enablePan={true}
-                    target={[0, 0, 0]} /* Inicial seguro, se actualiza en useEffect */
+                    target={[0, 0, 0]}
+                    mouseButtons={{
+                        LEFT: THREE.MOUSE.PAN,
+                        MIDDLE: THREE.MOUSE.DOLLY,
+                        RIGHT: THREE.MOUSE.ROTATE
+                    }}
                 />
             </Canvas>
 
-            {/* Badge Vista de Impresión */}
-            <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-50'}`}>
-                <div className="flex items-center gap-2 text-slate-500 text-xs tracking-widest uppercase font-bold">
-                    <svg className="w-4 h-4 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                    </svg>
-                    Vista de Impresión
+            {/* Controles e Información Compactos */}
+            <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-3 transition-opacity duration-300 ${isLoading ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+
+                {/* Info Mouse (Muy sutil) */}
+                <div className="flex flex-col items-center gap-1 opacity-50 hover:opacity-100 transition-opacity pointer-events-none">
+                    <div className="flex items-center gap-1.5 text-slate-500 text-[10px] tracking-widest uppercase font-bold">
+                        <svg className="w-3 h-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+                        Vista Previa
+                    </div>
+                    <div className="text-[9px] text-slate-500 bg-white/40 px-2 py-0.5 rounded-full backdrop-blur-sm border border-slate-200/50 whitespace-nowrap">
+                        Clic Izq: Mover • Clic Der: Rotar
+                    </div>
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => setAutoRotate(!autoRotate)}
+                        className="group flex flex-col items-center gap-1"
+                        title="Alternar rotación"
+                    >
+                        <div className={`w-9 h-9 rounded-full bg-white/80 backdrop-blur border border-white/50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform ${autoRotate ? 'text-brand-primary ring-1 ring-brand-primary/20' : 'text-slate-500'}`}>
+                            <svg className={`w-4 h-4 ${autoRotate ? 'animate-spin-slow' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-500/80 bg-white/30 px-1.5 rounded-full backdrop-blur-sm">
+                            {autoRotate ? 'Pausar' : 'Girar'}
+                        </span>
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            controlsRef.current?.reset();
+                        }}
+                        className="group flex flex-col items-center gap-1"
+                        title="Resetear vista"
+                    >
+                        <div className="w-9 h-9 rounded-full bg-white/80 backdrop-blur border border-white/50 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform text-slate-500 hover:text-brand-primary">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                        </div>
+                        <span className="text-[9px] font-bold text-slate-500/80 bg-white/30 px-1.5 rounded-full backdrop-blur-sm">
+                            Reset
+                        </span>
+                    </button>
                 </div>
             </div>
 
