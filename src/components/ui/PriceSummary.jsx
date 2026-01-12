@@ -40,6 +40,8 @@ const useCountUp = (end, duration = 800) => {
 export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart, isLoading, isCartLoading }) => {
     const [detailsOpen, setDetailsOpen] = useState(true);
     const [isAdvanced, setIsAdvanced] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    const [showTermsModal, setShowTermsModal] = useState(false);
 
     // Animación del precio final
     const animatedPrice = useCountUp(estimate ? estimate.totalPrice : 0);
@@ -131,9 +133,11 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                 </span>
                             </div>
                             <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm">
-                                <span className="text-slate-500 font-medium">Peso</span>
+                                <span className="text-slate-500 font-medium">{estimate.supportsWeight > 0 ? 'Peso Modelo' : 'Peso'}</span>
                                 <span className="font-mono font-bold text-slate-700">
-                                    {estimate.weightGrams ? `${estimate.weightGrams.toFixed(1)} g` : '—'}
+                                    {estimate.realWeight
+                                        ? `${(estimate.realWeight - (estimate.supportsWeight || 0)).toFixed(1)} g`
+                                        : '—'}
                                 </span>
                             </div>
 
@@ -152,6 +156,26 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                     {estimate.tieneSoportes ? 'SÍ' : 'NO'}
                                 </span>
                             </div>
+
+                            {/* Peso Soportes (Nuevo) */}
+                            {estimate.supportsWeight > 0.05 && (
+                                <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
+                                    <span className="text-slate-500 font-medium">Peso Soportes</span>
+                                    <span className="font-mono font-bold text-amber-600">
+                                        {estimate.supportsWeight.toFixed(1)} g
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Factor Dificultad (Nuevo) */}
+                            {estimate.difficultyMultiplier > 1.0 && (
+                                <div className="flex justify-between items-center p-2.5 bg-white rounded-xl border border-slate-100 shadow-sm col-span-2">
+                                    <span className="text-slate-500 font-medium">Dificultad</span>
+                                    <span className="font-mono font-bold text-slate-700">
+                                        {estimate.difficultyLabel} (x{estimate.difficultyMultiplier})
+                                    </span>
+                                </div>
+                            )}
 
 
                             {estimate.gcodeUrl && (
@@ -183,7 +207,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         <div className="flex justify-between items-center">
                             <span className="flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-brand-primary/40"></span>
-                                Material {estimate.realWeight
+                                Material Total {estimate.realWeight
                                     ? `(${Math.ceil(estimate.realWeight)}g)`
                                     : `(~${estimate.weightGrams ? Math.ceil(estimate.weightGrams) : 0}g)`
                                 }
@@ -282,27 +306,52 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         )}
                     </AnimatePresence>
 
+                    {/* Términos y Condiciones (Checkbox) */}
+                    <div className="flex items-start gap-3 px-1">
+                        <div className="relative flex items-center mt-0.5">
+                            <input
+                                id="terms-check"
+                                type="checkbox"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-slate-300 bg-white shadow-sm transition-all hover:border-brand-primary checked:border-brand-primary checked:bg-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                            />
+                            {/* Checkmark Icon Overlay */}
+                            <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                            </span>
+                        </div>
+                        <label htmlFor="terms-check" className="text-xs text-slate-500 cursor-pointer select-none leading-tight">
+                            He leído y acepto los <button
+                                onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
+                                className="text-brand-primary font-bold hover:underline"
+                            >términos y condiciones</button> del servicio de impresión 3D.
+                        </label>
+                    </div>
+
                     {/* Botones de Acción (WooCommerce + Cotización) */}
                     <div className="flex flex-col gap-3">
 
                         {/* 1. AGREGAR AL CARRITO (Primary - WooCommerce) */}
                         <motion.button
-                            whileHover={!isLoading && !isCartLoading && config.material ? { scale: 1.02 } : {}}
-                            whileTap={!isLoading && !isCartLoading && config.material ? { scale: 0.96 } : {}}
+                            whileHover={!isLoading && !isCartLoading && config.material && termsAccepted ? { scale: 1.02 } : {}}
+                            whileTap={!isLoading && !isCartLoading && config.material && termsAccepted ? { scale: 0.96 } : {}}
                             onClick={onWooCommerceCart}
-                            disabled={isLoading || isCartLoading || !config.material}
+                            disabled={isLoading || isCartLoading || !config.material || !termsAccepted}
                             className={`
                                 group w-full py-4 rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20
                                 flex items-center justify-center gap-3 transform
                                 relative overflow-hidden
-                                ${isLoading || isCartLoading || !config.material
+                                ${isLoading || isCartLoading || !config.material || !termsAccepted
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                     : 'bg-gradient-to-r from-brand-secondary to-brand-primary text-white'
                                 }
                             `}
                         >
                             {/* Shine Effect */}
-                            {!isLoading && !isCartLoading && config.material && (
+                            {!isLoading && !isCartLoading && config.material && termsAccepted && (
                                 <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
                             )}
 
@@ -315,8 +364,9 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                         </svg>
                                         Procesando...
                                     </>
-                                ) : (!config.material ? 'Selecciona Material' : 'Agregar al Carrito')}
+                                ) : (!config.material ? 'Selecciona Material' : (!termsAccepted ? 'Acepta Términos' : 'Agregar al Carrito'))}
                             </span>
+
 
                             {!isLoading && !isCartLoading && config.material && (
                                 <svg className="w-5 h-5 relative z-20 transition-transform duration-300 group-hover:-translate-y-1 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -329,6 +379,76 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                     </div>
                 </div>
             </div>
+            {/* Modal de Términos */}
+            {
+                showTermsModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+                        <div
+                            className="absolute inset-0"
+                            onClick={() => setShowTermsModal(false)}
+                        ></div>
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden ring-1 ring-white/20"
+                        >
+                            {/* Header */}
+                            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                    <span className="text-xl">📄</span> Términos del Servicio
+                                </h3>
+                                <button
+                                    onClick={() => setShowTermsModal(false)}
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4 leading-relaxed">
+                                <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-4">
+                                    <p className="text-xs text-blue-700 font-medium text-center">
+                                        Por favor lea atentamente las condiciones antes de continuar.
+                                    </p>
+                                </div>
+
+                                <p><strong>1. Tiempos de Entrega.</strong> Los plazos indicados son estimaciones basadas en la carga de trabajo actual. Mechatronic Store se reserva el derecho de ajustar estos plazos según disponibilidad de máquinas.</p>
+
+                                <p><strong>2. Propiedad Intelectual.</strong> El cliente declara poseer los derechos de reproducción del modelo 3D enviado. Mechatronic Store no se hace responsable por infracciones de copyright.</p>
+
+                                <p><strong>3. Tolerancias y Acabado.</strong> La impresión FDM tiene tolerancias dimensionales de +/- 0.5mm. Las capas de impresión son visibles y características del proceso. No se garantiza un acabado liso de inyección de plástico.</p>
+
+                                <p><strong>4. Garantía.</strong> Se ofrece garantía solo sobre defectos estructurales de impresión, no sobre el diseño funcional de la pieza provista por el cliente.</p>
+
+                                <p className="text-slate-400 italic text-xs mt-4 pt-4 border-t border-slate-100">
+                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                                </p>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowTermsModal(false)}
+                                    className="px-5 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-200 transition-colors text-xs uppercase tracking-wide"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setTermsAccepted(true);
+                                        setShowTermsModal(false);
+                                    }}
+                                    className="px-6 py-2.5 bg-brand-primary text-white rounded-xl font-bold hover:bg-brand-primary-dark transition-colors shadow-lg shadow-brand-primary/20 text-xs uppercase tracking-wide transform active:scale-95"
+                                >
+                                    Acepto y Continuar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )
+            }
         </div >
     );
 };

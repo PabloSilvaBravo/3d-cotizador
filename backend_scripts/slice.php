@@ -160,6 +160,14 @@ try {
     $args[] = "--infill-speed " . $vInfill;
     $args[] = "--solid-infill-speed " . $vSolid;
     $args[] = "--top-solid-infill-speed " . $vTop;
+
+    // --- SOPORTES OPTIMIZADOS (SIMULACIÓN ARBOL) ---
+    // Usamos 'snug' + espaciado amplio para imitar el peso ligero de soportes orgánicos
+    $args[] = "--support-material-style snug";
+    $args[] = "--support-material-spacing 4";
+    $args[] = "--support-material-threshold 40";
+    $args[] = "--dont-support-bridges";
+
     $args[] = "--support-material-speed 400";
     $args[] = "--bridge-speed 250";
     $args[] = "--gap-fill-speed 250";
@@ -216,8 +224,12 @@ try {
     $sentinelArgs[] = "--bottom-solid-layers 1";
     $sentinelArgs[] = "--support-material";
     $sentinelArgs[] = "--support-material-auto";
-    $sentinelArgs[] = "--support-material-threshold 45";
-    $sentinelArgs[] = "--support-material-style organic";
+
+    // PARAMETROS SENTINEL COHERENTES CON FASE 1
+    $sentinelArgs[] = "--support-material-threshold 40";
+    $sentinelArgs[] = "--support-material-style snug";
+    $sentinelArgs[] = "--support-material-spacing 4";
+
     $sentinelArgs[] = "--dont-support-bridges";
     $sentinelArgs[] = "--support-material-buildplate-only";
 
@@ -246,15 +258,16 @@ try {
     if ($supportsNeeded) {
         $supportOutputPath = $uploadDir . $uniqueId . '_support.gcode';
 
-        // Usar mismos args del principal pero agregar soportes
-        $supportArgs = $args; // Copiar args principales
+        // Usar mismos args del principal (ya incluyen style/spacing) y activar support
+        $supportArgs = $args;
         $supportArgs[] = "--support-material";
         $supportArgs[] = "--support-material-auto";
-        $supportArgs[] = "--support-material-threshold 45";
         $supportArgs[] = "--support-material-buildplate-only";
+        // Threshold ya está en $args como 40, no hace falta repetirlo
 
         $supportCmdArgs = implode(" ", $supportArgs);
         $supportCommand = "xvfb-run -a $slicerPath $supportCmdArgs --output " . escapeshellarg($supportOutputPath) . " " . escapeshellarg($slicingInput) . " 2>&1";
+
 
         exec($supportCommand, $supportOutput, $supportReturn);
 
@@ -276,6 +289,9 @@ try {
             $pesoSoportes = round($weightWithSupports - $weight, 2);
             if ($pesoSoportes < 0)
                 $pesoSoportes = 0; // Seguridad
+
+            // Ajuste margen seguridad: +2g extra para cubrir purgas/limpieza
+            $pesoSoportes += 2;
 
             @unlink($supportOutputPath);
         }

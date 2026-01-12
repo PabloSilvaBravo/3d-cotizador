@@ -842,25 +842,65 @@ const App = () => {
 
   const stats = getEstimatedStats();
 
-  const estimateForUI = stats ? {
-    ...calculatePriceFromStats(config, stats),
-    // Agregar volumen real del STL para transparencia (Fallback backend si es STEP)
-    volumeStlCm3: localGeometry?.volumeCm3 || quoteData?.volumen || 0,
-    // Propiedad directa para UI de soportes (Prioridad Backend)
-    tieneSoportes: (quoteData?.supports_needed !== undefined) ? quoteData.supports_needed : stats.tieneSoportes,
-    pesoSoportes: 0,
-    // Agregar dimensiones para el desglose (en mm y escaladas)
-    // Fallback a dimensiones del backend para STEP
-    dimensions: (localGeometry?.dimensions || quoteData?.dimensions) ? {
-      x: ((localGeometry?.dimensions?.x || quoteData?.dimensions?.x || 0) * autoScale).toFixed(2),
-      y: ((localGeometry?.dimensions?.y || quoteData?.dimensions?.y || 0) * autoScale).toFixed(2),
-      z: ((localGeometry?.dimensions?.z || quoteData?.dimensions?.z || 0) * autoScale).toFixed(2)
-    } : null,
-    // Tiempo de impresión del backend (si está disponible)
-    printTime: quoteData?.tiempoTexto || null,
-    // Peso real del backend (del slicer, si está disponible)
-    realWeight: quoteData?.peso || null
-  } : null;
+  // Lógica Avanzada de Estimación (Soportes + Dificultad)
+  const estimateForUI = useMemo(() => {
+    if (!stats) return null;
+
+    let finalStats = { ...stats };
+    let supportsWeight = 0;
+    let difficultyMultiplier = 1.0;
+    let difficultyLabel = "Normal";
+
+    // Si tenemos datos del backend, refinamos el cálculo
+    if (quoteData) {
+      // 1. Pesos Reales (Modelo + Soportes)
+      const modelWeight = quoteData.peso || 0;
+      supportsWeight = quoteData.peso_soportes || 0;
+      const realTotalWeight = modelWeight + supportsWeight;
+
+      // Usamos el peso TOTAL real para el costo del material
+      finalStats.weightGrams = realTotalWeight;
+
+      // 2. Lógica de Dificultad (Multiplicador Promedio Competitivo)
+      // Si hay soportes, aplicamos un factor fijo de 1.2x para cubrir complejidad
+      if (quoteData.supports_needed) {
+        difficultyMultiplier = 1.2;
+        difficultyLabel = "Estándar (Soportes)";
+      }
+    }
+
+    // Calcular precio base (con el peso de material actualizado)
+    const baseEstimation = calculatePriceFromStats(config, finalStats);
+
+    // Aplicar Multiplicador de Dificultad al Precio Final
+    // Esto cubre costos de post-procesado (retirar soportes)
+    const finalTotalPrice = Math.ceil(baseEstimation.totalPrice * difficultyMultiplier);
+
+    return {
+      ...baseEstimation,
+      totalPrice: finalTotalPrice,
+
+      // Propiedades Visuales Mejoradas
+      realWeight: finalStats.weightGrams, // Peso Total (Modelo + Soportes)
+      supportsWeight: supportsWeight,     // Peso específico de soportes
+      difficultyLabel: difficultyLabel,
+      difficultyMultiplier: difficultyMultiplier,
+
+      // Geometría y Time
+      volumeStlCm3: localGeometry?.volumeCm3 || quoteData?.volumen || 0,
+      printTime: quoteData?.tiempoTexto || null,
+
+      // Soportes (Backend Priority)
+      tieneSoportes: (quoteData?.supports_needed !== undefined) ? quoteData.supports_needed : stats.tieneSoportes,
+
+      // Dimensiones (Backend Fallback para STEP)
+      dimensions: (localGeometry?.dimensions || quoteData?.dimensions) ? {
+        x: ((localGeometry?.dimensions?.x || quoteData?.dimensions?.x || 0) * autoScale).toFixed(2),
+        y: ((localGeometry?.dimensions?.y || quoteData?.dimensions?.y || 0) * autoScale).toFixed(2),
+        z: ((localGeometry?.dimensions?.z || quoteData?.dimensions?.z || 0) * autoScale).toFixed(2)
+      } : null
+    };
+  }, [stats, quoteData, config, localGeometry, autoScale]);
 
   if (quoteData) {
     console.log('🔍 Datos del backend en estimateForUI:', {
