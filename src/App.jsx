@@ -713,18 +713,23 @@ const App = () => {
       if (wcResult.cartUrl) {
         setCheckoutUrl(wcResult.cartUrl);
 
-        // USAR IFRAME OCULTO en lugar de nueva pestaña para mantener al usuario en el cotizador
-        console.log("🔗 Sincronizando carrito vía iframe oculto...");
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = wcResult.cartUrl;
-        document.body.appendChild(iframe);
+        // Sincronización robusta vía pestaña temporal (Popup)
+        // Iframe falla por X-Frame-Options en muchos hostings.
+        console.log("🔗 Sincronizando carrito vía pestaña temporal...");
+        const newTab = window.open(wcResult.cartUrl, '_blank');
 
-        // Eliminar el iframe después de un tiempo prudente (5s) para asegurar que la sesión se guarde
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-          console.log("✅ Iframe de sincronización eliminado.");
-        }, 5000);
+        if (newTab) {
+          // Intentar devolver el foco a la app inmediatamente para que el usuario no sienta el cambio
+          window.focus();
+
+          // Cerrar la pestaña auxiliar automáticamente después de 3s
+          setTimeout(() => {
+            if (!newTab.closed) {
+              newTab.close();
+              console.log("✅ Pestaña de sincronización cerrada.");
+            }
+          }, 3000);
+        }
       }
 
       // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
