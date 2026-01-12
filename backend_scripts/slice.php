@@ -1,5 +1,5 @@
 <?php
-// slice.php v29 - VERIFIED FOR CLI 2.9.1
+// slice.php v35 - VERIFIED FOR CLI 2.9.1
 // 1. COTIZACIÓN: Lógica v15 (Sin soportes, optimizada).
 // 2. DETECCIÓN: Lógica Sentinel con buildplate-only (v28).
 // 3. CÁLCULO PESO SOPORTES: Slicing adicional cuando supports_needed=true (v29).

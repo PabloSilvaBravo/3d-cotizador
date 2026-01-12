@@ -18,25 +18,52 @@ export const Header = () => {
                     font-size: 15px;
                 }
 
-                .top-bar-purple {
+                /* BARRA UNIFICADA - Logo + Contacto + Botones */
+                .unified-header {
                     background-color: #6017b1; 
                     color: #ffffff;
                     font-family: 'Montserrat', sans-serif;
                     font-size: 13px;
                     font-weight: 400; 
                     width: 100%;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                    box-sizing: border-box;
+                    border-bottom: 2px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    min-height: 60px;
                 }
 
-                .container-flex {
-                    display: flex;
-                    justify-content: space-between;
+                .unified-container {
+                    display: grid;
+                    grid-template-columns: 200px 1fr 200px;
                     align-items: center;
-                    max-width: 1280px;
+                    max-width: 1400px;
                     margin: 0 auto;
-                    padding: 0 15px;
-                    min-height: 37px;
+                    padding: 12px 24px;
+                    gap: 24px;
+                }
+
+                .logo-section {
+                    display: flex;
+                    align-items: center;
+                    cursor: pointer;
+                    transition: opacity 0.3s;
+                }
+
+                .logo-section:hover {
+                    opacity: 0.9;
+                }
+
+                .center-section {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    gap: 24px;
+                }
+
+                .buttons-section {
+                    display: flex;
+                    justify-content: flex-end;
+                    align-items: center;
+                    gap: 12px;
                 }
 
                 .nav-items {
@@ -45,6 +72,7 @@ export const Header = () => {
                     padding: 0;
                     display: flex;
                     align-items: center;
+                    gap: 16px;
                 }
 
                 .nav-items li {
@@ -61,6 +89,7 @@ export const Header = () => {
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
                     transition: opacity 0.2s;
+                    font-size: 12px;
                 }
 
                 .nav-items a:hover {
@@ -68,10 +97,10 @@ export const Header = () => {
                 }
 
                 .icon-svg {
-                    width: 17px;
-                    height: 17px;
+                    width: 16px;
+                    height: 16px;
                     display: block;
-                    margin-top: -2px;
+                    flex-shrink: 0;
                 }
                 
                 .icon-social {
@@ -80,26 +109,10 @@ export const Header = () => {
                     display: block;
                 }
 
-                .nav-item-border {
-                    padding: 0 12px;
-                    border-right: 1px solid rgba(255, 255, 255, 0.3);
-                }
-
-                .nav-item-border:first-child {
-                    padding-left: 0; 
-                }
-
-                .nav-item-phone {
-                    padding-left: 12px;
-                }
-                
-                .nav-item-phone .icon-svg {
-                    width: 18px; 
-                    height: 18px;
-                }
-
-                .nav-item-quote {
-                    margin-left: 0;
+                .nav-item-divider {
+                    width: 1px;
+                    height: 20px;
+                    background: rgba(255, 255, 255, 0.3);
                 }
 
                 .quote-wrapper {
@@ -111,39 +124,39 @@ export const Header = () => {
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    height: 30px;
-                    padding: 0 12px;
+                    height: 32px;
+                    padding: 0 14px;
                     border: 1px solid #ffffff;
                     border-radius: 12px;
-                    font-size: 12px;
-                    font-weight: 550;
+                    font-size: 11px;
+                    font-weight: 600;
                     background: transparent;
                     white-space: nowrap;
+                    color: #ffffff;
+                    text-decoration: none;
+                    transition: all 0.2s;
                 }
 
                 .quote-btn:hover {
-                    background-color: rgba(255,255,255,0.1);
+                    background-color: rgba(255,255,255,0.15);
+                    transform: translateY(-1px);
                 }
 
                 .badge-new {
                     position: absolute;
-                    top: -3px;
-                    right: 0;
+                    top: -6px;
+                    right: -6px;
                     background-color: #FFD700;
                     color: #1a1a1a;
-                    font-size: 9px;
-                    font-weight: 600;
+                    font-size: 8px;
+                    font-weight: 700;
                     line-height: 1;
-                    padding: 2px 6px;
+                    padding: 3px 6px;
                     border-radius: 8px;
                     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
                     pointer-events: none;
                     white-space: nowrap;
                     z-index: 1;
-                }
-
-                .nav-item-social {
-                    margin-left: 12px;
                 }
 
                 .social-icons-wrapper {
@@ -155,8 +168,8 @@ export const Header = () => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 26px;
-                    height: 26px;
+                    width: 28px;
+                    height: 28px;
                     border: 1px solid rgba(255, 255, 255, 0.6);
                     border-radius: 50%;
                     transition: all 0.3s ease;
@@ -164,37 +177,51 @@ export const Header = () => {
 
                 .social-btn:hover {
                     background-color: #ffffff;
-                    color: #6017b1; 
+                    color: #6017b1;
+                    transform: translateY(-2px);
                 }
                 
                 .social-btn:hover svg {
                     fill: #6017b1;
                 }
 
-                .flex-col-left {
-                    padding-left: 100px;
+                .store-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                    border: 1px solid rgba(255,255,255,0.4);
+                    background: rgba(255,255,255,0.1);
+                    color: #ffffff;
+                    text-decoration: none;
+                    font-size: 12px;
+                    font-weight: 600;
+                    transition: all 0.2s;
                 }
 
-                .flex-col-right {
-                    padding-right: 100px;
+                .store-btn:hover {
+                    background: rgba(255,255,255,0.2);
+                    border-color: rgba(255,255,255,0.6);
+                    transform: translateY(-1px);
                 }
 
-                @media (max-width: 850px) {
-                    .top-bar-purple {
+                @media (max-width: 1200px) {
+                    .unified-container {
+                        grid-template-columns: 180px 1fr 180px;
+                        gap: 16px;
+                    }
+                    .nav-items a span {
                         display: none;
+                    }
+                    .center-section {
+                        gap: 16px;
                     }
                 }
 
-                .header-inner-content {
-                    width: 100%;
-                    box-sizing: border-box;
-                    padding: 12px 16px; 
-                }
-
-                @media (min-width: 850px) {
-                    .header-layout-alignment {
-                        padding-left: 320px !important;
-                        padding-right: 300px !important;
+                @media (max-width: 850px) {
+                    .unified-header {
+                        display: none;
                     }
                 }
             `}</style>
@@ -206,23 +233,32 @@ export const Header = () => {
                 </p>
             </div>
 
-            {/* 2. Top Bar Contacto (Purple) */}
-            <div className="top-bar-purple">
-                <div className="container-flex">
+            {/* 2. BARRA UNIFICADA: Logo + Contacto + Botones */}
+            <div className="unified-header">
+                <div className="unified-container">
 
-                    <div className="flex-col-left">
+                    {/* IZQUIERDA: Logo */}
+                    <div className="logo-section" onClick={handleLogoClick} title="Volver a MechatronicStore.cl">
+                        <MechatronicLogo />
+                    </div>
+
+                    {/* CENTRO: Contacto + Cotización + Redes Sociales */}
+                    <div className="center-section">
                         <ul className="nav-items">
-
-                            <li className="nav-item-border">
+                            {/* Ubicación Tienda */}
+                            <li>
                                 <a href="https://maps.google.com/?q=Rodriguez 212, Curicó" target="_blank" rel="noopener noreferrer" title="Rodriguez 212, Curicó">
                                     <svg className="icon-svg" viewBox="0 0 1024 1024" fill="#ffffff">
                                         <path transform="translate(0, 960) scale(1, -1)" d="M546.24 866.24c-124.992 124.992-327.488 124.992-452.512 0-124.992-124.928-124.992-327.616 0-452.48 0.032 0 226.272-221.76 226.272-477.76 0 256 226.24 477.76 226.24 477.76 125.024 124.864 125.024 327.552 0 452.48zM320 512c-70.752 0-128 57.248-128 128s57.248 128 128 128 128-57.248 128-128-57.248-128-128-128z" />
                                     </svg>
+                                    <span>TIENDA</span>
                                 </a>
-                                <span>TIENDA</span>
                             </li>
 
-                            <li className="nav-item-border">
+                            <li className="nav-item-divider"></li>
+
+                            {/* Email */}
+                            <li>
                                 <a href="mailto:ventas@mechatronicstore.cl" title="ventas@mechatronicstore.cl">
                                     <svg className="icon-svg" viewBox="0 0 1024 1024" fill="#ffffff">
                                         <path transform="translate(0, 960) scale(1, -1)" d="M928 832h-832c-52.8 0-96-43.2-96-96v-640c0-52.8 43.2-96 96-96h832c52.8 0 96 43.2 96 96v640c0 52.8-43.2 96-96 96zM398.741 409.627l-270.741-210.891v501.641l270.741-290.75zM176.379 704h671.241l-335.621-252-335.621 252zM409.289 398.302l102.711-110.302 102.711 110.302 210.553-270.302h-626.528l210.553 270.302zM625.259 409.627l270.741 290.75v-501.641l-270.741 210.891z" />
@@ -231,7 +267,10 @@ export const Header = () => {
                                 </a>
                             </li>
 
-                            <li className="nav-item-phone">
+                            <li className="nav-item-divider"></li>
+
+                            {/* Teléfono */}
+                            <li>
                                 <a href="tel:+56976167930" title="Llamar a +56 9 7616 7930">
                                     <svg className="icon-svg" viewBox="0 0 1024 1024" fill="#ffffff">
                                         <path transform="translate(0, 960) scale(1, -1)" d="M736 320c-64-64-64-128-128-128s-128 64-192 128-128 128-128 192 64 64 128 128-128 256-192 256-192-192-192-192c0-128 131.5-387.5 256-512s384-256 512-256c0 0 192 128 192 192s-192 256-256 192z" />
@@ -240,13 +279,10 @@ export const Header = () => {
                                 </a>
                             </li>
 
-                        </ul>
-                    </div>
+                            <li className="nav-item-divider"></li>
 
-                    <div className="flex-col-right">
-                        <ul className="nav-items">
-
-                            <li className="nav-item-quote">
+                            {/* Cotización */}
+                            <li>
                                 <div className="quote-wrapper">
                                     <a href="https://empresas.mechatronicstore.cl/" className="quote-btn">
                                         SOLICITAR COTIZACIÓN
@@ -255,7 +291,10 @@ export const Header = () => {
                                 </div>
                             </li>
 
-                            <li className="nav-item-social">
+                            <li className="nav-item-divider"></li>
+
+                            {/* Redes Sociales */}
+                            <li>
                                 <div className="social-icons-wrapper">
                                     <a href="https://www.instagram.com/mechatronicstore.cl/" target="_blank" rel="noopener noreferrer" className="social-btn instagram" aria-label="Instagram">
                                         <svg className="icon-social" viewBox="0 0 1024 1024" fill="#ffffff">
@@ -274,36 +313,17 @@ export const Header = () => {
                                     </a>
                                 </div>
                             </li>
-
                         </ul>
                     </div>
 
-                </div>
-            </div>
-
-            {/* 3. Original Header Content (Logo + Ir Tienda) */}
-            <div className="w-full transition-all duration-300 backdrop-blur-xl bg-brand-primary border-b border-white/10 shadow-lg shadow-brand-primary/20">
-                <div className="w-full px-6 py-3 header-layout-alignment flex items-center justify-between">
-                    {/* Logo con Navegación */}
-                    <div
-                        className="flex items-center gap-3 group cursor-pointer btn-press"
-                        onClick={handleLogoClick}
-                        title="Volver a MechatronicStore.cl"
-                    >
-                        <MechatronicLogo />
-                    </div>
-
-                    <div className="flex items-center space-x-2 md:space-x-3">
-                        {/* Botón: Ir a la Tienda */}
-                        <a
-                            href="https://www.mechatronicstore.cl/"
-                            className="flex items-center gap-1.5 text-[10px] font-bold text-white/80 hover:text-white px-3 py-1.5 rounded-full hover:bg-white/10 border border-transparent hover:border-white/10 transition-all"
-                        >
-                            <Globe size={12} className="text-brand-accent" />
-                            <span className="hidden sm:inline">Ir a la Tienda</span>
-                            <span className="sm:hidden">Tienda</span>
+                    {/* DERECHA: Botón Ir a la Tienda */}
+                    <div className="buttons-section">
+                        <a href="https://www.mechatronicstore.cl/" className="store-btn">
+                            <Globe size={14} />
+                            <span>IR A LA TIENDA</span>
                         </a>
                     </div>
+
                 </div>
             </div>
         </div>

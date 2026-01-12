@@ -4,7 +4,7 @@ export const calculatePriceFromStats = (config, stats) => {
     // stats: { weightGrams, timeHours, pesoSoportes } 
 
     // 1. COSTO MATERIAL
-    const PRICE_PER_GRAM_PLA = 12;
+    const PRICE_PER_GRAM_PLA = 10;
     const materialCost = Math.ceil(stats.weightGrams * PRICE_PER_GRAM_PLA);
 
     // 2. FACTOR DIFICULTAD (Basado en % de soportes del G-Code real)
