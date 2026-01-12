@@ -244,7 +244,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
 
                         {/* Disclaimer de Precio Referencial */}
                         <div className="mt-3 pt-3 border-t border-brand-secondary/5 flex gap-2 justify-center">
-                            <p className="text-[10px] text-slate-400 leading-snug text-center italic max-w-[90%]">
+                            <p className="text-[10px] text-slate-500 leading-snug text-center italic max-w-[90%]">
                                 *Existe la posibilidad de cancelación con modelos de alta complejidad.
                             </p>
                         </div>
@@ -407,23 +407,31 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                             </div>
 
                             {/* Content */}
-                            <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4 leading-relaxed">
-                                <div className="bg-blue-50/50 p-3 rounded-lg border border-blue-100 mb-4">
-                                    <p className="text-xs text-blue-700 font-medium text-center">
-                                        Por favor lea atentamente las condiciones antes de continuar.
+                            <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4 leading-relaxed max-h-[60vh]">
+                                <div className="bg-primary-50/50 p-3 rounded-lg border border-primary-100 mb-4">
+                                    <p className="text-xs text-primary-700 font-medium text-center">
+                                        Al contratar el servicio de impresión 3D, declara conocer y aceptar los siguientes términos:
                                     </p>
                                 </div>
 
-                                <p><strong>1. Tiempos de Entrega.</strong> Los plazos indicados son estimaciones basadas en la carga de trabajo actual. Mechatronic Store se reserva el derecho de ajustar estos plazos según disponibilidad de máquinas.</p>
+                                <p><strong>1. Evaluación y aceptación del trabajo.</strong> Toda solicitud queda sujeta a evaluación técnica previa. La impresión podrá ser rechazada si el archivo o condiciones técnicas no permiten fabricación adecuada. En caso de cancelación por este motivo, el dinero será devuelto íntegramente.</p>
 
-                                <p><strong>2. Propiedad Intelectual.</strong> El cliente declara poseer los derechos de reproducción del modelo 3D enviado. Mechatronic Store no se hace responsable por infracciones de copyright.</p>
+                                <p><strong>2. Alcance y limitaciones del proceso.</strong> La impresión se realiza mediante tecnología FDM (filamento no resina) con boquilla estándar de 0,4 mm. El resultado final no será idéntico a la simulación digital. Pueden existir líneas de capa visibles, tolerancias dimensionales y variaciones menores propias del proceso.</p>
 
-                                <p><strong>3. Tolerancias y Acabado.</strong> La impresión FDM tiene tolerancias dimensionales de +/- 0.5mm. Las capas de impresión son visibles y características del proceso. No se garantiza un acabado liso de inyección de plástico.</p>
+                                <p><strong>3. Equipamiento y tiempos.</strong> Las impresiones se realizan usando impresora BambuLab H2D. El inicio y plazo de entrega estarán sujetos a disponibilidad operativa del equipo y carga de trabajo.</p>
 
-                                <p><strong>4. Garantía.</strong> Se ofrece garantía solo sobre defectos estructurales de impresión, no sobre el diseño funcional de la pieza provista por el cliente.</p>
+                                <p><strong>4. Colores y materiales.</strong> Si no contamos con el color solicitado, notificaremos oportunamente. Si no acepta el cambio, la impresión podrá ser cancelada sin penalización con devolución correspondiente.</p>
 
-                                <p className="text-slate-400 italic text-xs mt-4 pt-4 border-t border-slate-100">
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                                <p><strong>5. Postprocesado.</strong> El servicio incluye únicamente retirada de soportes. NO se realizan trabajos de lijado, pintado, pulido, ensamble ni acabados estéticos. Cualquier tratamiento posterior queda bajo responsabilidad del cliente.</p>
+
+                                <p><strong>6. Ensambles.</strong> MechatronicStore no realiza ensamblaje de piezas. Las piezas serán entregadas individualmente, salvo acuerdo explícito previo por escrito.</p>
+
+                                <p><strong>7. Piezas mecánicas y resistencia.</strong> Podremos sugerir cambios en orientación o parámetros para mejorar resistencia entre capas (sin costo adicional de servicio, aunque el precio puede variar por mayor consumo). Si rechaza las recomendaciones, no nos responsabilizamos por fallas mecánicas o roturas derivadas del uso.</p>
+
+                                <p><strong>8. Responsabilidad y uso final.</strong> El cliente es responsable del uso final de la pieza. MechatronicStore no se responsabiliza por daños derivados de uso indebido, sobrecarga, modificaciones posteriores o aplicaciones críticas no informadas.</p>
+
+                                <p className="text-slate-400 italic text-xs mt-6 pt-4 border-t border-slate-100">
+                                    MechatronicStore – Servicio de Impresión 3D
                                 </p>
                             </div>
 

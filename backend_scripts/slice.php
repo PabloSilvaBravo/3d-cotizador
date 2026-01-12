@@ -315,7 +315,10 @@ try {
 
     // --- 6. DIMENSIONES Y URLS ---
     $dimensions = null;
-    $modelUrl = $baseUrl . '/uploads/' . basename($slicingInput);
+
+    // CORREGIDO: Usar get_file.php para servir el archivo con CORS headers
+    // $modelUrl = $baseUrl . '/uploads/' . basename($slicingInput);
+    $modelUrl = $baseUrl . '/get_file.php?file=' . basename($slicingInput);
 
     if ($slicingInput !== $inputPath) {
         $infoCmd = "xvfb-run -a $slicerPath --info " . escapeshellarg($slicingInput) . " 2>&1";
@@ -328,7 +331,8 @@ try {
             }
         }
     } else {
-        $modelUrl = $baseUrl . '/uploads/' . basename($inputPath);
+        // También usar proxy para STL original
+        $modelUrl = $baseUrl . '/get_file.php?file=' . basename($inputPath);
     }
 
     // LIMPIEZA

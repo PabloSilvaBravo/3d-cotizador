@@ -12,23 +12,14 @@ export const calculatePriceFromStats = (config, stats) => {
     const pesoTotal = stats.weightGrams || 1; // Evitar div/0
     const porcentajeSoportes = (pesoSoportes / pesoTotal) * 100;
 
-    // Umbrales actualizados según especificación
+    // Umbrales actualizados: DIFICULTAD MANEJADA EN APP.JSX
     let difficultyFactor = 1.0;
-    let difficultyLabel = "Sin soportes";
+    let difficultyLabel = "Estándar";
 
-    if (porcentajeSoportes > 30) {
-        difficultyFactor = 1.30; // +30% recargo
-        difficultyLabel = "Muy Alta (>30% soportes)";
-    } else if (porcentajeSoportes > 15) {
-        difficultyFactor = 1.20; // +20% recargo
-        difficultyLabel = "Alta (15-30% soportes)";
-    } else if (porcentajeSoportes > 5) {
-        difficultyFactor = 1.10; // +10% recargo
-        difficultyLabel = "Media (5-15% soportes)";
-    } else if (porcentajeSoportes > 0) {
-        difficultyFactor = 1.0; // Sin recargo
-        difficultyLabel = "Baja (<5% soportes)";
-    }
+    // (Lógica antigua desactivada para evitar duplicidad con el 1.2x fijo del frontend)
+    /*
+    if (porcentajeSoportes > 30) { ... } 
+    */
 
     // 3. COSTO TIEMPO
     const PRICE_PER_HOUR = 2500;

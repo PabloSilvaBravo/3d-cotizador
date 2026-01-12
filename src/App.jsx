@@ -874,7 +874,10 @@ const App = () => {
 
     // Aplicar Multiplicador de Dificultad al Precio Final
     // Esto cubre costos de post-procesado (retirar soportes)
-    const finalTotalPrice = Math.ceil(baseEstimation.totalPrice * difficultyMultiplier);
+    const rawTotalPrice = baseEstimation.totalPrice * difficultyMultiplier;
+
+    // Regla de Negocio: Redondeo a la centena más cercana
+    const finalTotalPrice = Math.round(rawTotalPrice / 100) * 100;
 
     return {
       ...baseEstimation,
@@ -1033,17 +1036,41 @@ const App = () => {
             </div>
           </div>
 
-          {fileUrl && (
-            <Viewer3D
-              fileUrl={fileUrl}
-              captureRef={captureRef}
-              colorHex={currentColorHex}
-              onGeometryLoaded={handleGeometryLoaded}
-              rotation={optimalRotation}
-              scale={autoScale}
-              isLoading={isLoading}
-            />
-          )}
+          {/* Lógica de Visualización: STEP requiere URL convertida del backend */}
+          {(() => {
+            const isStep = file?.name?.toLowerCase().endsWith('.step') || file?.name?.toLowerCase().endsWith('.stp');
+            // Si es STEP, usamos la URL convertida (quoteData.url_model). Si no está lista, null.
+            // Si es STL/OBJ, usamos el blob local (fileUrl).
+            const displayUrl = isStep ? quoteData?.url_model : fileUrl;
+
+            // Mostrar carga si es STEP y aún no tenemos la URL convertida
+            const showLoading = isStep && !displayUrl || isLoading;
+
+            return (
+              <>
+                {showLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-30 transition-all">
+                    <div className="scale-75 mb-4"><CubeLoader /></div>
+                    <p className="text-slate-500 font-medium text-sm animate-pulse">
+                      {isStep ? "Convirtiendo archivo STEP..." : "Procesando geometría..."}
+                    </p>
+                  </div>
+                )}
+
+                {displayUrl && (
+                  <Viewer3D
+                    fileUrl={displayUrl}
+                    captureRef={captureRef}
+                    colorHex={currentColorHex}
+                    onGeometryLoaded={handleGeometryLoaded}
+                    rotation={optimalRotation}
+                    scale={autoScale}
+                    isLoading={isLoading}
+                  />
+                )}
+              </>
+            );
+          })()}
         </div>
       </motion.div>
 
