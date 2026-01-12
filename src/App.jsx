@@ -701,35 +701,63 @@ const App = () => {
 
       console.log("🛒 Payload para WooCommerce:", payload);
 
-      // 3. SINCRONIZACIÓN INMEDIATA CON WOOCOMMERCE
-      console.log("🚀 Enviando a WooCommerce API...");
-      const wcResult = await addToCart(payload);
+      // --- ESTRATEGIA PRE-OPEN TAB (Para evitar bloqueo de Popups) ---
+      // 1. Abrimos ventana inmediatamente (contexto de clic síncrono)
+      const syncerTab = window.open('', '_blank');
 
-      if (!wcResult.success) {
-        throw new Error(wcResult.error || "Error al sincronizar con la tienda.");
+      // Escribir mensaje en la pestaña mientras carga
+      if (syncerTab) {
+        syncerTab.document.write(`
+            <html>
+                <head><title>Sincronizando...</title></head>
+                <body style="font-family:sans-serif;background:#f8fafc;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;color:#64748b;">
+                    <div style="text-align:center;">
+                        <svg style="width:40px;height:40px;margin-bottom:10px;animation:spin 1s linear infinite;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle opacity="0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path opacity="0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p>Sincronizando carrito...</p>
+                        <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
+                    </div>
+                </body>
+            </html>
+          `);
       }
 
-      console.log("✅ Sincronizado. URL Carrito:", wcResult.cartUrl);
-      if (wcResult.cartUrl) {
-        setCheckoutUrl(wcResult.cartUrl);
+      try {
+        // 2. SINCRONIZACIÓN CON WOOCOMMERCE (Async)
+        console.log("🚀 Enviando a WooCommerce API...");
+        const wcResult = await addToCart(payload);
 
-        // Sincronización robusta vía pestaña temporal (Popup)
-        // Iframe falla por X-Frame-Options en muchos hostings.
-        console.log("🔗 Sincronizando carrito vía pestaña temporal...");
-        const newTab = window.open(wcResult.cartUrl, '_blank');
-
-        if (newTab) {
-          // Intentar devolver el foco a la app inmediatamente para que el usuario no sienta el cambio
-          window.focus();
-
-          // Cerrar la pestaña auxiliar automáticamente después de 3s
-          setTimeout(() => {
-            if (!newTab.closed) {
-              newTab.close();
-              console.log("✅ Pestaña de sincronización cerrada.");
-            }
-          }, 3000);
+        if (!wcResult.success) {
+          throw new Error(wcResult.error || "Error al sincronizar con la tienda.");
         }
+
+        console.log("✅ Sincronizado. URL Carrito:", wcResult.cartUrl);
+
+        if (wcResult.cartUrl) {
+          setCheckoutUrl(wcResult.cartUrl);
+
+          // 3. Redirigir la pestaña que ya teníamos abierta
+          if (syncerTab) {
+            syncerTab.location.href = wcResult.cartUrl;
+
+            // Intentar recuperar foco
+            window.focus();
+
+            // Cerrar a los 3 segundos
+            setTimeout(() => {
+              if (!syncerTab.closed) {
+                syncerTab.close();
+                console.log("✅ Pestaña de sincronización cerrada.");
+              }
+            }, 3000);
+          }
+        }
+      } catch (error) {
+        // Si falló, cerrar la ventana que abrimos por gusto
+        if (syncerTab && !syncerTab.closed) syncerTab.close();
+        throw error; // Propagar error para que lo maneje el catch externo
       }
 
       // 4. AGREGAR A CARRITO LOCAL (UI) - Con Agrupación
