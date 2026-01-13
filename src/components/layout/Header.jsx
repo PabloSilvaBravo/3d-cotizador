@@ -188,14 +188,14 @@ export const Header = () => {
                 .store-btn {
                     display: flex;
                     align-items: center;
-                    gap: 6px;
-                    padding: 8px 16px;
+                    gap: 4px;
+                    padding: 6px 12px;
                     border-radius: 20px;
                     border: 1px solid rgba(255,255,255,0.4);
                     background: rgba(255,255,255,0.1);
                     color: #ffffff;
                     text-decoration: none;
-                    font-size: 12px;
+                    font-size: 10.5px;
                     font-weight: 600;
                     transition: all 0.2s;
                 }
@@ -319,7 +319,7 @@ export const Header = () => {
                     {/* DERECHA: Botón Ir a la Tienda */}
                     <div className="buttons-section">
                         <a href="https://www.mechatronicstore.cl/" className="store-btn">
-                            <Globe size={14} />
+                            <Globe size={16} />
                             <span>IR A LA TIENDA</span>
                         </a>
                     </div>
