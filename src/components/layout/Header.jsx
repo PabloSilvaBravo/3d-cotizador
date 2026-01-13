@@ -1,9 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MechatronicLogo } from '../ui/MechatronicLogo';
-import { Globe, CheckCircle2 } from 'lucide-react';
+import { Home, CheckCircle2 } from 'lucide-react';
 
 export const Header = () => {
     const [showCopyToast, setShowCopyToast] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [hasClicked, setHasClicked] = useState(false);
+    const [canCompact, setCanCompact] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
+
+    // Lógica de compactación: Scroll O Click activa el modo compacto (siempre que el timer haya pasado)
+    const compactMode = (isScrolled || hasClicked) && canCompact && !isHovered;
+
+    useEffect(() => {
+        // Timer inicial de 3 segundos antes de permitir compactación
+        const timer = setTimeout(() => {
+            setCanCompact(true);
+        }, 3000);
+
+        // Listener de scroll
+        const handleScroll = () => {
+            const currentScroll = window.scrollY;
+            setIsScrolled(currentScroll > 20);
+
+            // Si volvemos al inicio, permitimos que se expanda de nuevo reseteando el click
+            if (currentScroll <= 20) {
+                setHasClicked(false);
+            }
+        };
+
+        // Listener de click
+        const handleClick = () => {
+            setHasClicked(true);
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('click', handleClick);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('click', handleClick);
+        };
+    }, []);
 
     const handleLogoClick = () => {
         window.location.href = 'https://www.mechatronicstore.cl/';
@@ -23,7 +62,7 @@ export const Header = () => {
                 .banner-container-fixed {
                     font-family: 'Montserrat', sans-serif;
                     background: linear-gradient(180deg, #121212 -50%, #6017b1 200%, #000000 250%);
-                    padding: 8px 12px;
+                    padding: 10px 12px;
                     font-size: 15px;
                 }
 
@@ -38,23 +77,40 @@ export const Header = () => {
                     border-bottom: 2px solid rgba(255,255,255,0.1);
                     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                     min-height: 60px;
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+
+                /* Estado Compacto */
+                .unified-header.compact {
+                    min-height: 28px;
+                    padding: 0;
                 }
 
                 .unified-container {
                     display: grid;
-                    grid-template-columns: 200px 1fr 200px;
+                    grid-template-columns: 200px 1fr 240px;
                     align-items: center;
                     max-width: 1400px;
                     margin: 0 auto;
                     padding: 12px 24px;
                     gap: 24px;
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .unified-header.compact .unified-container {
+                    padding: 2px 24px;
                 }
 
                 .logo-section {
                     display: flex;
                     align-items: center;
                     cursor: pointer;
-                    transition: opacity 0.3s;
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                    transform-origin: left center;
+                }
+
+                .unified-header.compact .logo-section {
+                    transform: scale(0.8);
                 }
 
                 .logo-section:hover {
@@ -97,8 +153,29 @@ export const Header = () => {
                     gap: 6px; 
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                    transition: opacity 0.2s;
+                    transition: all 0.4s ease;
                     font-size: 12px;
+                }
+                
+                .unified-header.compact .nav-items a {
+                    gap: 0;
+                }
+
+                .nav-items a span {
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                    max-width: 350px;
+                    opacity: 1;
+                    height: auto;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    display: inline-block;
+                }
+                
+                .unified-header.compact .nav-items a span {
+                    max-width: 0;
+                    opacity: 0;
+                    margin: 0;
+                    padding: 0;
                 }
 
                 .nav-items a:hover {
@@ -122,6 +199,24 @@ export const Header = () => {
                     width: 1px;
                     height: 20px;
                     background: rgba(255, 255, 255, 0.3);
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                    opacity: 1;
+                }
+                
+                .unified-header.compact .nav-item-divider {
+                    opacity: 0;
+                    width: 0;
+                    margin: 0;
+                }
+
+                /* Separador especial entre contacto y redes */
+                .spacer-div {
+                    width: 24px;
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .unified-header.compact .spacer-div {
+                    width: 8px;
                 }
 
                 .quote-wrapper {
@@ -197,16 +292,33 @@ export const Header = () => {
                 .store-btn {
                     display: flex;
                     align-items: center;
-                    gap: 4px;
-                    padding: 6px 12px;
-                    border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.4);
+                    gap: 8px;
+                    padding: 8px 20px;
+                    border-radius: 99px;
+                    border: 1.5px solid rgba(255,255,255,0.5);
                     background: rgba(255,255,255,0.1);
                     color: #ffffff;
                     text-decoration: none;
-                    font-size: 10.5px;
+                    font-size: 13px;
                     font-weight: 600;
-                    transition: all 0.2s;
+                    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+                    white-space: nowrap;
+                    overflow: hidden;
+                }
+                
+                .unified-header.compact .store-btn {
+                    padding: 4px;
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 99px;
+                    justify-content: center;
+                    gap: 0;
+                }
+                
+                .unified-header.compact .store-btn span {
+                    max-width: 0;
+                    opacity: 0;
+                    display: none;
                 }
 
                 .store-btn:hover {
@@ -243,7 +355,11 @@ export const Header = () => {
             </div>
 
             {/* 2. BARRA UNIFICADA: Logo + Contacto + Botones */}
-            <div className="unified-header">
+            <div
+                className={`unified-header ${compactMode ? 'compact' : ''}`}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
                 <div className="unified-container">
 
                     {/* IZQUIERDA: Logo */}
@@ -288,19 +404,10 @@ export const Header = () => {
                                 </a>
                             </li>
 
-                            <li className="nav-item-divider"></li>
+                            {/* Separador Grande entre Contacto y Redes */}
+                            <li className="spacer-div"></li>
 
-                            {/* Cotización */}
-                            <li>
-                                <div className="quote-wrapper">
-                                    <a href="https://empresas.mechatronicstore.cl/" className="quote-btn">
-                                        SOLICITAR COTIZACIÓN
-                                    </a>
-                                    <span className="badge-new">NUEVO</span>
-                                </div>
-                            </li>
 
-                            <li className="nav-item-divider"></li>
 
                             {/* Redes Sociales */}
                             <li>
@@ -325,11 +432,11 @@ export const Header = () => {
                         </ul>
                     </div>
 
-                    {/* DERECHA: Botón Ir a la Tienda */}
+                    {/* DERECHA: Botón Ir a la Web */}
                     <div className="buttons-section">
-                        <a href="https://www.mechatronicstore.cl/" className="store-btn">
-                            <Globe size={14} />
-                            <span>IR A LA TIENDA</span>
+                        <a href="https://www.mechatronicstore.cl/" className="store-btn" title="Ir a la web">
+                            <Home size={16} />
+                            <span>Ir a la web</span>
                         </a>
                     </div>
 
