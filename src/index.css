@@ -9,25 +9,17 @@
     /* Primary (#6017b1): Morado Intenso */
     --color-brand-primary: #6017b1;
 
-    /* Dark (#411073): Morado Oscuro */
+    /* Secondary (#3b0764): Morado Muy Oscuro - Textos importantes */
+    --color-brand-secondary: #3b0764;
+
+    /* Accent (#F1C40F): Amarillo - Llamadas a la acción */
+    --color-brand-accent: #F1C40F;
+
+    /* Text (#020617): Negro Profundo - Máximo contraste (Slate 950) */
     --color-brand-dark: #411073;
 
-    /* Accent (#F2D335): Amarillo - Llamadas a la acción */
-    --color-brand-accent: #F2D335;
-
-    /* Accent Hover (#F2C744): Amarillo Hover */
-    --color-brand-accent-hover: #F2C744;
-
-    /* Light (#8E1BE3): Morado Claro */
-    --color-brand-light: #8E1BE3;
-
-    /* Derived purple scale for compatibility */
-    --color-brand-50: #faf5ff;
-    --color-brand-100: #f3e8ff;
-    --color-brand-200: #e9d5ff;
-    --color-brand-500: #a855f7;
-    --color-brand-600: #9333ea;
-    --color-brand-900: #581c87;
+    /* Background (#e2e8f0): Gris Sólido - Mayor contraste con blanco (Slate 200) */
+    --color-brand-light: #e2e8f0;
 }
 
 @layer base {
@@ -37,7 +29,7 @@
     }
 
     body {
-        @apply text-brand-dark font-sans;
+        @apply bg-brand-light text-brand-dark font-sans;
         font-family: 'Montserrat', system-ui, sans-serif;
 
         /* MATCH EXACTO EMPRESAS.MECHATRONICSTORE.CL */

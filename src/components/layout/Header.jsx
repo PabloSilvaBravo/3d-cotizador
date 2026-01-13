@@ -328,7 +328,7 @@ export const Header = () => {
                     {/* DERECHA: Botón Ir a la Tienda */}
                     <div className="buttons-section">
                         <a href="https://www.mechatronicstore.cl/" className="store-btn">
-                            <Globe size={16} />
+                            <Globe size={14} />
                             <span>IR A LA TIENDA</span>
                         </a>
                     </div>
