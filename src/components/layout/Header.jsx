@@ -501,6 +501,47 @@ export const Header = () => {
                     }
                 }
 
+                @media (max-width: 768px) {
+                    /* El bloque central con contactos y redes sociales se elimina del flujo */
+                    .center-section {
+                        display: none;
+                    }
+
+                    .unified-container {
+                        display: flex; /* Cambiamos de Grid a Flex */
+                        justify-content: space-between; /* Empuja el Logo a la izq y Botones a la der */
+                        padding: 8px 12px !important; /* Reducimos padding lateral */
+                        gap: 12px;
+                    }
+
+                    .store-btn {
+                        padding: 0 !important;      /* Quitamos padding lateral de texto */
+                        width: 32px !important;     /* Ancho fijo cuadrado */
+                        height: 32px !important;    /* Alto fijo cuadrado */
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;    /* Centrado perfecto del icono */
+                        
+                        /* UX Móvil: Fondo semitransparente para que parezca "tocable" */
+                        background: rgba(255,255,255,0.1); 
+                        border: 1px solid rgba(255,255,255,0.2);
+                    }
+
+                    /* Prevenimos que el botón crezca al tocarlo en móviles */
+                    .unified-header.compact:hover .store-btn {
+                        width: 32px !important;
+                        padding: 0 !important;
+                        background: rgba(255,255,255,0.1);
+                        border-radius: 100px; /* Mantener borde redondeado */
+                        height: 32px !important;
+                    }
+
+                    /* Aseguramos que el texto (span) siga oculto */
+                    .unified-header.compact:hover .store-btn span {
+                        display: none !important;
+                    }
+                }
+
 
             `}</style>
 
