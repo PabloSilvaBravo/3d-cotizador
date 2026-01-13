@@ -34,11 +34,11 @@ export const Footer = () => {
 
                     {/* Logo Centrado con efecto sutil */}
                     <div className="opacity-90 hover:opacity-100 transition-opacity duration-300 transform hover:scale-105">
-                        <MechatronicLogo className="h-9 w-auto" />
+                        <MechatronicLogo className="h-10 w-auto" />
                     </div>
 
                     {/* Información de Contacto - Diseño limpio y espaciado */}
-                    <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-4 text-xs font-medium text-white/70 tracking-wide">
+                    <div className="flex flex-wrap justify-center items-center gap-x-10 gap-y-4 text-[11px] font-medium text-white/70 tracking-wide">
 
                         <div className="flex items-center gap-2.5 group cursor-default">
                             <div className="p-1.5 rounded-full bg-white/5 group-hover:bg-brand-accent/20 transition-colors">
