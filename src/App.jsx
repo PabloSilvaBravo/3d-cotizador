@@ -960,11 +960,11 @@ const App = () => {
         <CircuitBackground />
         <Header />
 
-        <div className="flex-1 flex flex-col justify-center items-center px-[10px] relative z-10 pt-[120px] pb-[10px]">
+        <div className="flex-1 flex flex-col justify-center items-center px-[10px] relative z-10 pt-[60px] pb-[30px]">
           <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/5 rounded-full blur-[100px]"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand-accent/10 rounded-full blur-[100px]"></div>
 
-          <main className="max-w-6xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up py-10">
+          <main className="max-w-5xl w-full relative z-10 flex flex-col items-center gap-12 animate-fade-in-up py-10">
             <AnimatePresence mode="wait">
               {userHasFile === null && (
                 <motion.div
@@ -1025,7 +1025,7 @@ const App = () => {
 
   // --- APP VIEW (SPLIT SCREEN) ---
   return (
-    <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-[145px]">
+    <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-[60px]">
       <AnimatePresence>
         {isSuccess && <SuccessScreen onReset={handleFullReset} />}
       </AnimatePresence>

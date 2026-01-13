@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { MechatronicLogo } from '../ui/MechatronicLogo';
+import { MechatronicLogo } from './MechatronicLogoExport';
 import { Phone, Mail, MapPin, CheckCircle2 } from 'lucide-react';
 
-export const Footer = () => {
+export const FooterExport: React.FC = () => {
     const [showCopyToast, setShowCopyToast] = useState(false);
 
-    const handleEmailClick = (e) => {
+    const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         navigator.clipboard.writeText('ventas@mechatronicstore.cl');
         setShowCopyToast(true);
@@ -26,7 +26,7 @@ export const Footer = () => {
                 </div>
             )}
 
-            <footer className="bg-brand-primary text-white border-t border-white/5 py-6 mt-auto relative overflow-hidden">
+            <footer className="bg-brand-primary text-white border-t border-white/5 py-6 mt-auto relative overflow-hidden font-sans">
                 {/* Decorative Top Line Gradient */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-[1px] bg-gradient-to-r from-transparent via-brand-accent/50 to-transparent"></div>
 

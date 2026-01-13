@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { MechatronicLogo } from '../ui/MechatronicLogo';
+import { MechatronicLogo } from './MechatronicLogoExport';
 import { Home, CheckCircle2 } from 'lucide-react';
 
-export const Header = () => {
+export const HeaderExport: React.FC = () => {
     const [showCopyToast, setShowCopyToast] = useState(false);
-
 
     const handleLogoClick = () => {
         window.location.href = 'https://www.mechatronicstore.cl/';
     };
 
-    const handleEmailClick = (e) => {
+    const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         navigator.clipboard.writeText('ventas@mechatronicstore.cl');
         setShowCopyToast(true);
@@ -73,8 +72,6 @@ export const Header = () => {
                     justify-self: start; /* Alinear a la izquierda del primer 1fr */
                     min-width: max-content; /* Evitar que el grid lo aplaste */
                 }
-
-
 
                 .unified-header.compact .logo-section {
                     transform: scale(0.8);
@@ -473,7 +470,7 @@ export const Header = () => {
                     height: auto;
                     padding: 4px 12px; /* Un poco menos de padding que el full para caber en 28px */
                     border-radius: 99px;
-                    background: rgba(255,255,255,);
+                    background: rgba(255,255,255,0.2);
                     gap: 10px;
                 }
                 
@@ -500,8 +497,6 @@ export const Header = () => {
                         gap: 16px;
                     }
                 }
-
-
             `}</style>
 
             {/* 1. Banner Envio Gratis */}
