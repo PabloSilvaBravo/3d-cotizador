@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MechatronicLogo } from '../ui/MechatronicLogo';
-import { Globe } from 'lucide-react';
+import { Globe, CheckCircle2 } from 'lucide-react';
 
 export const Header = () => {
+    const [showCopyToast, setShowCopyToast] = useState(false);
+
     const handleLogoClick = () => {
         window.location.href = 'https://www.mechatronicstore.cl/';
+    };
+
+    const handleEmailClick = (e) => {
+        e.preventDefault();
+        navigator.clipboard.writeText('ventas@mechatronicstore.cl');
+        setShowCopyToast(true);
+        setTimeout(() => setShowCopyToast(false), 2000);
     };
 
     return (
@@ -259,7 +268,7 @@ export const Header = () => {
 
                             {/* Email */}
                             <li>
-                                <a href="mailto:ventas@mechatronicstore.cl" title="ventas@mechatronicstore.cl">
+                                <a href="mailto:ventas@mechatronicstore.cl" title="ventas@mechatronicstore.cl" onClick={handleEmailClick}>
                                     <svg className="icon-svg" viewBox="0 0 1024 1024" fill="#ffffff">
                                         <path transform="translate(0, 960) scale(1, -1)" d="M928 832h-832c-52.8 0-96-43.2-96-96v-640c0-52.8 43.2-96 96-96h832c52.8 0 96 43.2 96 96v640c0 52.8-43.2 96-96 96zM398.741 409.627l-270.741-210.891v501.641l270.741-290.75zM176.379 704h671.241l-335.621-252-335.621 252zM409.289 398.302l102.711-110.302 102.711 110.302 210.553-270.302h-626.528l210.553 270.302zM625.259 409.627l270.741 290.75v-501.641l-270.741 210.891z" />
                                     </svg>
@@ -326,6 +335,18 @@ export const Header = () => {
 
                 </div>
             </div>
+
+            {/* Toast de Copiado */}
+            {showCopyToast && (
+                <div className="fixed bottom-10 left-1/2 z-[100] -translate-x-1/2 shadow-2xl animate-in fade-in slide-in-from-bottom-5 duration-300">
+                    <div className="flex items-center gap-3 px-5 py-3 bg-zinc-900 text-white rounded-full border border-white/10 ring-1 ring-black/20">
+                        <div className="bg-green-500 rounded-full p-0.5 shadow-sm shadow-green-500/50">
+                            <CheckCircle2 size={16} className="text-white" strokeWidth={3} />
+                        </div>
+                        <span className="font-semibold text-sm tracking-wide">Correo copiado al portapapeles</span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
