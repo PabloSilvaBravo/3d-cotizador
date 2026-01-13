@@ -4,7 +4,7 @@ export const calculatePriceFromStats = (config, stats) => {
     // stats: { weightGrams, timeHours, pesoSoportes } 
 
     // 1. COSTO MATERIAL
-    const PRICE_PER_GRAM_PLA = 10;
+    const PRICE_PER_GRAM_PLA = 12;
     const materialCost = Math.ceil(stats.weightGrams * PRICE_PER_GRAM_PLA);
 
     // 2. FACTOR DIFICULTAD (Basado en % de soportes del G-Code real)
@@ -22,7 +22,7 @@ export const calculatePriceFromStats = (config, stats) => {
     */
 
     // 3. COSTO TIEMPO
-    const PRICE_PER_HOUR = 2500;
+    const PRICE_PER_HOUR = 2000;
     const timeCost = Math.ceil(difficultyFactor * PRICE_PER_HOUR * stats.timeHours);
 
     // 4. COSTO CAMAS (Nesting y Camas Extras)
