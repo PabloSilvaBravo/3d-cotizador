@@ -624,7 +624,7 @@ export const Header = () => {
                     <div className="buttons-section">
                         <a href="https://www.mechatronicstore.cl/" className="store-btn" title="Ir a la web">
                             <Home size={16} />
-                            <span>Ir a la web</span>
+                            <span>Tienda</span>
                         </a>
                     </div>
 

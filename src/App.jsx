@@ -1025,7 +1025,7 @@ const App = () => {
 
   // --- APP VIEW (SPLIT SCREEN) ---
   return (
-    <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-[60px]">
+    <div className="h-screen w-full bg-brand-light font-sans text-brand-dark flex flex-col lg:flex-row overflow-hidden relative selection:bg-brand-primary/30 pt-[85px]">
       <AnimatePresence>
         {isSuccess && <SuccessScreen onReset={handleFullReset} />}
       </AnimatePresence>
