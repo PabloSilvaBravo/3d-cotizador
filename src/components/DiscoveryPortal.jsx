@@ -118,99 +118,72 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                 >
                     <X className="w-5 h-5" />
                 </button>
-
-                {/* Columna Izquierda: Inspiración & Pasos */}
+                
                 <div className="w-full md:w-1/3 p-4 md:p-8 border-b md:border-b-0 md:border-r border-slate-200/50 flex flex-col relative shrink-0 md:overflow-y-auto custom-scrollbar bg-gradient-to-br from-white to-slate-50">
-                    {/* Elemento decorativo de fondo */}
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-brand-primary/5 to-transparent pointer-events-none" />
 
-                    <div className="relative z-10 flex flex-col md:flex-row md:flex-col justify-between md:justify-center gap-4 md:gap-0 flex-1 min-h-0">
-                        <div className="mb-6">
-                            <motion.div
-                                initial={{ y: 0 }}
-                                animate={{ y: -10 }}
-                                transition={{ repeat: Infinity, repeatType: "mirror", duration: 3 }}
-                                className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-xl shadow-brand-primary/10 mb-4 border border-slate-100"
-                            >
-                                <Search className="w-7 h-7 text-brand-primary" strokeWidth={2.5} />
-                            </motion.div>
-                            <h2 className="text-2xl font-black text-slate-800 leading-tight mb-2 hidden md:block">
-                                Explora el <br />
+                    <div className="relative z-10 flex items-center gap-4 md:block mb-4 md:mb-6">
+                        <motion.div
+                            initial={{ y: 0 }}
+                            animate={{ y: -10 }}
+                            transition={{ repeat: Infinity, repeatType: "mirror", duration: 3 }}
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white flex items-center justify-center shadow-xl shadow-brand-primary/10 md:mb-4 border border-slate-100 shrink-0"
+                        >
+                            <Search className="w-6 h-6 md:w-7 md:h-7 text-brand-primary" strokeWidth={2.5} />
+                        </motion.div>
+                        <div>
+                            <h2 className="text-base md:text-2xl font-black text-slate-800 leading-tight md:mb-2">
+                                Explora el{' '}
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-secondary">
                                     Universo 3D
                                 </span>
                             </h2>
-                            <h2 className="text-lg font-black text-slate-800 leading-tight mb-1 md:hidden">
-                                Explora el Universo 3D
-                            </h2>
-                            <p className="text-slate-500 leading-relaxed text-xs font-medium hidden md:block">
-                                ¿No tienes un archivo? <br />
-                                Hay millones de objetos útiles listos para descargar.
+                            <p className="text-slate-500 text-xs font-medium hidden md:block">
+                                ¿No tienes un archivo?{' '}Hay millones de objetos útiles listos para descargar.
                             </p>
                         </div>
                     </div>
 
-                    {/* Pasos Rápidos — ocultos en móvil para ahorrar espacio */}
-                    <div className="relative z-10 pt-4 border-t border-slate-200 mt-4 hidden md:block">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">SIGUE ESTOS 3 PASOS</p>
+                    <div className="relative z-10 pt-4 border-t border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">SIGUE ESTOS 3 PASOS</p>
 
-                        <div className="relative space-y-6 pl-2">
-                            {/* Línea conectora */}
+                        <div className="grid grid-cols-3 gap-2 md:hidden">
+                            {[
+                                { icon: <Search className="w-4 h-4 text-brand-primary" strokeWidth={2.5} />, label: '1. Elige modelo', sub: 'Entra a una página' },
+                                { icon: <Download className="w-4 h-4 text-brand-secondary" strokeWidth={2.5} />, label: '2. Descarga STL', sub: 'Busca el botón' },
+                                { icon: <Box className="w-4 h-4 text-slate-500" strokeWidth={2.5} />, label: '3. Súbelo aquí', sub: 'En este portal' },
+                            ].map((step, i) => (
+                                <div key={i} className="flex flex-col items-center text-center gap-1.5 bg-white rounded-xl p-2.5 border border-slate-100 shadow-sm">
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">{step.icon}</div>
+                                    <p className="text-[10px] font-bold text-slate-700 leading-tight">{step.label}</p>
+                                    <p className="text-[9px] text-slate-400">{step.sub}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="relative space-y-6 pl-2 hidden md:block">
                             <div className="absolute left-[19px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-brand-primary/20 via-brand-secondary/20 to-transparent -z-10" />
-
-                            {/* Paso 1 */}
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="flex items-center gap-3 group"
-                            >
+                            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="flex items-center gap-3 group">
                                 <div className="w-8 h-8 rounded-full bg-white border-2 border-brand-primary/30 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform relative z-10 shrink-0">
                                     <Search className="w-4 h-4 text-brand-primary" strokeWidth={2.5} />
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-700 text-xs">1. Elige tu Modelo</h4>
-                                    <p className="text-[10px] text-slate-500">Entra a una de las páginas.</p>
-                                </div>
+                                <div><h4 className="font-bold text-slate-700 text-xs">1. Elige tu Modelo</h4><p className="text-[10px] text-slate-500">Entra a una de las páginas.</p></div>
                             </motion.div>
-
-                            {/* Paso 2 */}
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.4 }}
-                                className="flex items-center gap-3 group"
-                            >
+                            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }} className="flex items-center gap-3 group">
                                 <div className="w-8 h-8 rounded-full bg-white border-2 border-brand-secondary/30 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform relative z-10 shrink-0">
                                     <Download className="w-4 h-4 text-brand-secondary" strokeWidth={2.5} />
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-700 text-xs">2. Descargar Archivo</h4>
-                                    <p className="text-[10px] text-slate-500">Busca <span className="font-bold text-brand-secondary">Download STL</span>.</p>
-                                </div>
+                                <div><h4 className="font-bold text-slate-700 text-xs">2. Descargar Archivo</h4><p className="text-[10px] text-slate-500">Busca <span className="font-bold text-brand-secondary">Download STL</span>.</p></div>
                             </motion.div>
-
-                            {/* Paso 3 */}
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: 0.6 }}
-                                className="flex items-center gap-3 group"
-                            >
+                            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }} className="flex items-center gap-3 group">
                                 <div className="w-8 h-8 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform relative z-10 shrink-0">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-                                    <Box className="w-4 h-4 text-slate-500 absolute" strokeWidth={2.5} />
+                                    <Box className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-700 text-xs">3. Tráelo aquí</h4>
-                                    <p className="text-[10px] text-slate-500">Sube ese archivo.</p>
-                                </div>
+                                <div><h4 className="font-bold text-slate-700 text-xs">3. Tráelo aquí</h4><p className="text-[10px] text-slate-500">Sube ese archivo.</p></div>
                             </motion.div>
                         </div>
                     </div>
 
-
-                    {/* Botón CTA Final (Compacto & Estilizado) */}
                     <motion.button
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -218,11 +191,9 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                         whileTap={{ scale: 0.96 }}
                         transition={{ delay: 0.2 }}
                         onClick={onUploadClick}
-                        className="relative z-50 group w-full mt-6 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-wide shadow-lg shadow-brand-primary/20 bg-gradient-to-r from-brand-secondary to-brand-primary text-white flex items-center justify-center gap-2 transform overflow-hidden"
+                        className="relative z-50 group w-full mt-4 md:mt-6 py-3 px-4 rounded-xl font-black text-sm uppercase tracking-wide shadow-lg shadow-brand-primary/20 bg-gradient-to-r from-brand-secondary to-brand-primary text-white flex items-center justify-center gap-2 transform overflow-hidden"
                     >
-                        {/* Shine Effect */}
-                        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10"></div>
-
+                        <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-10" />
                         <div className="relative z-20 flex items-center justify-center gap-2">
                             <span>¡Listo! Subir Archivo</span>
                             <ExternalLink className="w-3.5 h-3.5 opacity-70" />
@@ -230,7 +201,6 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                     </motion.button>
                 </div>
 
-                {/* Columna Derecha: El Grid de Cards — scroll principal en móvil */}
                 <div className="flex-1 p-4 md:p-8 bg-slate-50/50 overflow-y-auto custom-scrollbar min-h-0">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
