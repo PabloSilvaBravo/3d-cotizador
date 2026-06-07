@@ -93,7 +93,7 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
     };
 
     return ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[74px] md:pt-4">
             {/* Backdrop con Blur y oscurecido para contraste (Spotlight Effect) */}
             <motion.div
                 initial={{ opacity: 0 }}
@@ -109,7 +109,7 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="relative w-full max-w-5xl bg-white/90 backdrop-blur-2xl border border-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row h-[95dvh] md:h-auto md:max-h-[85vh] font-sans ring-4 ring-white/40"
+                className="relative w-full max-w-5xl bg-white/90 backdrop-blur-2xl border border-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row h-[calc(95dvh-70px)] md:h-auto md:max-h-[85vh] font-sans ring-4 ring-white/40"
             >
                 {/* Botón Cerrar (Estilo UI Unificado) */}
                 <button
