@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import CubeLoader from './CubeLoader';
@@ -42,6 +42,8 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
     const [isAdvanced, setIsAdvanced] = useState(false);
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [showTermsModal, setShowTermsModal] = useState(false);
+    const [termsHighlight, setTermsHighlight] = useState(false); // Para animar el checkbox cuando el usuario lo olvida
+    const termsRef = useRef(null); // Ref para hacer scroll al checkbox
 
     // Animación del precio final
     const animatedPrice = useCountUp(estimate ? estimate.totalPrice : 0);
@@ -306,15 +308,28 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         )}
                     </AnimatePresence>
 
-                    {/* Términos y Condiciones (Checkbox) */}
-                    <div className="flex items-start gap-3 px-1">
-                        <div className="relative flex items-center mt-0.5">
+                    {/* Términos y Condiciones (Checkbox) — ref para scroll automático */}
+                    <div
+                        ref={termsRef}
+                        className={`flex items-start gap-3 px-3 py-2.5 rounded-xl transition-all duration-300 ${
+                            termsHighlight
+                                ? 'bg-amber-50 border-2 border-amber-400 shadow-md shadow-amber-200 animate-[shake_0.5s_ease-in-out]'
+                                : 'border-2 border-transparent'
+                        }`}
+                        style={termsHighlight ? { animation: 'shake 0.5s ease-in-out' } : {}}
+                    >
+                        <div className="relative flex items-center mt-0.5 shrink-0">
                             <input
                                 id="terms-check"
                                 type="checkbox"
                                 checked={termsAccepted}
                                 onChange={(e) => setTermsAccepted(e.target.checked)}
-                                className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-slate-300 bg-white shadow-sm transition-all hover:border-brand-primary checked:border-brand-primary checked:bg-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                className={`peer h-5 w-5 cursor-pointer appearance-none rounded border-2 bg-white shadow-sm transition-all
+                                    ${ termsHighlight
+                                        ? 'border-amber-400 shadow-amber-300'
+                                        : 'border-slate-300 hover:border-brand-primary'
+                                    }
+                                    checked:border-brand-primary checked:bg-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20`}
                             />
                             {/* Checkmark Icon Overlay */}
                             <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 transition-opacity">
@@ -323,12 +338,19 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                 </svg>
                             </span>
                         </div>
-                        <label htmlFor="terms-check" className="text-xs text-slate-500 cursor-pointer select-none leading-tight">
-                            He leído y acepto los <button
-                                onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
-                                className="text-brand-primary font-bold hover:underline"
-                            >términos y condiciones</button> del servicio de impresión 3D.
-                        </label>
+                        <div className="flex flex-col">
+                            <label htmlFor="terms-check" className={`text-xs cursor-pointer select-none leading-tight font-medium transition-colors ${ termsHighlight ? 'text-amber-800' : 'text-slate-600' }`}>
+                                He leído y acepto los <button
+                                    onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
+                                    className="text-brand-primary font-bold hover:underline"
+                                >términos y condiciones</button> del servicio de impresión 3D.
+                            </label>
+                            {termsHighlight && (
+                                <span className="text-[11px] text-amber-700 font-semibold mt-0.5 flex items-center gap-1">
+                                    <span>☝️</span> Debes aceptar los términos para continuar
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Botones de Acción (WooCommerce + Cotización) */}
@@ -338,15 +360,26 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                         <motion.button
                             whileHover={!isLoading && !isCartLoading && config.material && termsAccepted ? { scale: 1.02 } : {}}
                             whileTap={!isLoading && !isCartLoading && config.material && termsAccepted ? { scale: 0.96 } : {}}
-                            onClick={onWooCommerceCart}
-                            disabled={isLoading || isCartLoading || !config.material || !termsAccepted}
+                            onClick={() => {
+                                // Si falta aceptar términos, resaltar el checkbox en lugar de hacer nada
+                                if (!termsAccepted && !isLoading && !isCartLoading && config.material) {
+                                    setTermsHighlight(true);
+                                    termsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    setTimeout(() => setTermsHighlight(false), 1800);
+                                    return;
+                                }
+                                onWooCommerceCart();
+                            }}
+                            disabled={isLoading || isCartLoading || !config.material}
                             className={`
                                 group w-full py-4 rounded-2xl font-black text-lg shadow-xl shadow-brand-primary/20
                                 flex items-center justify-center gap-3 transform
                                 relative overflow-hidden
-                                ${isLoading || isCartLoading || !config.material || !termsAccepted
+                                ${isLoading || isCartLoading || !config.material
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                    : 'bg-gradient-to-r from-brand-secondary to-brand-primary text-white'
+                                    : !termsAccepted
+                                        ? 'bg-gradient-to-r from-brand-secondary to-brand-primary text-white opacity-70 cursor-pointer'
+                                        : 'bg-gradient-to-r from-brand-secondary to-brand-primary text-white'
                                 }
                             `}
                         >
@@ -364,7 +397,7 @@ export const PriceSummary = ({ estimate, config, onAddToCart, onWooCommerceCart,
                                         </svg>
                                         Procesando...
                                     </>
-                                ) : (!config.material ? 'Selecciona Material' : (!termsAccepted ? 'Acepta Términos' : 'Agregar al Carrito'))}
+                                ) : (!config.material ? 'Selecciona Material' : 'Agregar al Carrito')}
                             </span>
 
 

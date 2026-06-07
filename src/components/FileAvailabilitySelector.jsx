@@ -10,20 +10,44 @@ import { useCallback } from 'react';
 export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp, onFileSelect }) {
 
     // Configuración Dropzone para carga directa
-    const onDrop = useCallback((acceptedFiles) => {
-        if (acceptedFiles?.length > 0 && onFileSelect) {
-            onFileSelect(acceptedFiles[0]);
+    // NOTA: No usamos el filtro "accept" de react-dropzone por MIME types,
+    // porque Android Chrome/Samsung Browser no reconoce tipos no estándar como
+    // "model/stl" o "model/step", lo que impedía seleccionar archivos en móviles.
+    // En su lugar, validamos la extensión manualmente en onDrop.
+    const ALLOWED_EXTENSIONS = ['stl', 'step', 'stp'];
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
+    const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+        // Manejar el primer archivo (aunque haya venido como "rechazado" por MIME)
+        const allFiles = [
+            ...acceptedFiles,
+            ...(rejectedFiles || []).map(r => r.file)
+        ];
+
+        if (allFiles.length === 0) return;
+
+        const file = allFiles[0];
+        const ext = file.name.split('.').pop()?.toLowerCase();
+
+        if (!ALLOWED_EXTENSIONS.includes(ext)) {
+            alert('Solo se soportan archivos .STL y .STEP actualmente.');
+            return;
+        }
+        if (file.size > MAX_FILE_SIZE) {
+            alert('El archivo es muy grande. Máximo 100MB.');
+            return;
+        }
+        if (onFileSelect) {
+            onFileSelect(file);
         }
     }, [onFileSelect]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
-        accept: {
-            'model/stl': ['.stl'],
-            'model/step': ['.step', '.stp'],
-            'model/obj': ['.obj']
-        },
-        maxSize: 100 * 1024 * 1024, // 100MB
+        // Sin filtro accept por MIME para compatibilidad universal con Android.
+        // La validación real se hace en onDrop por extensión.
+        accept: undefined,
+        maxSize: undefined, // La validación de tamaño también la hacemos en onDrop
         multiple: false
     });
 
