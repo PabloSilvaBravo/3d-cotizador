@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { motion } from 'framer-motion';
 import { Search, Download, Box, ExternalLink, X, Hexagon, Triangle, Circle, RotateCcw } from 'lucide-react';
 
-const Card = ({ title, description, badge, color, icon, href, isLarge = false, isCompact = false }) => {
+const Card = ({ title, description, badge, color, icon, href, isCompact = false }) => {
     return (
         <motion.a
             href={href}
@@ -13,11 +13,9 @@ const Card = ({ title, description, badge, color, icon, href, isLarge = false, i
             whileTap={{ scale: 0.98 }}
             className={`
                 relative group overflow-hidden rounded-2xl border border-slate-200 flex 
-                ${isCompact ? 'flex-row items-center gap-4 p-4 !aspect-auto bg-white/60' : 'flex-col justify-between p-6 bg-white aspect-square'}
+                ${isCompact ? 'flex-row items-center gap-3 p-3 !aspect-auto bg-white/60' : 'flex-col justify-between p-5 bg-white h-full'}
                 backdrop-blur-xl hover:bg-white hover:border-slate-300 transition-all duration-300 shadow-sm hover:shadow-xl
-                ${isLarge ? 'col-span-1 md:col-span-3 aspect-[2/1] md:!aspect-[3/1]' : ''}
-                ${isCompact ? 'col-span-1' : ''}
-                cursor-pointer
+                cursor-pointer w-full
             `}
         >
             {/* Glow Effect on Hover */}
@@ -27,11 +25,10 @@ const Card = ({ title, description, badge, color, icon, href, isLarge = false, i
                 {/* Icono 3D / Figura */}
                 <div className={`
                     relative flex items-center justify-center 
-                    ${isCompact ? 'w-12 h-12 rounded-xl' : 'w-14 h-14 rounded-2xl'} 
+                    ${isCompact ? 'w-10 h-10 rounded-xl shrink-0' : 'w-12 h-12 rounded-2xl shrink-0'} 
                     bg-gradient-to-br ${color} 
                     shadow-lg text-white
                     group-hover:scale-110 transition-transform duration-300
-                    ${isLarge && !isCompact ? 'scale-110' : ''}
                 `}>
                     {/* Sombra de color (Glow) */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${color} blur-lg opacity-40`} />
@@ -43,24 +40,24 @@ const Card = ({ title, description, badge, color, icon, href, isLarge = false, i
                 </div>
 
                 {badge && (
-                    <span className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-brand-primary to-brand-secondary rounded-full shadow-lg shadow-brand-primary/20 ml-auto self-start">
+                    <span className="px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white bg-gradient-to-r from-brand-primary to-brand-secondary rounded-full shadow-lg shadow-brand-primary/20 ml-auto self-start">
                         {badge}
                     </span>
                 )}
-                {!badge && !isCompact && <ExternalLink className="w-5 h-5 text-slate-300 group-hover:text-brand-primary transition-colors self-start" />}
+                {!badge && !isCompact && <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-brand-primary transition-colors self-start" />}
             </div>
 
-            <div className={`relative z-10 ${isCompact ? '' : 'mt-4'}`}>
-                <h3 className={`font-bold text-slate-800 group-hover:text-brand-primary transition-colors ${isCompact ? 'text-sm' : 'text-xl mb-1'}`}>
+            <div className={`relative z-10 ${isCompact ? 'min-w-0 flex-1 ml-3' : 'mt-4'}`}>
+                <h3 className={`font-bold text-slate-800 group-hover:text-brand-primary transition-colors truncate ${isCompact ? 'text-xs' : 'text-base mb-1'}`}>
                     {title}
                 </h3>
                 {description && !isCompact && (
-                    <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-500 leading-tight font-medium">
                         {description}
                     </p>
                 )}
-                {isCompact && <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-brand-primary ml-auto transition-colors" />}
             </div>
+            {isCompact && <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-brand-primary ml-auto transition-colors shrink-0" />}
         </motion.a>
     );
 };
@@ -93,7 +90,7 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
     };
 
     return ReactDOM.createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pt-[74px] md:pt-4">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4">
             {/* Backdrop con Blur y oscurecido para contraste (Spotlight Effect) */}
             <motion.div
                 initial={{ opacity: 0 }}
@@ -109,7 +106,7 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="relative w-full max-w-5xl bg-white/90 backdrop-blur-2xl border border-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row h-[calc(95dvh-70px)] md:h-auto md:max-h-[85vh] font-sans ring-4 ring-white/40"
+                className="relative w-full max-w-5xl bg-white/90 backdrop-blur-2xl border border-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row h-[calc(100dvh-2rem)] md:h-auto md:max-h-[85vh] font-sans ring-4 ring-white/40"
             >
                 {/* Botón Cerrar (Estilo UI Unificado) */}
                 <button
@@ -207,44 +204,45 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                         Recomendados por Nosotros
                     </h3>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                        {/* MakerWorld - Destacado */}
-                        <Card
-                            title="MakerWorld"
-                            description="Nuestra Recomendación. Modelos verificados para máxima compatibilidad con nuestras impresoras."
-                            badge="Recomendado"
-                            color="from-slate-400 to-slate-600"
-                            icon={<Box className="w-8 h-8" strokeWidth={1.5} />}
-                            href="https://makerworld.com/en"
-                            isLarge={true}
-                        />
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                        {/* Columna Izquierda: MakerWorld */}
+                        <div className="flex">
+                            <Card
+                                title="MakerWorld"
+                                description="Nuestra Recomendación. Modelos verificados para máxima compatibilidad con nuestras impresoras."
+                                badge="Recomendado"
+                                color="from-slate-400 to-slate-600"
+                                icon={<Box className="w-8 h-8" strokeWidth={1.5} />}
+                                href="https://makerworld.com/en"
+                            />
+                        </div>
 
-                        {/* Printables */}
-                        <Card
-                            title="Printables"
-                            color="from-orange-500 to-red-500"
-                            icon={<Triangle className="w-6 h-6 fill-current" strokeWidth={2} />}
-                            href="https://www.printables.com/"
-                            isCompact={true}
-                        />
+                        {/* Columna Derecha: Los otros 3 apilados */}
+                        <div className="flex flex-col gap-2 md:gap-3">
+                            <Card
+                                title="Printables"
+                                color="from-orange-500 to-red-500"
+                                icon={<Triangle className="w-6 h-6 fill-current" strokeWidth={2} />}
+                                href="https://www.printables.com/"
+                                isCompact={true}
+                            />
 
-                        {/* Thingiverse */}
-                        <Card
-                            title="Thingiverse"
-                            color="from-blue-500 to-indigo-600"
-                            icon={<Circle className="w-6 h-6" strokeWidth={2.5} />}
-                            href="https://www.thingiverse.com/"
-                            isCompact={true}
-                        />
+                            <Card
+                                title="Thingiverse"
+                                color="from-blue-500 to-indigo-600"
+                                icon={<Circle className="w-6 h-6" strokeWidth={2.5} />}
+                                href="https://www.thingiverse.com/"
+                                isCompact={true}
+                            />
 
-                        {/* Cults3D */}
-                        <Card
-                            title="Cults3D"
-                            color="from-purple-500 to-fuchsia-600"
-                            icon={<Hexagon className="w-6 h-6 fill-current" strokeWidth={1.5} />}
-                            href="https://cults3d.com/"
-                            isCompact={true}
-                        />
+                            <Card
+                                title="Cults3D"
+                                color="from-purple-500 to-fuchsia-600"
+                                icon={<Hexagon className="w-6 h-6 fill-current" strokeWidth={1.5} />}
+                                href="https://cults3d.com/"
+                                isCompact={true}
+                            />
+                        </div>
                     </div>
 
                     {/* GIF Explicativo de Descarga */}

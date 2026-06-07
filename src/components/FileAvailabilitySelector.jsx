@@ -156,7 +156,7 @@ export default function FileAvailabilitySelector({ onHasFile, onNeedsHelp, onFil
                                     }
                                 }}
                             >
-                                {isDropzoneInfo && <input {...getInputProps()} />}
+                                {isDropzoneInfo && <input {...getInputProps()} accept="*/*" />}
 
 
                                 {/* Shimmer effect sutil */}
