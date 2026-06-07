@@ -109,7 +109,7 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 50, scale: 0.95 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="relative w-full max-w-5xl bg-white/90 backdrop-blur-2xl border border-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row h-auto max-h-[85vh] font-sans ring-4 ring-white/40"
+                className="relative w-full max-w-5xl bg-white/90 backdrop-blur-2xl border border-white rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col md:flex-row h-[95dvh] md:h-auto md:max-h-[85vh] font-sans ring-4 ring-white/40"
             >
                 {/* Botón Cerrar (Estilo UI Unificado) */}
                 <button
@@ -120,11 +120,11 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                 </button>
 
                 {/* Columna Izquierda: Inspiración & Pasos */}
-                <div className="w-full md:w-1/3 p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200/50 flex flex-col relative overflow-y-auto custom-scrollbar bg-gradient-to-br from-white to-slate-50">
+                <div className="w-full md:w-1/3 p-4 md:p-8 border-b md:border-b-0 md:border-r border-slate-200/50 flex flex-col relative shrink-0 md:overflow-y-auto custom-scrollbar bg-gradient-to-br from-white to-slate-50">
                     {/* Elemento decorativo de fondo */}
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-brand-primary/5 to-transparent pointer-events-none" />
 
-                    <div className="relative z-10 flex-1 flex flex-col justify-center min-h-min">
+                    <div className="relative z-10 flex flex-col md:flex-row md:flex-col justify-between md:justify-center gap-4 md:gap-0 flex-1 min-h-0">
                         <div className="mb-6">
                             <motion.div
                                 initial={{ y: 0 }}
@@ -140,18 +140,18 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                                     Universo 3D
                                 </span>
                             </h2>
-                            <h2 className="text-xl font-black text-slate-800 leading-tight mb-3 md:hidden">
-                                Explora el Univero 3D
+                            <h2 className="text-lg font-black text-slate-800 leading-tight mb-1 md:hidden">
+                                Explora el Universo 3D
                             </h2>
-                            <p className="text-slate-500 leading-relaxed text-xs font-medium">
+                            <p className="text-slate-500 leading-relaxed text-xs font-medium hidden md:block">
                                 ¿No tienes un archivo? <br />
                                 Hay millones de objetos útiles listos para descargar.
                             </p>
                         </div>
                     </div>
 
-                    {/* Pasos Rápidos (Timeline Visual Simplificada & Compacta) */}
-                    <div className="relative z-10 pt-6 border-t border-slate-200 mt-auto">
+                    {/* Pasos Rápidos — ocultos en móvil para ahorrar espacio */}
+                    <div className="relative z-10 pt-4 border-t border-slate-200 mt-4 hidden md:block">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 text-center">SIGUE ESTOS 3 PASOS</p>
 
                         <div className="relative space-y-6 pl-2">
@@ -230,14 +230,14 @@ const DiscoveryPortal = ({ onClose, onUploadClick }) => {
                     </motion.button>
                 </div>
 
-                {/* Columna Derecha: El Grid de Cards */}
-                <div className="flex-1 p-6 md:p-8 bg-slate-50/50 overflow-y-auto custom-scrollbar">
+                {/* Columna Derecha: El Grid de Cards — scroll principal en móvil */}
+                <div className="flex-1 p-4 md:p-8 bg-slate-50/50 overflow-y-auto custom-scrollbar min-h-0">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-brand-primary animate-pulse"></span>
                         Recomendados por Nosotros
                     </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                         {/* MakerWorld - Destacado */}
                         <Card
                             title="MakerWorld"
